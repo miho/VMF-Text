@@ -1,0 +1,175 @@
+apply plugin: 'java'
+
+sourceCompatibility = '1.8'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+repositories {
+    mavenCentral()
+    // You may define additional repositories, or even remove "mavenCentral()".
+    // Read more about repositories here:
+    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:repositories
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.1'
+    distributionUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-all.zip"
+}
+
+
+if (!hasProperty('mainClass')) {
+    ext.mainClass = 'eu.mihosoft.antlrmodeling01.Main'
+}
+
+buildscript {
+    
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+    
+    dependencies {
+        classpath (group: 'org.antlr', name: 'antlr4', version: '4.7')
+        classpath group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
+    }
+}
+
+// -------------------------------
+// VMF Model Gen Config
+// -------------------------------
+
+configurations{
+    vmf {
+        extendsFrom compile
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['build/vmf-src-gen', 'src/main/java']
+        }
+    }
+    vmf {
+        // vmf model sources
+    }
+}
+
+// -------------------------------
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+   
+    compile (group: 'org.antlr', name: 'antlr4', version: '4.7')
+    compile (group: 'org.antlr', name: 'antlr4', version: '4.7', classifier: 'sources')
+
+    compile group: 'org.apache.velocity', name: 'velocity', version: '1.7+'
+
+    vmfCompile group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
+    compile group: 'eu.mihosoft.vmf', name: 'vmf-runtime', version: '0.1-SNAPSHOT'
+}
+
+class AntlrTool extends org.antlr.v4.Tool {
+        public void exit(int e) { throw new Exception(); println("test:" + e) /*System.exit(e);*/ }
+}
+
+task antlr4() {
+    doLast() {
+        def baseDir = projectDir.absolutePath;
+        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/antlrmodeling01/antlr"
+        def libPath = srcPath
+        def outPath = baseDir + "/src/main/java/eu/mihosoft/antlrmodeling01"
+        def grammarFile = srcPath + "/ANTLRv4Parser.g4"
+        def grammarFileDep1 = srcPath + "/ANTLRv4Lexer.g4"
+        def grammarFileDep2 = srcPath + "/LexBasic.g4"
+
+        AntlrTool.main(
+                [grammarFile,
+                 grammarFileDep1,
+                 "-listener", "-visitor",
+                 "-package", "eu.mihosoft.antlrmodeling01",
+                 "-lib",
+                 srcPath,
+                 "-o", outPath] as String[])
+    }
+}
+
+task antlr4TestGrammar() {
+
+    doLast() {
+        def baseDir = projectDir.absolutePath;
+        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/antlrmodeling01/antlr"
+        def libPath = srcPath
+        def outPath = baseDir + "/src/main/java/eu/mihosoft/antlrmodeling01/testGrammar"
+        def grammarFile = srcPath + "/Expr.g4"
+
+        AntlrTool.main(
+                [grammarFile,
+                 "-listener", "-visitor",
+                 "-package", "eu.mihosoft.antlrmodeling01.testGrammar",
+                 "-lib",
+                 srcPath,
+                 "-o", outPath] as String[])
+    }
+}
+
+task antlr4LeftRecursionGrammar() {
+    doLast() {
+        def baseDir = projectDir.absolutePath;
+        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/antlrmodeling01/antlr"
+        def libPath = srcPath
+        def outPath = baseDir + "/src/main/java/eu/mihosoft/antlrmodeling01/leftrecursiontestGrammar"
+        def grammarFile = srcPath + "/MutuallyLeftRecursive.g4"
+
+        AntlrTool.main(
+                [grammarFile,
+                 "-listener", "-visitor",
+                 "-package", "eu.mihosoft.antlrmodeling01.leftrecursiontestGrammar",
+                 "-lib",
+                 srcPath,
+                 "-o", outPath] as String[])
+    }
+}
+
+
+// -------------------------------
+// VMF Model Gen Config
+// -------------------------------
+
+task vmfGenModelSources(dependsOn: [clean, vmfClasses]) {
+
+    // execute the task
+    doLast {
+        def urls = []
+        // add model dependencies
+        for(File clsDir : sourceSets.vmf.output.classesDirs) {
+            urls.add(new File(clsDir.toString())
+                    .toURI().toURL())
+        }
+
+        eu.mihosoft.vmf.VMF.generate(new File("$buildDir/vmf-src-gen"),
+                new URLClassLoader(urls as URL[],
+                        eu.mihosoft.vmf.VMF.class.getClassLoader()),
+                "eu.mihosoft.vmf.lang.grammar.vmfmodel")
+    }
+}
+
+tasks.withType(JavaCompile) {
+    compileTask ->
+        if(!compileTask.name.startsWith("compileVmf")) {
+            compileTask.dependsOn vmfGenModelSources
+        }
+}
+
+clean {
+    doLast {
+        new File("$buildDir/vmf-src-gen/").listFiles().each {
+            f -> f.delete()
+        }
+    }
+}
+
+// -------------------------------

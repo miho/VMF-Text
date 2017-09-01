@@ -1,0 +1,87 @@
+#*
+ * Copyright 2016-2017 Michael Hoffer <info@michaelhoffer.de>. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * If you use this software for scientific research then please cite the following publication(s):
+ *
+ * M. Hoffer, C. Poliwoda, & G. Wittum. (2013). Visual reflection library:
+ * a framework for declarative GUI programming on the Java platform.
+ * Computing and Visualization in Science, 2013, 16(4),
+ * 181–192. http://doi.org/10.1007/s00791-014-0230-y
+ *#
+package ${packageName};
+
+import java.utul.List;
+import java.util.stream.Collectors;
+
+public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
+
+    private ${Util.firstToUpper($model.grammarName)}ModelClass() {
+      throw new AssertionError("Don't instantiate me!");
+    }
+
+    public ${Util.firstToUpper($model.grammarName)}Model convertModel(${model.rootClass().nameWithUpper()}Context ctx) {
+
+      ${Util.firstToUpper($model.grammarName)}Model model = ${Util.firstToUpper($model.grammarName)}Model.newInstance();
+
+      model.set${model.rootClass().nameWithUpper()}(convert(ctx));
+    }
+
+#foreach( $rcls in ${model.ruleClasses} )
+
+    private ${rcls.nameWithUpper()} convert(${rcls.nameWithUpper()}Context ctx) {
+
+        // create model instance
+        ${rcls.nameWithUpper()} ${rcls.nameWithLower()} = ${rcls.nameWithUpper()}.newInstance();
+#foreach( $p in $rcls.properties )
+
+#if($p.type.ruleType)
+#if($p.type.arrayType)
+        // convert elements of rule attribute $rcls.nameWithUpper().$p.nameWithLower()
+        List<${p.type.asJavaTypeNameNoCollections()}> convertedElements = ctx.${p.nameWithLower()}.stream().
+            map(entry->convert(entry)).collect(Collectors.toList());
+        // assign elements to model entity
+        ${rcls.nameWithLower()}.get${p.nameWithUpper()}.addAll(convertedElements);
+#else
+        // convert and assign rule attribute $rcls.nameWithUpper().$p.nameWithLower()
+        // if it is present
+        if(ctx.${p.nameWithLower()}!=null) {
+            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(convert(ctx.${p.nameWithLower()}));
+        }
+#end## if array type
+#else## if rule type
+#if($p.type.arrayType)
+        // convert elements of rule attribute $rcls.nameWithUpper().$p.nameWithLower()
+        // TODO proper conversion of primitives, e.g., lexer rules to int, double etc.
+        List<String> convertedElements = ctx.${p.nameWithLower()}.stream().
+            map(entry->entry.getText()).collect(Collectors.toList());
+        // assign elements to model entity
+        ${rcls.nameWithLower()}.get${p.nameWithUpper()}.addAll(convertedElements);
+#else## if array type
+        // convert and assign rule attribute $rcls.nameWithUpper().$p.nameWithLower()
+        // if it is present
+        if(ctx.${p.nameWithLower()}!=null) {
+            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(ctx.${p.nameWithLower()}.getText());
+        }
+#end## if array type
+#end## if rule type
+#end## foreach property in rule class
+
+        return ${rcls.nameWithLower()};
+    }
+
+#end## foreach rule class
+
+
+}
