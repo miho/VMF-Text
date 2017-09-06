@@ -1,29 +1,26 @@
-package eu.mihosoft.antlrmodeling01;
+package eu.mihosoft.vmf.vmftext;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import eu.mihosoft.vmf.commons.io.JavaFileResourceSet;
-import eu.mihosoft.vmf.commons.io.Resource;
-import eu.mihosoft.vmf.lang.grammar.*;
-import eu.mihosoft.vmf.runtime.core.TraversalListener;
+import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
+import eu.mihosoft.vmf.vmftext.grammar.Property;
+import eu.mihosoft.vmf.vmftext.grammar.RuleClass;
+import eu.mihosoft.vmf.vmftext.grammar.Type;
+import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Lexer;
+import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
+import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4ParserBaseListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.Velocity;
-import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.exception.ResourceNotFoundException;
-import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 
 public class Main {

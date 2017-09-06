@@ -20,47 +20,30 @@
  * Computing and Visualization in Science, 2013, 16(4),
  * 181–192. http://doi.org/10.1007/s00791-014-0230-y
  */
-package eu.mihosoft.vmf.commons.io;
+package eu.mihosoft.vmf.vmftext.io;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+
 /**
- * 
  * @author Sam
  * @author Michael Hoffer (info@michaelhoffer.de)
  */
-public class FileResource implements Resource {
+public interface Resource extends AutoCloseable {
 
     //
     // thanks to Sam for designing this interface
     //
-    private final File file;
-    private FileWriter fileWriter;
-
-    FileResource(File file) {
-        this.file = file;
-    }
 
     /**
-     * Returns the file object associated with this resource set.
-     * @return file object
+     * Opens this resource.
+     * @return print writer for writing to this resource.
+     * @throws IOException if an I/O related problem prevents this operation
      */
-    public File getFile() {
-        return this.file;
-    }
+    PrintWriter open() throws IOException;
 
     @Override
-    public PrintWriter open() throws IOException {
-
-        return new PrintWriter(fileWriter = new FileWriter(file));
-    }
-
-    @Override
-    public void close() throws IOException {
-        fileWriter.close();
-    }
+    void close() throws IOException;
 
 }

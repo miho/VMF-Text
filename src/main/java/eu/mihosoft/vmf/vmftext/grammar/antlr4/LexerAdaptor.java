@@ -1,4 +1,4 @@
-package eu.mihosoft.antlrmodeling01;
+package eu.mihosoft.vmf.vmftext.grammar.antlr4;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Lexer;

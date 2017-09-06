@@ -1,4 +1,6 @@
-package eu.mihosoft.antlrmodeling01;
+package eu.mihosoft.vmf.vmftext;
+
+import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
 
 public class ParseTreeUtil {
 

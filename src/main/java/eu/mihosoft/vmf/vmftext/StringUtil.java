@@ -1,4 +1,4 @@
-package eu.mihosoft.antlrmodeling01;
+package eu.mihosoft.vmf.vmftext;
 
 public class StringUtil {
 

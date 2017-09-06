@@ -1,8 +1,8 @@
-package eu.mihosoft.antlrmodeling01;
+package eu.mihosoft.vmf.vmftext;
 
-import eu.mihosoft.vmf.commons.io.JavaFileResourceSet;
-import eu.mihosoft.vmf.commons.io.Resource;
-import eu.mihosoft.vmf.lang.grammar.GrammarModel;
+import eu.mihosoft.vmf.vmftext.io.JavaFileResourceSet;
+import eu.mihosoft.vmf.vmftext.io.Resource;
+import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
@@ -22,7 +22,7 @@ public class ModelGenerator {
 //    }
 
     private VelocityEngine engine;
-    private static final String TEMPLATE_PATH="/eu/mihosoft/antlrmodeling01/vmtemplates/";
+    private static final String TEMPLATE_PATH="/eu/mihosoft/vmf/vmftext/vmtemplates/";
 
     /**
      * Creates a velocity engine with all necessary defaults required by this code generator.

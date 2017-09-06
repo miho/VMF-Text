@@ -1,7 +1,7 @@
-package eu.mihosoft.antlrmodeling01;
+package eu.mihosoft.vmf.vmftext;
 
-import eu.mihosoft.vmf.commons.io.Resource;
-import eu.mihosoft.vmf.lang.grammar.GrammarModel;
+import eu.mihosoft.vmf.vmftext.io.Resource;
+import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.apache.velocity.runtime.RuntimeConstants;
