@@ -79,9 +79,9 @@ class AntlrTool extends org.antlr.v4.Tool {
 task antlr4() {
     doLast() {
         def baseDir = projectDir.absolutePath;
-        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/antlrmodeling01/antlr"
+        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
         def libPath = srcPath
-        def outPath = baseDir + "/src/main/java/eu/mihosoft/antlrmodeling01"
+        def outPath = baseDir + "/src/main/java/eu/mihosoft/vmf/vmftext/grammar/antlr4"
         def grammarFile = srcPath + "/ANTLRv4Parser.g4"
         def grammarFileDep1 = srcPath + "/ANTLRv4Lexer.g4"
         def grammarFileDep2 = srcPath + "/LexBasic.g4"
@@ -90,7 +90,7 @@ task antlr4() {
                 [grammarFile,
                  grammarFileDep1,
                  "-listener", "-visitor",
-                 "-package", "eu.mihosoft.antlrmodeling01",
+                 "-package", "eu.mihosoft.vmf.vmftext.grammar.antlr4",
                  "-lib",
                  srcPath,
                  "-o", outPath] as String[])
@@ -116,24 +116,6 @@ task antlr4TestGrammar() {
     }
 }
 
-task antlr4LeftRecursionGrammar() {
-    doLast() {
-        def baseDir = projectDir.absolutePath;
-        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/antlrmodeling01/antlr"
-        def libPath = srcPath
-        def outPath = baseDir + "/src/main/java/eu/mihosoft/antlrmodeling01/leftrecursiontestGrammar"
-        def grammarFile = srcPath + "/MutuallyLeftRecursive.g4"
-
-        AntlrTool.main(
-                [grammarFile,
-                 "-listener", "-visitor",
-                 "-package", "eu.mihosoft.antlrmodeling01.leftrecursiontestGrammar",
-                 "-lib",
-                 srcPath,
-                 "-o", outPath] as String[])
-    }
-}
-
 
 // -------------------------------
 // VMF Model Gen Config
@@ -153,7 +135,7 @@ task vmfGenModelSources(dependsOn: [clean, vmfClasses]) {
         eu.mihosoft.vmf.VMF.generate(new File("$buildDir/vmf-src-gen"),
                 new URLClassLoader(urls as URL[],
                         eu.mihosoft.vmf.VMF.class.getClassLoader()),
-                "eu.mihosoft.vmf.lang.grammar.vmfmodel")
+                "eu.mihosoft.vmf.vmftext.grammar.vmfmodel")
     }
 }
 
