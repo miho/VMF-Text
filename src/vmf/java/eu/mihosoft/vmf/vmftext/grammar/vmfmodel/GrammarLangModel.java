@@ -1,4 +1,4 @@
-package eu.mihosoft.vmf.lang.grammar.vmfmodel;
+package eu.mihosoft.vmf.vmftext.grammar.vmfmodel;
 
 import eu.mihosoft.vmf.core.*;
 
@@ -9,10 +9,10 @@ interface GrammarModel {
 
     String getGrammarName();
 
-    @DelegateTo(className = "eu.mihosoft.vmf.lang.grammar.GetRootClassDelegate")
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.GetRootClassDelegate")
     boolean hasRootClass();
 
-    @DelegateTo(className = "eu.mihosoft.vmf.lang.grammar.GetRootClassDelegate")
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.GetRootClassDelegate")
     RuleClass rootClass();
 }
 
@@ -52,13 +52,13 @@ interface WithName extends LangElement {
 @Immutable
 interface Type extends LangElement, WithName {
 
-    @DelegateTo(className = "eu.mihosoft.vmf.lang.grammar.TypeNameDelegate")
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeNameDelegate")
     String nameWithUpper();
 
-    @DelegateTo(className = "eu.mihosoft.vmf.lang.grammar.TypeNameDelegate")
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeNameDelegate")
     String asModelTypeName();
 
-    @DelegateTo(className = "eu.mihosoft.vmf.lang.grammar.TypeNameDelegate")
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeNameDelegate")
     String asJavaTypeNameNoCollections();
 
     String getPackageName();
@@ -69,10 +69,10 @@ interface Type extends LangElement, WithName {
 
 interface RuleClass extends WithName, CodeElement {
 
-    @DelegateTo(className = "eu.mihosoft.vmf.lang.grammar.NameDelegate")
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.NameDelegate")
     String nameWithUpper();
 
-    @DelegateTo(className = "eu.mihosoft.vmf.lang.grammar.NameDelegate")
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.NameDelegate")
     String nameWithLower();
 
     @Contains(opposite = "ruleClasses")
@@ -94,10 +94,10 @@ interface Property extends WithName, WithType, CodeElement {
     @Container(opposite = "properties")
     RuleClass getParent();
 
-    @DelegateTo(className = "eu.mihosoft.vmf.lang.grammar.NameDelegate")
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.NameDelegate")
     String nameWithUpper();
 
-    @DelegateTo(className = "eu.mihosoft.vmf.lang.grammar.NameDelegate")
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.NameDelegate")
     String nameWithLower();
 
     Type getType();

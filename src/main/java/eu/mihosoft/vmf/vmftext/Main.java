@@ -15,10 +15,7 @@ import eu.mihosoft.vmf.vmftext.grammar.Type;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Lexer;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4ParserBaseListener;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
@@ -48,6 +45,8 @@ public class Main {
 
         walker.walk(grammarToModelListener, tree);
 
+        walker.walk(new GrammarToRuleMatcherListener(tokens), tree);
+
         GrammarModel model = grammarToModelListener.getModel();
 
         processGrammarModel(model);
@@ -59,76 +58,86 @@ public class Main {
 
         ModelGenerator generator = new ModelGenerator();
         generator.generate(model);
-
-//        System.out.println("interface " + firstToUpper(model.getGrammarName()) + "Model {");
-//        if(!model.getRuleClasses().isEmpty()) {
-//            System.out.println("  " + firstToUpper(model.getRuleClasses().get(0).getName())
-//                    + " getRoot();");
-//        }
-//        System.out.println("}");
-//
-//        for (RuleClass rcls : model.getRuleClasses()) {
-//            String superClassString;
-//
-//            if (rcls.getSuperClass() != null) {
-//                superClassString = " extends " + firstToUpper(rcls.getSuperClass().getName());
-//            } else {
-//                superClassString = "";
-//            }
-//
-//            System.out.println("interface " + firstToUpper(rcls.getName()) + superClassString + " {");
-//
-//            for(Property prop : rcls.getProperties()) {
-//
-//                System.out.println("  "+(prop.getType().getPackageName().isEmpty()?"":prop.getType().getPackageName()+".")
-//                        + firstToUpper(prop.getType().getName())
-//                        + (prop.getType().isArrayType()?"[]":"")
-//                        + " get" + firstToUpper(prop.getName())+"();");
-//            }
-//
-//            System.out.println("}");
-//        }
     }
-
-
-
-//    private static void emitGrammarBindingCode(GrammarModel model) {
-//        System.out.println("class ModelListener extends " + model.getGrammarName()+"BaseListener {");
-//
-//        String modelInterfaceName = firstToUpper(model.getGrammarName()) + "Model";
-//
-//        System.out.println("  private final " + modelInterfaceName + " model;");
-//
-//        System.out.println("  public ModelListener("+modelInterfaceName+"model) { this.model = model; }");
-//        System.out.println("  public " + modelInterfaceName + " getModel() {return this.model;}");
-//
-//        String parserName = firstToUpper(model.getGrammarName())+"Parser";
-//
-//        for (RuleClass rcls : model.getRuleClasses()) {
-//
-//            String rclsName = firstToUpper(rcls.getName());
-//
-//            System.out.println("  @Override");
-//            System.out.println("  public void exit"+firstToUpper(rcls.getName()) + "( " + parserName + "."+rclsName+"Context ctx) {");
-//
-//            System.out.println("    " + rclsName + " " + rcls.getName() + "=" + rclsName+".newInstance():");
-//            System.out.println("    getModel().get");
-//
-//            for(Property p : rcls.getProperties()) {
-//                if(!p.getType().isRuleType() && !p.getType().isArrayType()) {
-//                    //System.out.println("ctx." + p.getName() +);
-//                }
-//            }
-//            System.out.println("  }");
-//        }
-//    }
-
-
 
     static String firstToUpper (String name) {
         return name.substring(0,1).toUpperCase()+name.substring(1);
     }
+}
 
+class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
+
+    private TokenStream stream;
+
+    private String currentRuleName;
+    private ANTLRv4Parser.AlternativeContext insideAlternative = null;
+
+    private boolean currentAltIsLabeled = false;
+
+    private final Map<String, Integer> rulesAltNames = new HashMap<>();
+
+
+    public GrammarToRuleMatcherListener(TokenStream stream) {
+        this.stream = stream;
+    }
+
+    private int newRuleAltIndex(String ruleName) {
+        Integer id = rulesAltNames.get(ruleName);
+
+        if(id==null) {
+            id = 0;
+
+        } else {
+            id++;
+        }
+
+        rulesAltNames.put(ruleName, id);
+
+        return id;
+    }
+
+    @Override
+    public void enterAlternative(ANTLRv4Parser.AlternativeContext ctx) {
+
+        if(insideAlternative==null) {
+            insideAlternative = ctx;
+
+            int ruleAltIndex = newRuleAltIndex(currentRuleName);
+
+            System.out.print(currentRuleName + "_alt_rule_" + ruleAltIndex + " : ");
+
+            System.out.print(stream.getText(ctx.getSourceInterval()));
+
+            System.out.println();
+
+            ctx.element().stream().
+                    filter(e -> ParseTreeUtil.isLabeledElement(e)).filter(e -> ParseTreeUtil.isLexerRule(e)||ParseTreeUtil.isRuleBlock(e)).
+                    forEach(e -> {
+                        System.out.print(currentRuleName + "_alt_" + ruleAltIndex + "_prop_rule_" + e.labeledElement().identifier().getText() + " : ");
+
+                        System.out.println(stream.getText(e.getSourceInterval()));
+            });
+
+            System.out.println();
+        }
+
+        super.enterAlternative(ctx);
+    }
+
+    @Override
+    public void exitAlternative(ANTLRv4Parser.AlternativeContext ctx) {
+        if(insideAlternative == ctx){
+            insideAlternative = null;
+        }
+
+        super.exitAlternative(ctx);
+    }
+
+    @Override
+    public void enterParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
+        currentRuleName = ctx.RULE_REF().getText();
+        super.enterParserRuleSpec(ctx);
+    }
 }
 
 class GrammarToModelListener extends ANTLRv4ParserBaseListener {

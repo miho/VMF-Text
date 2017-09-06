@@ -39,7 +39,11 @@ interface ScopeInvocation extends Invocation {
 
 */
 
-program: classes += clazz*;
+program: classes += clazz* testElems+=elem;
+
+elem: 'elem' name=(IDENTIFIER | INT)
+     |'elem' id=INT
+     ;
 
 clazz: 'class' name=IDENTIFIER '{'
 

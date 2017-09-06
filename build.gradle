@@ -78,10 +78,10 @@ class AntlrTool extends org.antlr.v4.Tool {
 
 task antlr4() {
     doLast() {
-        def baseDir = projectDir.absolutePath;
+        def baseDir = projectDir.absolutePath
         def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
         def libPath = srcPath
-        def outPath = baseDir + "/src/main/java/eu/mihosoft/vmf/vmftext/grammar/antlr4"
+        def outPath = baseDir + "/build/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/antlr4"
         def grammarFile = srcPath + "/ANTLRv4Parser.g4"
         def grammarFileDep1 = srcPath + "/ANTLRv4Lexer.g4"
         def grammarFileDep2 = srcPath + "/LexBasic.g4"
@@ -91,25 +91,6 @@ task antlr4() {
                  grammarFileDep1,
                  "-listener", "-visitor",
                  "-package", "eu.mihosoft.vmf.vmftext.grammar.antlr4",
-                 "-lib",
-                 srcPath,
-                 "-o", outPath] as String[])
-    }
-}
-
-task antlr4TestGrammar() {
-
-    doLast() {
-        def baseDir = projectDir.absolutePath;
-        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/antlrmodeling01/antlr"
-        def libPath = srcPath
-        def outPath = baseDir + "/src/main/java/eu/mihosoft/antlrmodeling01/testGrammar"
-        def grammarFile = srcPath + "/Expr.g4"
-
-        AntlrTool.main(
-                [grammarFile,
-                 "-listener", "-visitor",
-                 "-package", "eu.mihosoft.antlrmodeling01.testGrammar",
                  "-lib",
                  srcPath,
                  "-o", outPath] as String[])
