@@ -46,7 +46,7 @@ configurations{
 sourceSets {
     main {
         java {
-            srcDirs = ['build/vmf-src-gen', 'src/main/java']
+            srcDirs = ['build/vmf-src-gen', 'build/antlr4-src-gen', 'src/main/java']
         }
     }
     vmf {
