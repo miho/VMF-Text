@@ -39,10 +39,10 @@ interface ScopeInvocation extends Invocation {
 
 */
 
-program: classes += clazz* testElems+=elem;
+program: classes += clazz* testElems=elem+;
 
 elem: 'elem' name=(IDENTIFIER | INT)
-     |'elem' id=INT
+     |'elem' (id=INT | id2 = IDENTIFIER) // TODO collect nested alternatives for the parser^{-1} (inverse, unparser)
      ;
 
 clazz: 'class' name=IDENTIFIER '{'

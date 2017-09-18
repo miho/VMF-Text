@@ -97,6 +97,24 @@ task antlr4() {
     }
 }
 
+task antlr4test() {
+    doLast() {
+        def baseDir = projectDir.absolutePath
+        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def libPath = srcPath
+        def outPath = baseDir + "/build/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/antlr4test"
+        def grammarFile = srcPath + "/GrammarVMF2.g4"
+
+        AntlrTool.main(
+                [grammarFile,
+                 "-listener", "-visitor",
+                 "-package", "eu.mihosoft.vmf.vmftext.grammar.antlr4test",
+                 "-lib",
+                 srcPath,
+                 "-o", outPath] as String[])
+    }
+}
+
 
 // -------------------------------
 // VMF Model Gen Config

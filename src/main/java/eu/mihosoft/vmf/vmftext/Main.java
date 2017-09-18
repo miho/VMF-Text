@@ -169,7 +169,11 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
             throw new IllegalArgumentException("Cannot convert unlabeled element to property.");
         }
 
-        boolean isListType = e.labeledElement().PLUS_ASSIGN()!=null;
+        boolean hasEBNF = e.ebnfSuffix() !=null;
+
+        // an element is a list type if it is assigned via '+=' and/or if the elements ebnf suffix is '*' or '+'
+        boolean isListType = e.labeledElement().PLUS_ASSIGN()!=null
+                || (hasEBNF && (e.ebnfSuffix().PLUS()!=null || e.ebnfSuffix().STAR()!=null));
 
         Property property = Property.newInstance();
         property.setName(e.labeledElement().identifier().getText());
