@@ -73,7 +73,7 @@ dependencies {
 }
 
 class AntlrTool extends org.antlr.v4.Tool {
-        public void exit(int e) { throw new Exception(); println("test:" + e) /*System.exit(e);*/ }
+        public void exit(int e) {}
 }
 
 task antlr4() {

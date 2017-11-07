@@ -2,6 +2,8 @@ package eu.mihosoft.vmf.vmftext;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +19,7 @@ import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4ParserBaseListener;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.antlr.v4.tool.Grammar;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 
@@ -26,6 +29,25 @@ public class Main {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws IOException {
+
+        class AntlrTool extends org.antlr.v4.Tool {
+            public void exit(int e) { }
+
+            public Writer getOutputFileWriter(Grammar g, String fileName) {
+                return new StringWriter();
+            }
+        }
+
+//        AntlrTool.main(
+//                new String[]{
+//                "myGrammar.g4",
+//                "-listener",
+//                "-package", "eu.mihosoft.vmf.vmftext.grammar.antlr4",
+//                "-lib",
+//                "srcPath",
+//                "-o", "outPath"}
+//        );
+
 
         InputStream codeStream = Main.class.getResourceAsStream(
                 "antlr/GrammarVMF2.g4");
