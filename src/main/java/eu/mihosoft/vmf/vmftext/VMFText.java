@@ -181,12 +181,8 @@ public class VMFText {
 //                outputDir.mkdirs();
 //            }
 
-            System.out.println("out-file: " + fileName);
-
             String url = genPackage.replace('.','/')+
                     "/"+fileName;
-
-            System.out.println("out-url: " + url);
 
             Resource res = getOutput().open(url);
             openedResources.add(res);

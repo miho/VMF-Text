@@ -69,6 +69,7 @@ interface Type extends LangElement, WithName {
     boolean isArrayType();
 }
 
+@DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.CheckPropertiesDelegate")
 interface RuleClass extends WithName, CodeElement {
 
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.NameDelegate")

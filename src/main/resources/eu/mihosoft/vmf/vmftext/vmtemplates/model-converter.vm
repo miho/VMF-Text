@@ -71,6 +71,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
 
     private ${rcls.nameWithUpper()} convert(${rcls.nameWithUpper()}Context ctx) {
 
+#if($rcls.getChildClasses().isEmpty())
+
         // create model instance
         ${rcls.nameWithUpper()} ${rcls.nameWithLower()} = ${rcls.nameWithUpper()}.newInstance();
 #foreach( $p in $rcls.properties )
@@ -108,7 +110,22 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
 #end## foreach property in rule class
 
         return ${rcls.nameWithLower()};
+
+#else## ?
+        // -- BEGIN: delegate to labeled alternatives (child rule classes)
+#foreach( $r in $rcls.childClasses )
+        if(ctx instanceof ${r.nameWithUpper()}Context) {
+            return convert((${r.nameWithUpper()}Context)ctx);
+        }
+#end## for-each child rule
+        // -- END: delegate to labeled alternatives (child rule classes)
+
+        // TODO 08.11.2017 prevent this from happening. The current design does not use rules with alt labeled directly but
+        //                 only sub classes
+        return ${rcls.nameWithUpper()}.newInstance();
+#end## ?
     }
+
 
 #end## foreach rule class
 
