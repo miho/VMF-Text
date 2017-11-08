@@ -174,15 +174,19 @@ public class VMFText {
 
             // output directory is a function of where the grammar file lives
             // for subdir/T.g4, you get subdir here.  Well, depends on -o etc...
-            File outputDir = getOutputDirectory(g.fileName);
-            File outputFile = new File(outputDir, fileName);
+//            File outputDir = getOutputDirectory(g.fileName);
+//            File outputFile = new File(outputDir, fileName);
 
 //            if (!outputDir.exists()) {
 //                outputDir.mkdirs();
 //            }
 
+            System.out.println("out-file: " + fileName);
+
             String url = genPackage.replace('.','/')+
-                    "/"+outputFile.getAbsolutePath();
+                    "/"+fileName;
+
+            System.out.println("out-url: " + url);
 
             Resource res = getOutput().open(url);
             openedResources.add(res);
