@@ -9,6 +9,8 @@ interface GrammarModel {
 
     String getGrammarName();
 
+    String getPackageName();
+
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.GetRootClassDelegate")
     boolean hasRootClass();
 

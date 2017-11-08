@@ -1,6 +1,6 @@
 package eu.mihosoft.vmf.vmftext;
 
-import eu.mihosoft.vmf.vmftext.io.Resource;
+import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.exception.ResourceNotFoundException;

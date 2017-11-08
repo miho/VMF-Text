@@ -1,13 +1,13 @@
 package eu.mihosoft.vmf.vmftext;
 
-import eu.mihosoft.vmf.vmftext.io.JavaFileResourceSet;
-import eu.mihosoft.vmf.vmftext.io.Resource;
+
+import eu.mihosoft.vmf.core.io.Resource;
+import eu.mihosoft.vmf.core.io.ResourceSet;
 import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 
@@ -16,10 +16,6 @@ public class ModelGenerator {
     public ModelGenerator() {
         //
     }
-
-//    private ModelGenerator() {
-//        throw new AssertionError("Don't instantiate me!");
-//    }
 
     private VelocityEngine engine;
     private static final String TEMPLATE_PATH="/eu/mihosoft/vmf/vmftext/vmtemplates/";
@@ -37,7 +33,8 @@ public class ModelGenerator {
         return engine;
     }
 
-    private static void generateModelDefinition(Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
+    private static void generateModelDefinition(
+            Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
         VelocityContext context = new VelocityContext();
         context.put("model", model);
         context.put("TEMPLATE_PATH",TEMPLATE_PATH);
@@ -47,7 +44,8 @@ public class ModelGenerator {
         mergeTemplate("model-parser", engine, context, out);
     }
 
-    private static void generateModelConverter(Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
+    private static void generateModelConverter(
+            Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
         VelocityContext context = new VelocityContext();
         context.put("model", model);
         context.put("TEMPLATE_PATH",TEMPLATE_PATH);
@@ -65,7 +63,8 @@ public class ModelGenerator {
      * @param out writer to use for code generation
      * @throws IOException if the code generation fails due to I/O related problems
      */
-    private static void mergeTemplate(String templateName, VelocityEngine engine, VelocityContext ctx, Writer out) throws IOException {
+    private static void mergeTemplate(
+            String templateName, VelocityEngine engine, VelocityContext ctx, Writer out) throws IOException {
         String path = resolveTemplatePath(templateName);
         engine.mergeTemplate(path, "UTF-8", ctx, out);
     }
@@ -75,21 +74,20 @@ public class ModelGenerator {
         return TEMPLATE_PATH+path+".vm";
     }
 
-    public void generate(GrammarModel model) {
-
-        JavaFileResourceSet fileset = new JavaFileResourceSet(new File("build/tmp"));
+    public void generate(GrammarModel model, ResourceSet fileset) {
 
         if(engine==null) {
             engine = createDefaultEngine();
         }
 
-        try (Resource resource = fileset.open("mypackage."+model.getGrammarName() + "Model")) {
+        try (Resource resource =
+                     fileset.open(model.getPackageName()+".vmfmodel."+model.getGrammarName() + "Model")) {
 
             Writer w = resource.open();
 
-            generateModelDefinition(w, engine, "mypackage", model);
-            w.write("// -----------------------------------------------------");
-            generateModelConverter(w, engine,"mypackage", model);
+            generateModelDefinition(w, engine, model.getPackageName()+".vmfmodel", model);
+
+            // generateModelConverter(w, engine,model.getPackageName()+".vmfmodel", model);
 
         } catch (IOException e) {
             e.printStackTrace();

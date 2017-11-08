@@ -1,3 +1,5 @@
+import org.antlr.v4.tool.ErrorType
+
 apply plugin: 'java'
 
 sourceCompatibility = '1.8'
@@ -11,7 +13,7 @@ repositories {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '4.1'
+    gradleVersion = '4.3'
     distributionUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-all.zip"
 }
 
@@ -69,11 +71,44 @@ dependencies {
     compile group: 'org.apache.velocity', name: 'velocity', version: '1.7+'
 
     vmfCompile group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
+    compile group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
     compile group: 'eu.mihosoft.vmf', name: 'vmf-runtime', version: '0.1-SNAPSHOT'
+
+    compile group: 'org.mdkt.compiler', name: 'InMemoryJavaCompiler', version: '1.3.0'
+
+    compile group: 'org.codehaus.groovy', name: 'groovy', version: '2.4.12'
 }
 
 class AntlrTool extends org.antlr.v4.Tool {
-        public void exit(int e) {}
+    public AntlrTool(String[] args) {
+        super(args);
+    }
+    public void exit(int e) {}
+    public static void main(String[] args) {
+        AntlrTool antlr = new AntlrTool(args);
+        if ( args.length == 0 ) { antlr.help(); antlr.exit(0); }
+
+        try {
+            antlr.processGrammarsOnCommandLine();
+        }
+        finally {
+            if ( antlr.log ) {
+                try {
+                    String logname = antlr.logMgr.save();
+                    System.out.println("wrote "+logname);
+                }
+                catch (IOException ioe) {
+                    antlr.errMgr.toolError(ErrorType.INTERNAL_ERROR, ioe);
+                }
+            }
+        }
+        if ( antlr.return_dont_exit ) return;
+
+        if (antlr.errMgr.getNumErrors() > 0) {
+            antlr.exit(1);
+        }
+        antlr.exit(0);
+    }
 }
 
 task antlr4() {
@@ -91,6 +126,22 @@ task antlr4() {
                  grammarFileDep1,
                  "-listener", "-visitor",
                  "-package", "eu.mihosoft.vmf.vmftext.grammar.antlr4",
+                 "-lib",
+                 srcPath,
+                 "-o", outPath] as String[])
+    }
+
+    doLast() {
+        def baseDir = projectDir.absolutePath
+        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def libPath = srcPath
+        def outPath = baseDir + "/build/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/java9"
+        def grammarFile = srcPath + "/Java9.g4"
+
+        AntlrTool.main(
+                [grammarFile,
+                 "-listener", "-visitor",
+                 "-package", "eu.mihosoft.vmf.vmftext.grammar.java9",
                  "-lib",
                  srcPath,
                  "-o", outPath] as String[])
