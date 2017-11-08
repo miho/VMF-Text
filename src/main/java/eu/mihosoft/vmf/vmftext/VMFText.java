@@ -31,6 +31,14 @@ public class VMFText {
         throw new AssertionError("Don't instantiate me!");
     }
 
+    //    public static void generate(String grammars, ResourceSet outputDir) {
+//
+//    }
+
+    public static void generate(File grammar, String packageName, File outputDir) {
+        generate(grammar, packageName, new FileResourceSet(outputDir));
+    }
+
 
     public static void generate(File grammar, String packageName, ResourceSet outputDir) {
 
@@ -129,13 +137,7 @@ public class VMFText {
         return grammarToModelListener.getModel();
     }
 
-//    public static void generate(String grammars, ResourceSet outputDir) {
-//
-//    }
 
-    public static void generateFile(File grammar, String packageName, File outputDir) {
-        generate(grammar, packageName, new FileResourceSet(outputDir));
-    }
 
     private static class AntlrTool extends org.antlr.v4.Tool {
 

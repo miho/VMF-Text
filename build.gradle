@@ -1,15 +1,46 @@
 import org.antlr.v4.tool.ErrorType
+import java.text.SimpleDateFormat
+
+buildscript {
+
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+
+    dependencies {
+        classpath (group: 'org.antlr', name: 'antlr4', version: '4.7')
+        classpath group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
+    }
+}
+
+plugins {
+    id 'com.github.hierynomus.license' version '0.14.0'
+    id 'maven-publish'
+    id 'net.nemerosa.versioning' version '2.4.0'
+    id 'com.jfrog.bintray' version '1.7.2'
+    id 'com.github.ben-manes.versions' version '0.13.0'
+}
 
 apply plugin: 'java'
+apply from: 'gradle/publishing.gradle'
 
 sourceCompatibility = '1.8'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
+tasks.withType(JavaCompile) {
+//    options.compilerArgs << "-Xlint:unchecked" << "-Werror"
+//    options.compilerArgs << "-Xlint:deprecation" << "-Werror"
+}
+
+tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
 repositories {
     mavenCentral()
-    // You may define additional repositories, or even remove "mavenCentral()".
-    // Read more about repositories here:
-    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:repositories
+    jcenter()
+    mavenLocal()
 }
 
 task wrapper(type: Wrapper) {
@@ -22,18 +53,7 @@ if (!hasProperty('mainClass')) {
     ext.mainClass = 'eu.mihosoft.antlrmodeling01.Main'
 }
 
-buildscript {
-    
-    repositories {
-        mavenCentral()
-        mavenLocal()
-    }
-    
-    dependencies {
-        classpath (group: 'org.antlr', name: 'antlr4', version: '4.7')
-        classpath group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
-    }
-}
+
 
 // -------------------------------
 // VMF Model Gen Config
@@ -111,12 +131,20 @@ class AntlrTool extends org.antlr.v4.Tool {
     }
 }
 
-task antlr4() {
+task cleanAntlr {
+    doLast {
+        new File("$buildDir/antlr4-src-gen/").listFiles().each {
+            f -> f.delete()
+        }
+    }
+}
+
+task antlr4(dependsOn: ['cleanAntlr','vmfGenModelSources']) {
     doLast() {
         def baseDir = projectDir.absolutePath
         def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
         def libPath = srcPath
-        def outPath = baseDir + "/build/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/antlr4"
+        def outPath = baseDir + "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/antlr4"
         def grammarFile = srcPath + "/ANTLRv4Parser.g4"
         def grammarFileDep1 = srcPath + "/ANTLRv4Lexer.g4"
         def grammarFileDep2 = srcPath + "/LexBasic.g4"
@@ -143,7 +171,7 @@ task antlr4() {
                  "-listener", "-visitor",
                  "-package", "eu.mihosoft.vmf.vmftext.grammar.java9",
                  "-lib",
-                 srcPath,
+                 libPath,
                  "-o", outPath] as String[])
     }
 }
@@ -171,7 +199,15 @@ task antlr4test() {
 // VMF Model Gen Config
 // -------------------------------
 
-task vmfGenModelSources(dependsOn: [clean, vmfClasses]) {
+task cleanVmf {
+    doLast {
+        new File("$buildDir/vmf-src-gen/").listFiles().each {
+            f -> f.delete()
+        }
+    }
+}
+
+task vmfGenModelSources(dependsOn: [cleanVmf, vmfClasses]) {
 
     // execute the task
     doLast {
@@ -192,16 +228,24 @@ task vmfGenModelSources(dependsOn: [clean, vmfClasses]) {
 tasks.withType(JavaCompile) {
     compileTask ->
         if(!compileTask.name.startsWith("compileVmf")) {
-            compileTask.dependsOn vmfGenModelSources
+            compileTask.dependsOn(['vmfGenModelSources', 'antlr4'])
         }
-}
-
-clean {
-    doLast {
-        new File("$buildDir/vmf-src-gen/").listFiles().each {
-            f -> f.delete()
-        }
-    }
 }
 
 // -------------------------------
+
+license {
+    header = rootProject.file('config/HEADER')
+    strictCheck = true
+    ignoreFailures = true
+    mapping {
+        java   = 'SLASHSTAR_STYLE'
+        groovy = 'SLASHSTAR_STYLE'
+        fxml   = 'XML_STYLE'
+    }
+    ext.yearSince1   = '2017'
+    ext.yearCurrent  = new SimpleDateFormat("yyyy").format(new Date())
+    ext.author1 = 'Michael Hoffer <info@michaelhoffer.de>'
+    exclude '**/*.svg'
+}
+

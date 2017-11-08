@@ -1,0 +1,25 @@
+// -----------------------------------------------------------------------------
+// publishing information
+// -----------------------------------------------------------------------------
+ext.publishing.artifactId =  project.name.toLowerCase()
+ext.publishing.groupId    =  'eu.mihosoft.vmf'
+ext.publishing.versionId  =  '0.1-SNAPSHOT'
+
+ext.publishing.developerName         = 'Michael Hoffer'
+ext.publishing.developerAlias        = 'miho'
+ext.publishing.developerEmail        = 'info@michaelhoffer.de'
+ext.publishing.inceptionYear         = '2017'
+
+ext.publishing.bintray.repo          = 'VMF'
+ext.publishing.bintray.userOrg       = 'miho'
+ext.publishing.bintray.name          = project.name
+
+ext.publishing.desc                  = 'VMF-Text is a lightweight framework for creating models, dsls and even fully functional languages ( based on VMF, the VRL Modeling Framework)'
+ext.publishing.license               = 'UNDEFINED'
+ext.publishing.licenseUrl            = 'UNDEFINED'
+ext.publishing.labels                = ['vmf-text', 'dsl', 'compiler', 'vmf', 'modeling', 'data model', 'vrl', 'modeling framework']
+ext.publishing.websiteUrl            = 'UNDEFINED'
+ext.publishing.issueTrackerUrl       = 'UNDEFINED'
+ext.publishing.vcsUrl                = 'UNDEFINED'
+
+ext.publishing.pomName               =  ext.publishing.artifactId
