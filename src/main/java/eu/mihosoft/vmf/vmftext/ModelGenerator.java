@@ -46,10 +46,11 @@ public class ModelGenerator {
     }
 
     private static void generateModelConverter(
-            Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
+            Writer out, VelocityEngine engine, String modelPackageName, String packageName, GrammarModel model) throws IOException {
         VelocityContext context = new VelocityContext();
         context.put("model", model);
         context.put("TEMPLATE_PATH",TEMPLATE_PATH);
+        context.put("modelPackageName", modelPackageName);
         context.put("packageName", packageName);
         context.put("Util", StringUtil.class);
 
@@ -103,10 +104,10 @@ public class ModelGenerator {
 
         try (Resource resource =
                      fileset.open(TypeUtil.computeFileNameFromJavaFQN(
-                             model.getPackageName()+".parser."+model.getGrammarName() + "Converter"))) {
+                             model.getPackageName()+".parser."+model.getGrammarName() + "ModelConverter"))) {
 
             Writer w = resource.open();
-            generateModelConverter(w, engine,model.getPackageName()+".parser", model);
+            generateModelConverter(w, engine, model.getPackageName(), model.getPackageName()+".parser", model);
         } catch (IOException e) {
             e.printStackTrace();
         }

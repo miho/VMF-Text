@@ -72,8 +72,6 @@ public class VMFText {
 
             generateModelCode(outputDir, modelGenCode);
 
-            System.exit(0);
-
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {

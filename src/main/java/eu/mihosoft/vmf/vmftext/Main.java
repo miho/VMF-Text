@@ -36,32 +36,6 @@ public class Main {
                 "me.p12345678",
                 outRes);
 
-//        System.exit(0);
-//
-//        InputStream codeStream = Main.class.getResourceAsStream(
-//                "antlr/GrammarVMF2.g4");
-//
-//        CharStream input = CharStreams.fromStream(codeStream);
-//
-//        ANTLRv4Lexer lexer = new ANTLRv4Lexer(input);
-//        CommonTokenStream tokens = new CommonTokenStream(lexer);
-//        ANTLRv4Parser parser = new ANTLRv4Parser(tokens);
-//
-//        ParserRuleContext tree = parser.grammarSpec();
-//
-//        ParseTreeWalker walker = new ParseTreeWalker();
-//
-//        GrammarToModelListener grammarToModelListener =
-//                new GrammarToModelListener();
-//
-//        walker.walk(grammarToModelListener, tree);
-//
-//        walker.walk(new GrammarToRuleMatcherListener(tokens), tree);
-//
-//        GrammarModel model = grammarToModelListener.getModel();
-//
-//        processGrammarModel(model);
-
 //        emitGrammarBindingCode(model);
     }
 
