@@ -24,7 +24,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
     private final List<InitRulePropertiesTask> initPropertyTasks
             = new ArrayList<>();
-    private RuleClass superClassrule;
+    private RuleClass superClassRule;
 
     public GrammarToModelListener() {
 
@@ -95,7 +95,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         // first rule is root
         currentRule.setRoot(model.getRuleClasses().isEmpty());
         model.getRuleClasses().add(currentRule);
-        superClassrule = currentRule;
+        superClassRule = currentRule;
 
         super.exitParserRuleSpec(ctx);
     }
@@ -104,11 +104,13 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
     @Override
     public void enterLabeledAlt(ANTLRv4Parser.LabeledAltContext ctx) {
         if (ctx.identifier() != null) {
+            System.out.println("-> labeled-alt-rule: " + ctx.identifier().getText());
             currentRule = RuleClass.newInstance();
-            model.getRuleClasses().add(currentRule);
             currentRule.setName(ctx.identifier().getText());
-            if (superClassrule != null) {
-                currentRule.setSuperClass(superClassrule);
+            model.getRuleClasses().add(currentRule);
+            if (superClassRule != null) {
+                System.out.println("  -> setting superRuleCls: " + superClassRule.nameWithLower());
+                currentRule.setSuperClass(superClassRule);
             }
         }
 
