@@ -1,6 +1,7 @@
 package eu.mihosoft.vmf.vmftext;
 
 
+import eu.mihosoft.vmf.core.TypeUtil;
 import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
 import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
@@ -74,21 +75,38 @@ public class ModelGenerator {
         return TEMPLATE_PATH+path+".vm";
     }
 
-    public void generate(GrammarModel model, ResourceSet fileset) {
+    public void generateModel(GrammarModel model, ResourceSet fileset) {
 
         if(engine==null) {
             engine = createDefaultEngine();
         }
 
         try (Resource resource =
-                     fileset.open(model.getPackageName()+".vmfmodel."+model.getGrammarName() + "Model")) {
+                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
+                             model.getPackageName()+".vmfmodel."+model.getGrammarName() + "Model"))) {
 
             Writer w = resource.open();
-
             generateModelDefinition(w, engine, model.getPackageName()+".vmfmodel", model);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-            // generateModelConverter(w, engine,model.getPackageName()+".vmfmodel", model);
 
+            //
+    }
+
+    public void generateModelConverter(GrammarModel model, ResourceSet fileset) {
+
+        if(engine==null) {
+            engine = createDefaultEngine();
+        }
+
+        try (Resource resource =
+                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
+                             model.getPackageName()+".parser."+model.getGrammarName() + "Converter"))) {
+
+            Writer w = resource.open();
+            generateModelConverter(w, engine,model.getPackageName()+".parser", model);
         } catch (IOException e) {
             e.printStackTrace();
         }

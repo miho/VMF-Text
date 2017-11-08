@@ -27,15 +27,30 @@ import java.util.stream.Collectors;
 
 public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
 
-    private ${Util.firstToUpper($model.grammarName)}ModelClass() {
-      throw new AssertionError("Don't instantiate me!");
+    public ${Util.firstToUpper($model.grammarName)}ModelClass() {
+      // throw new AssertionError("Don't instantiate me!");
     }
 
-    public ${Util.firstToUpper($model.grammarName)}Model convertModel(${model.rootClass().nameWithUpper()}Context ctx) {
+    public ${Util.firstToUpper($model.grammarName)}Model convertToModel() {
+        InputStream codeStream = new FileInputStream(grammar);
+        CharStream input = CharStreams.fromStream(codeStream);
+
+        ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
+
+        // ParserRuleContext tree = parser.${model.rootClass().nameWithUpper()}();
+
+        return convertModel(parser.${model.rootClass().nameWithUpper()}());
+    }
+
+    public ${Util.firstToUpper($model.grammarName)}Model convertToModel(${model.rootClass().nameWithUpper()}Context ctx) {
 
       ${Util.firstToUpper($model.grammarName)}Model model = ${Util.firstToUpper($model.grammarName)}Model.newInstance();
 
       model.set${model.rootClass().nameWithUpper()}(convert(ctx));
+
+      return model;
     }
 
 #foreach( $rcls in ${model.ruleClasses} )

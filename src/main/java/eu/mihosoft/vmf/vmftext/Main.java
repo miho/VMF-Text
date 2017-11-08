@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import eu.mihosoft.vmf.core.io.JavaFileResourceSet;
+import eu.mihosoft.vmf.core.io.FileResourceSet;
+
 import eu.mihosoft.vmf.core.io.MemoryResourceSet;
+import eu.mihosoft.vmf.core.io.ResourceSet;
 import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
 
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Lexer;
@@ -27,48 +29,46 @@ public class Main {
      */
     public static void main(String[] args) throws IOException {
 
-        MemoryResourceSet outRes = new MemoryResourceSet();
+        ResourceSet outRes = new FileResourceSet(new File("build/tmp"));
 
         VMFText.generate(
                 new File("src/main/resources/eu/mihosoft/vmf/vmftext/antlr/GrammarVMF2.g4"),
                 "me.p12345678",
                 outRes);
 
-        System.out.println(outRes.asString());
-
-        System.exit(0);
-
-        InputStream codeStream = Main.class.getResourceAsStream(
-                "antlr/GrammarVMF2.g4");
-
-        CharStream input = CharStreams.fromStream(codeStream);
-
-        ANTLRv4Lexer lexer = new ANTLRv4Lexer(input);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        ANTLRv4Parser parser = new ANTLRv4Parser(tokens);
-
-        ParserRuleContext tree = parser.grammarSpec();
-
-        ParseTreeWalker walker = new ParseTreeWalker();
-
-        GrammarToModelListener grammarToModelListener =
-                new GrammarToModelListener();
-
-        walker.walk(grammarToModelListener, tree);
-
-        walker.walk(new GrammarToRuleMatcherListener(tokens), tree);
-
-        GrammarModel model = grammarToModelListener.getModel();
-
-        processGrammarModel(model);
+//        System.exit(0);
+//
+//        InputStream codeStream = Main.class.getResourceAsStream(
+//                "antlr/GrammarVMF2.g4");
+//
+//        CharStream input = CharStreams.fromStream(codeStream);
+//
+//        ANTLRv4Lexer lexer = new ANTLRv4Lexer(input);
+//        CommonTokenStream tokens = new CommonTokenStream(lexer);
+//        ANTLRv4Parser parser = new ANTLRv4Parser(tokens);
+//
+//        ParserRuleContext tree = parser.grammarSpec();
+//
+//        ParseTreeWalker walker = new ParseTreeWalker();
+//
+//        GrammarToModelListener grammarToModelListener =
+//                new GrammarToModelListener();
+//
+//        walker.walk(grammarToModelListener, tree);
+//
+//        walker.walk(new GrammarToRuleMatcherListener(tokens), tree);
+//
+//        GrammarModel model = grammarToModelListener.getModel();
+//
+//        processGrammarModel(model);
 
 //        emitGrammarBindingCode(model);
     }
 
     private static void processGrammarModel(GrammarModel model) {
         ModelGenerator generator = new ModelGenerator();
-        JavaFileResourceSet fileset = new JavaFileResourceSet(new File("build/tmp"));
-        generator.generate(model, fileset);
+        FileResourceSet fileset = new FileResourceSet(new File("build/tmp"));
+        generator.generateModel(model, fileset);
     }
 
     static String firstToUpper (String name) {

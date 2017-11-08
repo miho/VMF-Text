@@ -49,57 +49,22 @@ public class VMFText {
 
 
         try {
-            InputStream codeStream = new FileInputStream(grammar);
-            CharStream input = CharStreams.fromStream(codeStream);
+            GrammarModel model = convertGrammarToModel(grammar);
 
-            ANTLRv4Lexer lexer = new ANTLRv4Lexer(input);
-            CommonTokenStream tokens = new CommonTokenStream(lexer);
-            ANTLRv4Parser parser = new ANTLRv4Parser(tokens);
-
-            ParserRuleContext tree = parser.grammarSpec();
-
-            ParseTreeWalker walker = new ParseTreeWalker();
-
-            GrammarToModelListener grammarToModelListener =
-                    new GrammarToModelListener();
-
-            walker.walk(grammarToModelListener, tree);
-
-            GrammarModel model = grammarToModelListener.getModel();
             model.setPackageName(packageName);
 
+            // generate model classes for src output
             ModelGenerator generator = new ModelGenerator();
-            generator.generate(model, outputDir);
+            generator.generateModel(model, outputDir);
+            generator.generateModelConverter(model, outputDir);
 
+            // generate model classes for in-memory compilation
             MemoryResourceSet modelGenCode = new MemoryResourceSet();
-            generator.generate(model, modelGenCode);
+            generator.generateModel(model, modelGenCode);
 
-            List<String> classNames = new ArrayList<>();
+            generateModelCode(outputDir, modelGenCode);
 
-            InMemoryJavaCompiler compiler = InMemoryJavaCompiler.newInstance().ignoreWarnings();
-            for (Map.Entry<String, MemoryResource> entry : modelGenCode.getMemSet().entrySet()) {
-                compiler.addSource(entry.getKey(), entry.getValue().asString());
-                classNames.addAll(ModelDefUtil.getNamesOfDefinedInterfaces(entry.getValue().asString()));
-            }
-
-            try {
-                compiler.compileAll();
-            } catch(Exception ex) {
-                ex.printStackTrace(System.out);
-            }
-
-            classNames.forEach(clsN-> System.out.println("CLS: " + clsN));
-
-            Class[] classes = classNames.stream().map(clsN -> {
-                try {
-                    return compiler.getClassloader().loadClass(clsN);
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-                return null;
-            }).collect(Collectors.toList()).toArray(new Class[classNames.size()]);
-
-            VMF.generate(outputDir, classes);
+            System.exit(0);
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -108,6 +73,60 @@ public class VMFText {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static void generateModelCode(ResourceSet outputDir, MemoryResourceSet modelGenCode) throws Exception {
+        List<String> classNames = new ArrayList<>();
+
+        InMemoryJavaCompiler compiler = InMemoryJavaCompiler.newInstance().ignoreWarnings();
+        for (Map.Entry<String, MemoryResource> entry : modelGenCode.getMemSet().entrySet()) {
+            // convert /path/to/File.java to pkg.File
+            compiler.addSource(entry.getKey().replace('/','.').substring(0,entry.getKey().length()-5),
+                    entry.getValue().asString());
+            classNames.addAll(ModelDefUtil.getNamesOfDefinedInterfaces(entry.getValue().asString()));
+        }
+
+        try {
+            compiler.compileAll();
+        } catch(Exception ex) {
+            ex.printStackTrace(System.out);
+        }
+
+        System.out.println("------------------------------------------------------");
+        System.out.println("Generated Model Classes:");
+        System.out.println("------------------------------------------------------");
+
+        classNames.forEach(clsN-> System.out.println("-> type: " + clsN));
+
+        Class[] classes = classNames.stream().map(clsN -> {
+            try {
+                return compiler.getClassloader().loadClass(clsN);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }).collect(Collectors.toList()).toArray(new Class[classNames.size()]);
+
+        VMF.generate(outputDir, classes);
+    }
+
+    private static GrammarModel convertGrammarToModel(File grammar) throws IOException {
+        InputStream codeStream = new FileInputStream(grammar);
+        CharStream input = CharStreams.fromStream(codeStream);
+
+        ANTLRv4Lexer lexer = new ANTLRv4Lexer(input);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        ANTLRv4Parser parser = new ANTLRv4Parser(tokens);
+
+        ParserRuleContext tree = parser.grammarSpec();
+
+        ParseTreeWalker walker = new ParseTreeWalker();
+
+        GrammarToModelListener grammarToModelListener =
+                new GrammarToModelListener();
+
+        walker.walk(grammarToModelListener, tree);
+        return grammarToModelListener.getModel();
     }
 
 //    public static void generate(String grammars, ResourceSet outputDir) {
