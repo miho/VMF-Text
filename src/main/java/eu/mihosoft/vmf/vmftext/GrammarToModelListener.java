@@ -7,10 +7,7 @@ import eu.mihosoft.vmf.vmftext.grammar.Type;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4ParserBaseListener;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 class GrammarToModelListener extends ANTLRv4ParserBaseListener {
@@ -44,9 +41,11 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
         boolean hasEBNF = e.ebnfSuffix() !=null;
 
-        // an element is a list type if it is assigned via '+=' and/or if the elements ebnf suffix is '*' or '+'
+        // an element is a list type if it is assigned via '+='
+        // TODO is this correct (currently disabled) and/or if the elements ebnf suffix is '*' or '+'
         boolean isListType = e.labeledElement().PLUS_ASSIGN()!=null
-                || (hasEBNF && (e.ebnfSuffix().PLUS()!=null || e.ebnfSuffix().STAR()!=null));
+                //|| (hasEBNF && (e.ebnfSuffix().PLUS()!=null || e.ebnfSuffix().STAR()!=null))
+        ;
 
         Property property = Property.newInstance();
         property.setName(e.labeledElement().identifier().getText());
@@ -86,12 +85,21 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
     @Override
     public void enterParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
 
+        String ruleName = ctx.RULE_REF().getText();
+
         System.out.println("------------------------------------------------------");
-        System.out.println("ParserRule: " + ctx.RULE_REF().getText());
+        System.out.println("ParserRule: " + ruleName);
         System.out.println("------------------------------------------------------");
 
-        currentRule = RuleClass.newInstance();
-        currentRule.setName(ctx.RULE_REF().getText());
+        Optional<RuleClass> currentRuleOpt = model.getRuleClasses().stream().
+                filter(rc->Objects.equals(rc.getName(),ruleName)).findAny();
+
+        if(currentRuleOpt.isPresent()) {
+            currentRule = currentRuleOpt.get();
+            System.out.println("  -> [UPDATE] merging with existing rule '"+ruleName+"'");
+        } else {
+            currentRule = RuleClass.newBuilder().withName(ruleName).build();
+        }
         // first rule is root
         currentRule.setRoot(model.getRuleClasses().isEmpty());
         model.getRuleClasses().add(currentRule);
@@ -104,9 +112,22 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
     @Override
     public void enterLabeledAlt(ANTLRv4Parser.LabeledAltContext ctx) {
         if (ctx.identifier() != null) {
-            System.out.println("-> labeled-alt-rule: " + ctx.identifier().getText());
-            currentRule = RuleClass.newInstance();
-            currentRule.setName(ctx.identifier().getText());
+
+            String ruleName = ctx.identifier().getText();
+
+            System.out.println("-> labeled-alt-rule: " + ruleName);
+
+
+            Optional<RuleClass> currentRuleOpt = model.getRuleClasses().stream().
+                    filter(rc->Objects.equals(rc.getName(),ruleName)).findAny();
+
+            if(currentRuleOpt.isPresent()) {
+                currentRule = currentRuleOpt.get();
+                System.out.println("  -> [UPDATE] merging with existing rule '"+ruleName+"'");
+            } else {
+                currentRule = RuleClass.newBuilder().withName(ruleName).build();
+            }
+
             model.getRuleClasses().add(currentRule);
             if (superClassRule != null) {
                 System.out.println("  -> setting superRuleCls: " + superClassRule.nameWithLower());

@@ -3,6 +3,7 @@ package eu.mihosoft.vmf.vmftext.grammar.vmfmodel;
 import eu.mihosoft.vmf.core.*;
 
 
+@DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.CheckRulesDelegate")
 interface GrammarModel {
     @Contains(opposite = "model")
     RuleClass[] getRuleClasses();
