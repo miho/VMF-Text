@@ -84,18 +84,20 @@ public class VMFText {
     private static void generateModelCode(ResourceSet outputDir, MemoryResourceSet modelGenCode) throws Exception {
         List<String> classNames = new ArrayList<>();
 
-        InMemoryJavaCompiler compiler = InMemoryJavaCompiler.newInstance().ignoreWarnings();
+        GroovyClassLoader gcl = new GroovyClassLoader();
+
+        String modelDefCode = "";
+
         for (Map.Entry<String, MemoryResource> entry : modelGenCode.getMemSet().entrySet()) {
-            // convert /path/to/File.java to pkg.File
-            compiler.addSource(entry.getKey().replace('/','.').substring(0,entry.getKey().length()-5),
-                    entry.getValue().asString());
+            modelDefCode += entry.getValue().asString()+"\n";
             classNames.addAll(ModelDefUtil.getNamesOfDefinedInterfaces(entry.getValue().asString()));
         }
 
         try {
-            compiler.compileAll();
+            gcl.parseClass(modelDefCode);
         } catch(Exception ex) {
-            ex.printStackTrace(System.out);
+            ex.printStackTrace(System.err);
+            return;
         }
 
         System.out.println("------------------------------------------------------");
@@ -106,9 +108,9 @@ public class VMFText {
 
         Class[] classes = classNames.stream().map(clsN -> {
             try {
-                return compiler.getClassloader().loadClass(clsN);
+                return gcl.loadClass(clsN);
             } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
             return null;
         }).collect(Collectors.toList()).toArray(new Class[classNames.size()]);

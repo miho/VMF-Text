@@ -50,6 +50,8 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         Property property = Property.newInstance();
         property.setName(e.labeledElement().identifier().getText());
 
+        property.setCodeRange(ParseTreeUtil.ctxToCodeRange(e));
+
         if (ParseTreeUtil.isParserRule(e)) {
             Type t = typeFromRuleClass(
                        rules.get(ParseTreeUtil.getElementText(e)),isListType);
@@ -102,6 +104,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         }
         // first rule is root
         currentRule.setRoot(model.getRuleClasses().isEmpty());
+        currentRule.setCodeRange(ParseTreeUtil.ctxToCodeRange(ctx));
         model.getRuleClasses().add(currentRule);
         superClassRule = currentRule;
 
@@ -117,7 +120,6 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
             System.out.println("-> labeled-alt-rule: " + ruleName);
 
-
             Optional<RuleClass> currentRuleOpt = model.getRuleClasses().stream().
                     filter(rc->Objects.equals(rc.getName(),ruleName)).findAny();
 
@@ -129,6 +131,9 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
             }
 
             model.getRuleClasses().add(currentRule);
+
+            currentRule.setCodeRange(ParseTreeUtil.ctxToCodeRange(ctx));
+
             if (superClassRule != null) {
                 System.out.println("  -> setting superRuleCls: " + superClassRule.nameWithLower());
                 currentRule.setSuperClass(superClassRule);

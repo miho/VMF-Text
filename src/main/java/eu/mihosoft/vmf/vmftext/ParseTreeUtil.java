@@ -1,6 +1,10 @@
 package eu.mihosoft.vmf.vmftext;
 
+import eu.mihosoft.vmf.vmftext.grammar.CodeLocation;
+import eu.mihosoft.vmf.vmftext.grammar.CodeRange;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 
 public class ParseTreeUtil {
 
@@ -49,5 +53,22 @@ public class ParseTreeUtil {
 
     public static boolean isLabeledElement(ANTLRv4Parser.ElementContext e) {
         return e.labeledElement() != null && e.labeledElement().identifier() != null;
+    }
+
+    public static CodeLocation tokenToCodeLocationStart(Token t) {
+        return CodeLocation.newBuilder().
+                withIndex(t.getStartIndex()).
+                withCharPosInLine(t.getCharPositionInLine()).withLine(t.getLine()).build();
+    }
+
+    public static CodeLocation tokenToCodeLocationStop(Token t) {
+        return CodeLocation.newBuilder().
+                withIndex(t.getStopIndex()).
+                withCharPosInLine(t.getCharPositionInLine()).withLine(t.getLine()).build();
+    }
+
+    public static CodeRange ctxToCodeRange(ParserRuleContext ctx) {
+        return CodeRange.newBuilder().withStart(tokenToCodeLocationStart(ctx.start)).
+                withStop(tokenToCodeLocationStop(ctx.stop)).build();
     }
 }

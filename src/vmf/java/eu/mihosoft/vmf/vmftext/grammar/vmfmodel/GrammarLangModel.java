@@ -21,10 +21,15 @@ interface GrammarModel {
 
 @Immutable
 interface CodeRange {
-    int getStartIndex();
-    int getStopIndex();
-    int getCharPosInLine();
+    CodeLocation getStart();
+    CodeLocation getStop();
+}
+
+@Immutable
+interface CodeLocation {
+    int getIndex();
     int getLine();
+    int getCharPosInLine();
 }
 
 @InterfaceOnly
@@ -34,7 +39,7 @@ interface LangElement {
 
 @InterfaceOnly
 interface CodeElement {
-    CodeRange getCodeLocation();
+    CodeRange getCodeRange();
 }
 
 @InterfaceOnly

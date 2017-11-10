@@ -7,6 +7,7 @@ import vjavax.observer.collection.CollectionChangeEvent;
 import vjavax.observer.collection.CollectionChangeListener;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class CheckPropertiesDelegate  implements DelegatedBehavior<RuleClass> {
     RuleClass caller;
@@ -24,7 +25,7 @@ public class CheckPropertiesDelegate  implements DelegatedBehavior<RuleClass> {
                 // remove duplicate properties
                 for(Property p1 : evt.added().elements()) {
                     for(Property p2 : new ArrayList<>(evt.source())) {
-                        if(p1!=p2 && p1.equals(p2)) {
+                        if(p1!=p2 && Objects.equals(p1.getName(),p2.getName())) {
                             evt.source().remove(p1);
                         }
                     }
