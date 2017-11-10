@@ -52,6 +52,9 @@ interface CodeElement {
 }
 
 #foreach( $rcls in ${model.ruleClasses} )
+#if( !$rcls.childClasses.empty )
+@InterfaceOnly
+#end
 interface ${rcls.nameWithUpper()}#if($rcls.superClass) extends ${rcls.superClass.nameWithUpper()}#else extends CodeElement#end {
 #set($ruleClass=$rcls)
 #parse("${TEMPLATE_PATH}rule-class.vm")
