@@ -29,6 +29,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 
 // antlr4 imports
 import org.antlr.v4.runtime.CharStream;
@@ -47,8 +49,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
       // throw new AssertionError("Don't instantiate me!");
     }
 
-    public ${Util.firstToUpper($model.grammarName)}Model convertToModel(File code) throws IOException{
-        InputStream codeStream = new FileInputStream(code);
+    public ${Util.firstToUpper($model.grammarName)}Model convertToModel(InputStream codeStream) throws IOException{
         CharStream input = CharStreams.fromStream(codeStream);
 
         ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
@@ -58,6 +59,18 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
         // ParserRuleContext tree = parser.${model.rootClass().nameWithUpper()}();
 
         return convertToModel(parser.${model.rootClass().name}());
+    }
+
+    public ${Util.firstToUpper($model.grammarName)}Model convertToModel(File code) throws IOException{
+        try(FileInputStream codeStream = new FileInputStream(code)) {
+            return convertToModel(codeStream);
+        }
+    }
+
+    public ${Util.firstToUpper($model.grammarName)}Model convertToModel(String code) throws IOException{
+        try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
+            return convertToModel(codeStream);
+        }
     }
 
     public ${Util.firstToUpper($model.grammarName)}Model convertToModel(${model.rootClass().nameWithUpper()}Context ctx) {
