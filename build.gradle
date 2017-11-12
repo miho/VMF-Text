@@ -143,7 +143,7 @@ task antlr4(dependsOn: ['cleanAntlr','vmfGenModelSources']) {
         def baseDir = projectDir.absolutePath
         def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
         def libPath = srcPath
-        def outPath = baseDir + "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/antlr4"
+        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/antlr4"
         def grammarFile = srcPath + "/ANTLRv4Parser.g4"
         def grammarFileDep1 = srcPath + "/ANTLRv4Lexer.g4"
         def grammarFileDep2 = srcPath + "/LexBasic.g4"
@@ -162,7 +162,7 @@ task antlr4(dependsOn: ['cleanAntlr','vmfGenModelSources']) {
         def baseDir = projectDir.absolutePath
         def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
         def libPath = srcPath
-        def outPath = baseDir + "/build/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/java9"
+        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/java9"
         def grammarFile = srcPath + "/Java9.g4"
 
         AntlrTool.main(
@@ -180,7 +180,7 @@ task antlr4test() {
         def baseDir = projectDir.absolutePath
         def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
         def libPath = srcPath
-        def outPath = baseDir + "/build/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/antlr4test"
+        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/antlr4test"
         def grammarFile = srcPath + "/GrammarVMF2.g4"
 
         AntlrTool.main(
