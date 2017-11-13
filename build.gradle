@@ -173,6 +173,38 @@ task antlr4(dependsOn: ['cleanAntlr','vmfGenModelSources']) {
                  libPath,
                  "-o", outPath] as String[])
     }
+
+    doLast() {
+        def baseDir = projectDir.absolutePath
+        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def libPath = srcPath
+        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/typemapping"
+        def grammarFile = srcPath + "/TypeMapping.g4"
+
+        AntlrTool.main(
+                [grammarFile,
+                 "-listener", "-visitor",
+                 "-package", "eu.mihosoft.vmf.vmftext.grammar.typemapping",
+                 "-lib",
+                 libPath,
+                 "-o", outPath] as String[])
+    }
+
+    doLast() {
+        def baseDir = projectDir.absolutePath
+        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def libPath = srcPath
+        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/vmftextcomments"
+        def grammarFile = srcPath + "/VMFTextComments.g4"
+
+        AntlrTool.main(
+                [grammarFile,
+                 "-listener", "-visitor",
+                 "-package", "eu.mihosoft.vmf.vmftext.grammar.vmftextcomments",
+                 "-lib",
+                 libPath,
+                 "-o", outPath] as String[])
+    }
 }
 
 task antlr4test() {

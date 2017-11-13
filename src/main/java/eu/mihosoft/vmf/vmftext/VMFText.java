@@ -4,6 +4,7 @@ package eu.mihosoft.vmf.vmftext;
 import eu.mihosoft.vmf.VMF;
 import eu.mihosoft.vmf.core.io.*;
 import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
+import eu.mihosoft.vmf.vmftext.grammar.TypeMappings;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Lexer;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
 import groovy.lang.GroovyClassLoader;
@@ -71,6 +72,15 @@ public class VMFText {
             generator.generateModel(model, modelGenCode);
 
             generateModelCode(outputDir, modelGenCode);
+
+            String comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
+
+            System.out.println(comments);
+
+            TypeMappings typeMappings = GrammarMetaInformationUtil.getTypeMapping(comments);
+
+            System.out.println(typeMappings.toString());
+
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();

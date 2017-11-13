@@ -2,6 +2,8 @@ package eu.mihosoft.vmf.vmftext.grammar.vmfmodel;
 
 import eu.mihosoft.vmf.core.*;
 
+import java.util.Optional;
+
 
 @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.CheckRulesDelegate")
 interface GrammarModel {
@@ -110,6 +112,37 @@ interface Property extends WithName, WithType, CodeElement {
     String nameWithLower();
 
     Type getType();
+}
+
+
+// TypeMapping
+
+interface TypeMappings {
+    @Contains(opposite = "parent")
+    TypeMapping[] getTypeMappings();
+}
+
+interface TypeMapping {
+
+    @Container(opposite = "typeMappings")
+    TypeMappings getParent();
+
+    @Contains(opposite = "parent")
+    Mapping[] getEntries();
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingLookup")
+    public Optional<Mapping> getMappingByRuleName(String name);
+
+    String[] getApplyToNames();
+}
+
+interface Mapping {
+    @Container(opposite="entries")
+    TypeMapping getParent();
+
+    String getRuleName();
+
+    String getTypeName();
 }
 
 
