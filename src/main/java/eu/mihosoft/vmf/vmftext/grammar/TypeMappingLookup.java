@@ -13,7 +13,7 @@ public class TypeMappingLookup implements DelegatedBehavior<TypeMapping>{
         this.caller = caller;
     }
 
-    public Optional<Mapping> getMappingByRuleName(String name) {
+    public Optional<Mapping> mappingByRuleName(String name) {
         return caller.getEntries().stream().filter(mE-> Objects.equals(mE.getRuleName(), name)).findFirst();
     }
 }

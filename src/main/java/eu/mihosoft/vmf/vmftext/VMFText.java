@@ -73,15 +73,6 @@ public class VMFText {
 
             generateModelCode(outputDir, modelGenCode);
 
-            String comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
-
-            System.out.println(comments);
-
-            TypeMappings typeMappings = GrammarMetaInformationUtil.getTypeMapping(comments);
-
-            System.out.println(typeMappings.toString());
-
-
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -140,8 +131,17 @@ public class VMFText {
 
         ParseTreeWalker walker = new ParseTreeWalker();
 
+
+        String comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
+
+        System.out.println(comments);
+
+        TypeMappings typeMappings = GrammarMetaInformationUtil.getTypeMapping(comments);
+
+        System.out.println(typeMappings.toString());
+
         GrammarToModelListener grammarToModelListener =
-                new GrammarToModelListener();
+                new GrammarToModelListener(typeMappings);
 
         walker.walk(grammarToModelListener, tree);
         return grammarToModelListener.getModel();

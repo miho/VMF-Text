@@ -1,9 +1,7 @@
 package eu.mihosoft.vmf.vmftext;
 
-import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
-import eu.mihosoft.vmf.vmftext.grammar.Property;
-import eu.mihosoft.vmf.vmftext.grammar.RuleClass;
-import eu.mihosoft.vmf.vmftext.grammar.Type;
+import eu.mihosoft.vmf.core.TypeUtil;
+import eu.mihosoft.vmf.vmftext.grammar.*;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4ParserBaseListener;
 
@@ -23,7 +21,13 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
             = new ArrayList<>();
     private RuleClass superClassRule;
 
-    public GrammarToModelListener() {
+    private final TypeMappings typeMappings;
+
+    public GrammarToModelListener(TypeMappings typeMappings) {
+
+        this.typeMappings = typeMappings;
+
+        model.setTypeMappings(this.typeMappings);
 
         // make sure each rule class is added to the map for lookup
         model.getRuleClasses().addChangeListener((c) -> {
@@ -33,11 +37,13 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         });
     }
 
-    static Property elementToProperty(Map<String, RuleClass> rules, ANTLRv4Parser.ElementContext e) {
+    static Property elementToProperty(Map<String, RuleClass> rules, String ruleName, TypeMappings mappings, ANTLRv4Parser.ElementContext e) {
 
         if (e.labeledElement() == null || e.labeledElement().identifier() == null) {
             throw new IllegalArgumentException("Cannot convert unlabeled element to property.");
         }
+
+        System.out.println("> generating properties for rule '" + ruleName + "':");
 
         boolean hasEBNF = e.ebnfSuffix() !=null;
 
@@ -59,16 +65,72 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
             property.setType(t);
 
         } else if (ParseTreeUtil.isLexerRule(e)) {
-            // TODO map types to rules
-            property.setType(Type.newBuilder().
-                    withArrayType(isListType).
-                    withPackageName("java.lang").
-                    withName("String").build());
+            // map types to rules
+
+            String lexerRuleName = ParseTreeUtil.getElementText(e);
+
+            System.out.println(" -> entering lexer rule '" + lexerRuleName+"':");
+
+
+            Optional<TypeMapping> map = mappings.getTypeMappings().stream().
+                    filter(m->m.getApplyToNames().contains(ruleName)
+                            || m.getApplyToNames().isEmpty()).findFirst();
+
+            if(map.isPresent()) {
+
+                System.out.println("   -> type map is present");
+
+                Optional<Mapping> tm = map.get().mappingByRuleName(lexerRuleName);
+
+                if(tm.isPresent()) {
+
+                    String fullTypeName = tm.get().getTypeName();
+
+                    System.out.println("   -> replacing '" + lexerRuleName+"' with '" + fullTypeName+"'.");
+
+                    String packageName = TypeUtil.getPackageNameFromFullClassName(fullTypeName);
+                    String shortTypeName = TypeUtil.getShortNameFromFullClassName(fullTypeName);
+
+                    System.out.println("name: " + packageName + ", "+ shortTypeName);
+
+                    property.setType(Type.newBuilder().
+                            withArrayType(isListType).
+                            withPackageName(packageName).
+                            withName(shortTypeName).
+                            withAntlrRuleName(lexerRuleName).
+                            build());
+                } else {
+
+                    System.out.println("   -> no replacement found for rule '"
+                            + lexerRuleName+"'. Using String conversion.");
+
+                    property.setType(Type.newBuilder().
+                            withArrayType(isListType).
+                            withPackageName("java.lang").
+                            withName("String").
+                            withAntlrRuleName(lexerRuleName).
+                            build());
+                }
+            } else {
+                System.out.println("   -> no type map found for rule '"
+                        + lexerRuleName+"'. Using String conversion.");
+
+                property.setType(Type.newBuilder().
+                        withArrayType(isListType).
+                        withPackageName("java.lang").
+                        withName("String").
+                        withAntlrRuleName(lexerRuleName).
+                        build());
+            }
         } else {
+            System.out.println("   -> no rule. Using String conversion.");
+
             property.setType(Type.newBuilder().
                     withArrayType(isListType).
                     withPackageName("java.lang").
-                    withName("String").build());
+                    withName("String").
+                    withAntlrRuleName("").
+                    build());
         }
 
         return property;
@@ -146,7 +208,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
     @Override
     public void enterAlternative(ANTLRv4Parser.AlternativeContext ctx) {
         InitRulePropertiesTask task = new InitRulePropertiesTask(
-                this.ruleClassesByName, currentRule, ctx.element());
+                this.ruleClassesByName, currentRule, typeMappings, ctx.element());
         this.initPropertyTasks.add(task);
 
         super.enterAlternative(ctx);
@@ -182,18 +244,20 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         private final Map<String, RuleClass> rules;
         private final RuleClass cls;
         private final List<ANTLRv4Parser.ElementContext> elements;
+        private final TypeMappings typeMappings;
 
-        public InitRulePropertiesTask(Map<String, RuleClass> rules, RuleClass cls, List<ANTLRv4Parser.ElementContext> elements) {
+        public InitRulePropertiesTask(Map<String, RuleClass> rules, RuleClass cls, TypeMappings typeMappings, List<ANTLRv4Parser.ElementContext> elements) {
             this.rules = rules;
             this.cls = cls;
             this.elements = elements;
+            this.typeMappings = typeMappings;
         }
 
         void run() {
             cls.getProperties().addAll(
                     elements.stream().filter(e -> e.labeledElement() != null).
                             filter(e -> e.labeledElement().identifier() != null).
-                            map(e -> GrammarToModelListener.elementToProperty(rules, e)).
+                            map(e -> GrammarToModelListener.elementToProperty(rules, cls.nameWithUpper(), typeMappings, e)).
                             collect(Collectors.toList())
             );
         }

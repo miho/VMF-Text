@@ -1,5 +1,7 @@
 grammar TypeMapping;
 
+typeMappingCode: typemappings+=typeMapping* ;
+
 typeMapping:
     'TypeMap' '(' (applyTo+=Identifier (',' applyTo+=Identifier)*)? ')'  '{'
       entries+=mapping*
@@ -7,7 +9,7 @@ typeMapping:
      ;
 
 mapping:
-    ruleName=Identifier '->' typeName=javaType
+    ruleName=Identifier '->' typeName=javaType 'via' embeddedCode = STRING_DOUBLE
     ;
 
 
@@ -61,6 +63,9 @@ JavaIdentifier : Identifier ('.' Identifier)+
 Identifier: NameStartChar NameChar*
     ;
 
+STRING_DOUBLE
+    :   '"' (~('"' | '\\' | '\r' | '\n') | '\\' ('"' | '\\'))*? '"'
+    ;
 
 
 fragment

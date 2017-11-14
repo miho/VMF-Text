@@ -19,6 +19,9 @@ interface GrammarModel {
 
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.GetRootClassDelegate")
     RuleClass rootClass();
+
+    @Contains(opposite = "model")
+    TypeMappings getTypeMappings();
 }
 
 @Immutable
@@ -73,7 +76,10 @@ interface Type extends LangElement, WithName {
 
     String getPackageName();
 
+    String getAntlrRuleName();
+
     boolean isRuleType();
+
     boolean isArrayType();
 }
 
@@ -120,6 +126,9 @@ interface Property extends WithName, WithType, CodeElement {
 interface TypeMappings {
     @Contains(opposite = "parent")
     TypeMapping[] getTypeMappings();
+
+    @Container(opposite = "typeMappings")
+    GrammarModel getModel();
 }
 
 interface TypeMapping {
@@ -131,9 +140,11 @@ interface TypeMapping {
     Mapping[] getEntries();
 
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingLookup")
-    public Optional<Mapping> getMappingByRuleName(String name);
+    public Optional<Mapping> mappingByRuleName(String name);
 
     String[] getApplyToNames();
+
+
 }
 
 interface Mapping {
@@ -143,6 +154,8 @@ interface Mapping {
     String getRuleName();
 
     String getTypeName();
+
+    String getMappingCode();
 }
 
 

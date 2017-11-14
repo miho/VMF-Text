@@ -45,8 +45,11 @@ import static ${packageName}.${Util.firstToUpper($model.grammarName)}Parser.*;
 
 public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
 
+    // TODO remove this class if compile time conversions works
+    // private final TypeConversionRegistry typeConversionRegistry
+
     public ${Util.firstToUpper($model.grammarName)}ModelConverter() {
-      // throw new AssertionError("Don't instantiate me!");
+      // typeConversionRegistry = new TypeConversionRegistryImpl();
     }
 
     public ${Util.firstToUpper($model.grammarName)}Model convertToModel(InputStream codeStream) throws IOException{
@@ -120,12 +123,20 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
 #else## if rule type
 #if($p.type.arrayType)
         // convert elements of rule attribute $rcls.nameWithUpper().$p.nameWithLower()
+
         // TODO proper conversion of primitives, e.g., lexer rules to int, double etc.
+        // pseudo-code:
+        //
+        // if p.type needs conversion then
+        //   typemapping =  getTypeMappings(p.type.antlrRule)
+        //   List <typeMapping.targetType> convertedElements = ... map(entry->typemapping.convert(entry)) ...
+        //
         List<String> convertedElements$p.nameWithUpper() = ctx.${p.nameWithLower()}.stream().
             map(entry->entry.getText()).collect(Collectors.toList());
         // assign elements to model entity
         ${rcls.nameWithLower()}.get${p.nameWithUpper()}().addAll(convertedElements$p.nameWithUpper());
 #else## if array type
+        // TODO proper conversion of primitives, e.g., lexer rules to int, double etc.
         // convert and assign rule attribute $rcls.nameWithUpper().$p.nameWithLower()
         // if it is present
         if(ctx.${p.nameWithLower()}!=null) {
@@ -187,5 +198,76 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
         withStop(tokenToCodeLocationStop(ctx.stop)).build();
     }
 
+// TODO remove this class if compile time conversion works
+/*
+    // --------------------------------------------------------------------------------
+    // TYPE CONVERSION UTILITY CLASS
+    // --------------------------------------------------------------------------------
+
+    public TypeConversionRegistry getTypeConversionRegistry() {
+        return typeConversionRegistry;
+    }
+
+
+    private static class TypeConversionRegistryImpl implements TypeConversionRegistry {
+
+      private final Map<String, Map<String,TypeConverter>> converterMap = new HashMap<>();
+
+      @Override
+      public void registerConverter(TypeConverter t, String ruleClsName, String propertyRuleName, String outputTypeName) {
+        getConverterMap(ruleClsName).put(propertyRuleName,t);
+      }
+
+      @Override
+      public void registerConverter(TypeConverter t, String propertyRuleName, String outputTypeName) {
+        getConverterMap("").put(propertyRuleName,t);
+      }
+
+      @Override
+      public Object convert(String ruleClsName, String propertyRuleName, Object obj) {
+
+        System.out.println("> conversion requested for '"+ruleClsName+"::"+propertyRuleName + "'");
+
+        Map<String,TypeConverter> converters =
+        getConverterMap(ruleClsName);
+
+        if(converters.containsKey(propertyRuleName)) {
+            System.out.println(" -> found converter registered for property type '"+propertyRuleName+"'.");
+
+            TypeConverter tC = converters.get(propertyRuleName);
+
+             return tC.convert(obj);
+        }
+
+        System.out.println(" -> looking for global converter for property type '"+propertyRuleName+"'.");
+
+        Map<String,TypeConverter> globalConverters =
+        getConverterMap("");
+
+        if(globalConverters.containsKey(propertyRuleName)) {
+            System.out.println("-> found global converter for property type '"+propertyRuleName+"'.");
+
+            return globalConverters.get(propertyRuleName);
+        }
+
+            throw new RuntimeException("Cannot find requested type conversion for'"
+              +ruleClsName+"::"+propertyRuleName + "'");
+        }
+
+        private Map<String,TypeConverter> getConverterMap(String ruleClassName) {
+
+        Map<String,TypeConverter> result = converterMap.get(ruleClassName);
+
+
+        if(result==null) {
+            result = new HashMap<String,TypeConverter>();
+            converterMap.put(ruleClassName, result);
+        }
+
+        return result;
+      }
+    } // end TypeConversionRegistryImpl
+
+*/
 
 }

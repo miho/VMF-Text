@@ -53,7 +53,8 @@ public final class GrammarMetaInformationUtil {
             public void enterMapping(TypeMappingParser.MappingContext ctx) {
 
                 Mapping m = Mapping.newBuilder().withRuleName(ctx.ruleName.getText()).
-                        withTypeName(ctx.typeName.getText()).build();
+                        withTypeName(ctx.typeName.getText()).withMappingCode(ctx.embeddedCode.getText().
+                        substring(1, ctx.embeddedCode.getText().length()-1)).build();
 
                 currentMapping.getEntries().add(m);
 
@@ -67,7 +68,7 @@ public final class GrammarMetaInformationUtil {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         TypeMappingParser parser = new TypeMappingParser(tokens);
 
-        ParserRuleContext tree = parser.typeMapping();
+        ParserRuleContext tree = parser.typeMappingCode();
 
         ParseTreeWalker walker = new ParseTreeWalker();
 
