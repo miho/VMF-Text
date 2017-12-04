@@ -13,7 +13,13 @@ public class TypeMappingLookup implements DelegatedBehavior<TypeMapping>{
         this.caller = caller;
     }
 
-    public Optional<Mapping> mappingByRuleName(String name) {
-        return caller.getEntries().stream().filter(mE-> Objects.equals(mE.getRuleName(), name)).findFirst();
+    /**
+     * Returns the specified mapping by rule name.
+     *
+     * @param paramRuleName name of the lexer rule that parses the parameter (conversion is applied to the lexer rule. e.g. ANTLR token instance)
+     * @return the specified mapping
+     */
+    public Optional<Mapping> mappingByRuleName(String paramRuleName) {
+        return caller.getEntries().stream().filter(mE-> Objects.equals(mE.getRuleName(), paramRuleName)).findFirst();
     }
 }
