@@ -124,15 +124,20 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
 #if($p.type.arrayType)
         // convert elements of rule attribute $rcls.nameWithUpper().$p.nameWithLower()
 
-        // TODO proper conversion of primitives, e.g., lexer rules to int, double etc.
+        // proper conversion of primitives, e.g., lexer rules to int, double etc. depends on type mappings
         // pseudo-code:
         //
         // if p.type needs conversion then
         //   typemapping =  getTypeMappings(p.type.antlrRule)
         //   List <typeMapping.targetType> convertedElements = ... map(entry->typemapping.convert(entry)) ...
         //
-        List<String> convertedElements$p.nameWithUpper() = ctx.${p.nameWithLower()}.stream().
-            map(entry->entry.getText()).collect(Collectors.toList());
+           List<$model.getTypeMappings().targetTypeNameOfMapping($rcls.nameWithUpper(), $p.type.getAntlrRuleName())> convertedElements$p.nameWithUpper() =
+           ctx.${p.nameWithLower()}.stream().map(entry->${model.getTypeMappings().conversionCodeOfMapping($rcls.nameWithUpper(), $p.type.getAntlrRuleName())}).
+             collect(Collectors.toList());
+
+        // FALLBACK: for lexer rules without conversion rules
+        // List<String> convertedElements$p.nameWithUpper() = ctx.${p.nameWithLower()}.stream().
+        //    map(entry->entry.getText()).collect(Collectors.toList());
         // assign elements to model entity
         ${rcls.nameWithLower()}.get${p.nameWithUpper()}().addAll(convertedElements$p.nameWithUpper());
 #else## if array type

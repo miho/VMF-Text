@@ -129,6 +129,16 @@ interface TypeMappings {
 
     @Container(opposite = "typeMappings")
     GrammarModel getModel();
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
+    public Optional<Mapping> mappingByRuleName(String containeRuleName, String name);
+
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
+    public String targetTypeNameOfMapping(String containeRuleName, String name);
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
+    public String conversionCodeOfMapping(String containeRuleName, String name);
 }
 
 interface TypeMapping {
