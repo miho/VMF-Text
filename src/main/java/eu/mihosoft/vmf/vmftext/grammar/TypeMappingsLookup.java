@@ -25,7 +25,7 @@ public class TypeMappingsLookup implements DelegatedBehavior<TypeMappings>{
     }
 
     public String conversionCodeOfMapping(String containerRuleName, String name) {
-        return mappingByRuleName(containerRuleName, name).map(tm->tm.getMappingCode()).orElse("entry");
+        return mappingByRuleName(containerRuleName, name).map(tm->tm.getMappingCode()).orElse("entry.getText()");
     }
 
 }

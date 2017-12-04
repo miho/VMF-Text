@@ -145,7 +145,10 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
         // convert and assign rule attribute $rcls.nameWithUpper().$p.nameWithLower()
         // if it is present
         if(ctx.${p.nameWithLower()}!=null) {
-            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(ctx.${p.nameWithLower()}.getText());
+            // FALLBACK:
+            // ${rcls.nameWithLower()}.set${p.nameWithUpper()}(ctx.${p.nameWithLower()}.getText());
+            Token entry = ctx.${p.nameWithLower()};
+            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(${model.getTypeMappings().conversionCodeOfMapping($rcls.nameWithUpper(), $p.type.getAntlrRuleName())});
         }
 #end## if array type
 #end## if rule type
