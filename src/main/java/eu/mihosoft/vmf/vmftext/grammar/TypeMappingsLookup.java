@@ -22,7 +22,8 @@ public class TypeMappingsLookup implements DelegatedBehavior<TypeMappings>{
      */
     public Optional<Mapping> mappingByRuleName(String containerRuleName, String paramRuleName) {
 
-        return caller.getTypeMappings().stream().filter(tm->tm.getApplyToNames().contains(containerRuleName)).
+        return caller.getTypeMappings().stream().filter(tm->tm.getApplyToNames().isEmpty()
+                || tm.getApplyToNames().contains(containerRuleName)).
                 flatMap(tm->tm.getEntries().stream()).filter(mE-> Objects.equals(mE.getRuleName(), paramRuleName)).findFirst();
     }
 
