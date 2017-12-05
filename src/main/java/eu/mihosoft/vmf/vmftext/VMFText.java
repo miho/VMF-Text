@@ -132,19 +132,32 @@ public class VMFText {
         ParseTreeWalker walker = new ParseTreeWalker();
 
 
-        String comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
+        List<String> comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
 
-        System.out.println(comments);
+        System.out.println("------------------------------------------------------");
+        System.out.println("Meta-Info:");
+        System.out.println("------------------------------------------------------");
 
-        TypeMappings typeMappings = GrammarMetaInformationUtil.getTypeMapping(comments);
+        TypeMappings typeMappings = TypeMappings.newInstance();
 
-        System.out.println(typeMappings.toString());
+        for(String s : comments) {
+            System.out.println(s);
+            GrammarMetaInformationUtil.getTypeMapping(typeMappings, s);
+        }
 
         GrammarToModelListener grammarToModelListener =
                 new GrammarToModelListener(typeMappings);
 
         walker.walk(grammarToModelListener, tree);
-        return grammarToModelListener.getModel();
+
+        GrammarModel model = grammarToModelListener.getModel();
+
+        for(String s : comments) {
+            System.out.println(s);
+            GrammarMetaInformationUtil.getCustomAnnotations(s, model);
+        }
+
+        return model;
     }
 
 

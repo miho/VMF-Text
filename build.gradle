@@ -205,6 +205,23 @@ task antlr4(dependsOn: ['cleanAntlr','vmfGenModelSources']) {
                  libPath,
                  "-o", outPath] as String[])
     }
+
+    doLast() {
+        def baseDir = projectDir.absolutePath
+        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def libPath = srcPath
+        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/custommodeldef"
+        def grammarFile = srcPath + "/CustomModelDefinitions.g4"
+        def grammarFile2 = srcPath + "/Java9.g4"
+
+        AntlrTool.main(
+                [grammarFile, grammarFile2,
+                 "-listener", "-visitor",
+                 "-package", "eu.mihosoft.vmf.vmftext.grammar.custommodeldef",
+                 "-lib",
+                 libPath,
+                 "-o", outPath] as String[])
+    }
 }
 
 task antlr4test() {

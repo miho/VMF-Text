@@ -20,6 +20,12 @@ interface GrammarModel {
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.GetRootClassDelegate")
     RuleClass rootClass();
 
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.RuleClassLookup")
+    Optional<RuleClass> ruleClassByName(String name);
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.RuleClassLookup")
+    Optional<Property> propertyByName(String ruleClassName, String propName);
+
     @Contains(opposite = "model")
     TypeMappings getTypeMappings();
 }
@@ -105,6 +111,9 @@ interface RuleClass extends WithName, CodeElement {
     RuleClass[] getChildClasses();
 
     boolean isRoot();
+
+    @Contains(opposite = "parent")
+    DelegationMethod[] getDelegationMethods();
 }
 
 interface Property extends WithName, WithType, CodeElement {
@@ -118,8 +127,26 @@ interface Property extends WithName, WithType, CodeElement {
     String nameWithLower();
 
     Type getType();
+
+    @Contains(opposite = "property")
+    PropertyAnnotation[] getAnnotations();
 }
 
+interface DelegationMethod extends WithText{
+    @Container(opposite = "delegationMethods")
+    RuleClass getParent();
+}
+
+@InterfaceOnly
+interface WithText {
+    String getText();
+}
+
+interface PropertyAnnotation extends WithText {
+
+    @Container(opposite = "annotations")
+    Property getProperty();
+}
 
 // TypeMapping
 

@@ -1,7 +1,7 @@
-grammar ModelDefinitions;
+grammar CustomModelDefinitions;
 import Java9;
 
-modelDefinitionCode: modelDefinitions+=modelDefinition* ;
+modelDefinitionCode: modelDefinitions+=modelDefinition*;
 
 modelDefinition:
     'interface' ruleName=Identifier '{'
@@ -10,9 +10,10 @@ modelDefinition:
      ;
 
 methodDeclaration:
-       annotations+=annotation* returnType=result name=Identifier '(' ')'                         # parameterMethod
-    |  annotations+=annotation* returnType=result name=Identifier '(' formalParameterList ')'     # delegationMethod
+       annotations+=annotation* returnType=result name=Identifier '(' ')' ';'                      # parameterMethod
+    |  annotations+=annotation* returnType=result name=Identifier '(' formalParameterList ')' ';'  # delegationMethod
 ;
+
 
 //
 //
@@ -101,7 +102,7 @@ methodDeclaration:
 // Whitespace and comments
 //
 
-WS  :  [ \t\r\n]+ -> skip
+WS  :  [ \t\r\n]+ -> channel(HIDDEN)
     ;
 
 COMMENT
@@ -111,3 +112,7 @@ COMMENT
 LINE_COMMENT
     :   '//' ~[\r\n]* -> channel(HIDDEN)
     ;
+
+
+// all other characters
+// UNKNOWN  :  ;
