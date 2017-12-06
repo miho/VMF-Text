@@ -4,7 +4,7 @@ import Java9;
 modelDefinitionCode: modelDefinitions+=modelDefinition*;
 
 modelDefinition:
-    'interface' ruleName=Identifier ('extends' identifierList)? '{'
+     annotations+=annotation* 'interface' ruleName=Identifier ('extends' identifierList)? '{'
        methods+=methodDeclaration*
     '}'
      ;
