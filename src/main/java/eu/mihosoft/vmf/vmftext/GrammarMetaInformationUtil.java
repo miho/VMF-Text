@@ -21,10 +21,7 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public final class GrammarMetaInformationUtil {
@@ -37,7 +34,7 @@ public final class GrammarMetaInformationUtil {
 
         TypeMappingBaseListener l = new TypeMappingBaseListener() {
 
-            TypeMapping currentMapping;
+            private TypeMapping currentMapping;
 
             @Override
             public void enterTypeMapping(TypeMappingParser.TypeMappingContext ctx) {
@@ -150,9 +147,12 @@ public final class GrammarMetaInformationUtil {
         CustomModelDefinitionsListener l = new CustomModelDefinitionsBaseListener() {
 
             private String currentRuleName;
+            private Set<String> definedCustomRules = new HashSet<>();
 
             @Override
             public void exitParameterMethod(CustomModelDefinitionsParser.ParameterMethodContext ctx) {
+
+                if(currentRuleName==null) return;
 
                 String propName = ctx.name.getText();
 
@@ -166,12 +166,6 @@ public final class GrammarMetaInformationUtil {
                         System.out.println("> adding custom parameter '"+propName+"' to rule '"+currentRuleName+"'.");
 
                         Optional<RuleClass> ruleClass = model.ruleClassByName(currentRuleName);
-
-                        if(!ruleClass.isPresent()) {
-                            throw new RuntimeException("RuleClass '"+currentRuleName+"' referenced in line ["
-                                    + ctx.name.getLine()+":"+ctx.name.getCharPositionInLine()+"] " +
-                                    "does not exist in the grammar.");
-                        }
 
                         String packageName = TypeUtil.getPackageNameFromFullClassName(ctx.returnType.getText());
                         String typeName = TypeUtil.getShortNameFromFullClassName(ctx.returnType.getText());
@@ -202,6 +196,8 @@ public final class GrammarMetaInformationUtil {
             @Override
             public void exitDelegationMethod(CustomModelDefinitionsParser.DelegationMethodContext ctx) {
 
+                if(currentRuleName==null) return;
+
                 Optional<RuleClass> ruleClass = model.ruleClassByName(currentRuleName);
 
                 if(!ruleClass.isPresent()) {
@@ -226,7 +222,24 @@ public final class GrammarMetaInformationUtil {
 
                 currentRuleName = ctx.ruleName.getText();
 
-                System.out.println("entering Rule '" + ctx.ruleName.getText() +"'");
+                System.out.println("Entering rule '" + ctx.ruleName.getText() +"'");
+
+                if(!model.ruleClassByName(currentRuleName).isPresent()) {
+
+                    if(!definedCustomRules.contains(currentRuleName)) {
+                        System.out.println("> rule does not exist. Adding model class outside of the grammar spec.");
+                        definedCustomRules.add(currentRuleName);
+                        model.getCustomRules().add(CustomRule.newBuilder().withText(tokens.getText(ctx)).build());
+                    }
+
+                    currentRuleName = null;
+                } else {
+                    if(ctx.identifierList()!=null) {
+                        model.ruleClassByName(currentRuleName).get().getSuperInterfaces().addAll(
+                                ctx.identifierList().elements.stream().map(token -> tokens.getText(token, token)).
+                                        collect(Collectors.toList()));
+                    }
+                }
             }
         };
 

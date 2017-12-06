@@ -28,6 +28,14 @@ interface GrammarModel {
 
     @Contains(opposite = "model")
     TypeMappings getTypeMappings();
+
+    @Contains(opposite = "model")
+    CustomRule[] getCustomRules();
+}
+
+interface CustomRule extends WithText {
+    @Container(opposite = "customRules")
+    GrammarModel getModel();
 }
 
 @Immutable
@@ -106,6 +114,11 @@ interface RuleClass extends WithName, CodeElement {
 
     @Container(opposite = "childClasses")
     RuleClass getSuperClass();
+
+    String[] getSuperInterfaces();
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.StringUtilDelegate")
+    String superInterfacesString();
 
     @Contains(opposite = "superClass")
     RuleClass[] getChildClasses();

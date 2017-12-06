@@ -4,7 +4,7 @@ import eu.mihosoft.vmf.vmftext.StringUtil;
 import eu.mihosoft.vmf.runtime.core.DelegatedBehavior;
 
 public class NameDelegate implements DelegatedBehavior<WithName>{
-    WithName caller;
+    private WithName caller;
 
     @Override
     public void setCaller(WithName caller) {

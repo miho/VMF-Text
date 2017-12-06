@@ -55,7 +55,7 @@ interface CodeElement {
 ##if( !$rcls.childClasses.empty )
 ##@InterfaceOnly
 ##end
-interface ${rcls.nameWithUpper()}#if($rcls.superClass) extends ${rcls.superClass.nameWithUpper()}#else extends CodeElement#end {
+interface ${rcls.nameWithUpper()}#if($rcls.superClass) extends ${rcls.superClass.nameWithUpper()}#else extends CodeElement#end#if(!$rcls.getSuperInterfaces().isEmpty()), /*custom model types:*/ #end${rcls.superInterfacesString()} {
 #set($ruleClass=$rcls)
 #parse("${TEMPLATE_PATH}rule-class.vm")
 
@@ -66,4 +66,10 @@ interface ${rcls.nameWithUpper()}#if($rcls.superClass) extends ${rcls.superClass
 
 }
 
+#end## end for each rule class
+
+// Custom model classes
+
+#foreach( $cmc in ${model.customRules})
+$cmc.getText()
 #end
