@@ -74,7 +74,6 @@ public final class GrammarMetaInformationUtil {
         TypeMappingParser parser = new TypeMappingParser(tokens);
 
         ParserRuleContext tree = parser.typeMappingCode();
-
         ParseTreeWalker walker = new ParseTreeWalker();
 
         walker.walk(l, tree);
@@ -103,7 +102,6 @@ public final class GrammarMetaInformationUtil {
         TypeMappingParser parser = new TypeMappingParser(tokens);
 
         ParserRuleContext tree = parser.typeMapping();
-
         ParseTreeWalker walker = new ParseTreeWalker();
 
         walker.walk(l, tree);
@@ -133,7 +131,6 @@ public final class GrammarMetaInformationUtil {
         VMFTextCommentsParser parser = new VMFTextCommentsParser(tokens);
 
         ParserRuleContext tree = parser.program();
-
         ParseTreeWalker walker = new ParseTreeWalker();
 
         walker.walk(l, tree);
@@ -159,25 +156,6 @@ public final class GrammarMetaInformationUtil {
 
                 String propName = ctx.name.getText();
 
-
-                if(!propName.startsWith("get")) {
-                  // we are converting to delegation method
-                    Optional<RuleClass> ruleClass = model.ruleClassByName(currentRuleName);
-
-                    if(!ruleClass.isPresent()) {
-                        throw new RuntimeException("RuleClass '"+currentRuleName+"' referenced in line ["
-                                + ctx.name.getLine()+":"+ctx.name.getCharPositionInLine()+"] " +
-                                "does not exist in the grammar.");
-                    }
-
-                    System.out.println("DelegationMethod: \n" + tokens.getText(ctx));
-
-                    ruleClass.get().getDelegationMethods().add(
-                            DelegationMethod.newBuilder().withText(tokens.getText(ctx)).build()
-                    );
-
-                } else {
-
                     // convert property name from getter to pure
                     propName = propName.substring(3, propName.length());
                     propName = StringUtil.firstToLower(propName);
@@ -185,9 +163,7 @@ public final class GrammarMetaInformationUtil {
                     Optional<Property> prop = model.propertyByName(currentRuleName, propName);
 
                     if (!prop.isPresent()) {
-//                        throw new RuntimeException("Property '" + propName + "' referenced in line ["
-//                                + ctx.name.getLine() + ":" + ctx.name.getCharPositionInLine() + "] " +
-//                                "does not exist in the grammar.");
+                        System.out.println("> adding custom parameter '"+propName+"' to rule '"+currentRuleName+"'.");
 
                         Optional<RuleClass> ruleClass = model.ruleClassByName(currentRuleName);
 
@@ -213,15 +189,12 @@ public final class GrammarMetaInformationUtil {
                         ruleClass.get().getProperties().add(newProp);
 
                     } else {
-
-
                         // convert annotations
                         prop.get().getAnnotations().addAll(
                                 ctx.annotations.stream().map(aCtx -> PropertyAnnotation.newBuilder().
                                         withText(tokens.getText(aCtx)).build()).collect(Collectors.toList())
                         );
                     }
-                }
 
                 super.exitParameterMethod(ctx);
             }
@@ -237,7 +210,8 @@ public final class GrammarMetaInformationUtil {
                             "does not exist in the grammar.");
                 }
 
-                System.out.println("DelegationMethod: \n" + tokens.getText(ctx));
+                System.out.println("> adding delegation-method: " + tokens.getText(ctx.returnType) + " " +
+                        tokens.getText(ctx.name,ctx.name)+"()");
 
                 ruleClass.get().getDelegationMethods().add(
                         DelegationMethod.newBuilder().withText(tokens.getText(ctx)).build()
@@ -252,11 +226,9 @@ public final class GrammarMetaInformationUtil {
 
                 currentRuleName = ctx.ruleName.getText();
 
-                System.out.println("entering " + ctx.ruleName.getText());
+                System.out.println("entering Rule '" + ctx.ruleName.getText() +"'");
             }
         };
-
-
 
         ParserRuleContext tree = parser.modelDefinitionCode();
 

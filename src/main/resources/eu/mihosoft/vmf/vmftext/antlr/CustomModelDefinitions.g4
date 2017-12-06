@@ -10,10 +10,11 @@ modelDefinition:
      ;
 
 methodDeclaration:
-       annotations+=annotation* returnType=result name=Identifier '(' ')' ';'                      # parameterMethod
-    |  annotations+=annotation* returnType=result name=Identifier '(' formalParameterList ')' ';'  # delegationMethod
+       annotations+=annotation* returnType=result name=PROPERTY_IDENTIFIER '(' ')' ';'             # parameterMethod
+    |  annotations+=annotation* returnType=result name=Identifier '(' formalParameterList? ')' ';'  # delegationMethod
 ;
 
+PROPERTY_IDENTIFIER: 'get'Identifier;
 
 //
 //

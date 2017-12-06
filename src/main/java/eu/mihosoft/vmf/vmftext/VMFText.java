@@ -134,7 +134,7 @@ public class VMFText {
 
         List<String> comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
 
-        System.out.println("------------------------------------------------------");
+        System.out.println("\n------------------------------------------------------");
         System.out.println("Meta-Info:");
         System.out.println("------------------------------------------------------");
 
@@ -152,8 +152,11 @@ public class VMFText {
 
         GrammarModel model = grammarToModelListener.getModel();
 
+        System.out.println("\n------------------------------------------------------");
+        System.out.println("Custom-Model-Definitions:");
+        System.out.println("------------------------------------------------------");
+
         for(String s : comments) {
-            System.out.println(s);
             GrammarMetaInformationUtil.getCustomAnnotations(s, model);
         }
 
