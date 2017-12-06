@@ -7,12 +7,12 @@ modelDefinition:
      annotations+=annotation* 'interface' ruleName=Identifier ('extends' identifierList)? '{'
        methods+=methodDeclaration*
     '}'
-     ;
+    ;
 
 methodDeclaration:
        annotations+=annotation* returnType=result name=PROPERTY_IDENTIFIER '(' ')' ';'              # parameterMethod
     |  annotations+=annotation* returnType=result name=Identifier '(' formalParameterList? ')' ';'  # delegationMethod
-;
+    ;
 
 identifierList:
        elements+=Identifier (',' elements+=Identifier)*
