@@ -127,6 +127,10 @@ interface RuleClass extends WithName, CodeElement {
 
     @Contains(opposite = "parent")
     DelegationMethod[] getDelegationMethods();
+
+    @Contains(opposite = "parent")
+    RuleAnnotation[] getCustomRuleAnnotations();
+
 }
 
 interface Property extends WithName, WithType, CodeElement {
@@ -159,6 +163,11 @@ interface PropertyAnnotation extends WithText {
 
     @Container(opposite = "annotations")
     Property getProperty();
+}
+
+interface RuleAnnotation extends WithText{
+    @Container(opposite = "customRuleAnnotations")
+    RuleClass getParent();
 }
 
 // TypeMapping

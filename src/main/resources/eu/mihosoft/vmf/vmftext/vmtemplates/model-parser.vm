@@ -51,10 +51,12 @@ interface CodeElement {
 }
 
 #foreach( $rcls in ${model.ruleClasses} )
-## TODO 05.12.2017 repair this for classes that do not have custom model definitions
-##if( !$rcls.childClasses.empty )
-##@InterfaceOnly
-##end
+#if( !$rcls.childClasses.empty )
+@InterfaceOnly
+#end
+#foreach( $ann in ${rcls.getCustomRuleAnnotations()} )
+$ann.getText()
+#end
 interface ${rcls.nameWithUpper()}#if($rcls.superClass) extends ${rcls.superClass.nameWithUpper()}#else extends CodeElement#end#if(!$rcls.getSuperInterfaces().isEmpty()), /*custom model types:*/ #end${rcls.superInterfacesString()} {
 #set($ruleClass=$rcls)
 #parse("${TEMPLATE_PATH}rule-class.vm")

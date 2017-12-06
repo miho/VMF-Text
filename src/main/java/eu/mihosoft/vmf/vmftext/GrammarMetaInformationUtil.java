@@ -29,7 +29,7 @@ public final class GrammarMetaInformationUtil {
         throw new AssertionError("Don't instantiate me!");
     }
 
-    public static TypeMappings getTypeMapping(TypeMappings mappings,String code) {
+    public static TypeMappings getTypeMapping(TypeMappings mappings, String code) {
 
 
         TypeMappingBaseListener l = new TypeMappingBaseListener() {
@@ -42,7 +42,7 @@ public final class GrammarMetaInformationUtil {
                 TypeMapping typeMapping = TypeMapping.newInstance();
 
                 typeMapping.getApplyToNames().addAll(ctx.applyTo.stream().
-                        map(t->t.getText()).collect(Collectors.toList()));
+                        map(t -> t.getText()).collect(Collectors.toList()));
 
                 currentMapping = typeMapping;
 
@@ -56,7 +56,7 @@ public final class GrammarMetaInformationUtil {
 
                 Mapping m = Mapping.newBuilder().withRuleName(ctx.ruleName.getText()).
                         withTypeName(ctx.typeName.getText()).withMappingCode(ctx.embeddedCode.getText().
-                        substring(1, ctx.embeddedCode.getText().length()-1)).build();
+                        substring(1, ctx.embeddedCode.getText().length() - 1)).build();
 
                 currentMapping.getEntries().add(m);
 
@@ -87,7 +87,7 @@ public final class GrammarMetaInformationUtil {
             @Override
             public void enterVmfTextComment(VMFTextCommentsParser.VmfTextCommentContext ctx) {
                 String comment = ctx.text.getText();
-                result.add(comment.substring("/*<!vmf-text!>".length(), comment.length()-2));
+                result.add(comment.substring("/*<!vmf-text!>".length(), comment.length() - 2));
                 super.enterVmfTextComment(ctx);
             }
         };
@@ -116,7 +116,7 @@ public final class GrammarMetaInformationUtil {
             @Override
             public void enterVmfTextComment(VMFTextCommentsParser.VmfTextCommentContext ctx) {
                 String comment = ctx.text.getText();
-                result.add(comment.substring("/*<!vmf-text!>".length(), comment.length()-2));
+                result.add(comment.substring("/*<!vmf-text!>".length(), comment.length() - 2));
                 super.enterVmfTextComment(ctx);
             }
         };
@@ -152,43 +152,44 @@ public final class GrammarMetaInformationUtil {
             @Override
             public void exitParameterMethod(CustomModelDefinitionsParser.ParameterMethodContext ctx) {
 
-                if(currentRuleName==null) return;
+                if (currentRuleName == null) return;
 
                 String propName = ctx.name.getText();
 
-                    // convert property name from getter to pure
-                    propName = propName.substring(3, propName.length());
-                    propName = StringUtil.firstToLower(propName);
+                // convert property name from getter to pure
+                propName = propName.substring(3, propName.length());
+                propName = StringUtil.firstToLower(propName);
 
-                    Optional<Property> prop = model.propertyByName(currentRuleName, propName);
+                Optional<Property> prop = model.propertyByName(currentRuleName, propName);
 
-                    if (!prop.isPresent()) {
-                        System.out.println("> adding custom parameter '"+propName+"' to rule '"+currentRuleName+"'.");
+                if (!prop.isPresent()) {
+                    System.out.println(" -> adding custom parameter '" +
+                            propName + "' to rule '" + currentRuleName + "'.");
 
-                        Optional<RuleClass> ruleClass = model.ruleClassByName(currentRuleName);
+                    Optional<RuleClass> ruleClass = model.ruleClassByName(currentRuleName);
 
-                        String packageName = TypeUtil.getPackageNameFromFullClassName(ctx.returnType.getText());
-                        String typeName = TypeUtil.getShortNameFromFullClassName(ctx.returnType.getText());
+                    String packageName = TypeUtil.getPackageNameFromFullClassName(ctx.returnType.getText());
+                    String typeName = TypeUtil.getShortNameFromFullClassName(ctx.returnType.getText());
 
-                        Property newProp = Property.newBuilder().
-                                withName(propName).
-                                withType(Type.newBuilder().withPackageName(packageName).withName(typeName).build()).
-                                build();
+                    Property newProp = Property.newBuilder().
+                            withName(propName).
+                            withType(Type.newBuilder().withPackageName(packageName).withName(typeName).build()).
+                            build();
 
-                        newProp.getAnnotations().addAll(
-                                ctx.annotations.stream().
-                                        map(aCtx-> PropertyAnnotation.newBuilder().withText(tokens.getText(aCtx)).build()).
-                                        collect(Collectors.toList()));
+                    newProp.getAnnotations().addAll(
+                            ctx.annotations.stream().
+                                    map(aCtx -> PropertyAnnotation.newBuilder().withText(tokens.getText(aCtx)).build()).
+                                    collect(Collectors.toList()));
 
-                        ruleClass.get().getProperties().add(newProp);
+                    ruleClass.get().getProperties().add(newProp);
 
-                    } else {
-                        // convert annotations
-                        prop.get().getAnnotations().addAll(
-                                ctx.annotations.stream().map(aCtx -> PropertyAnnotation.newBuilder().
-                                        withText(tokens.getText(aCtx)).build()).collect(Collectors.toList())
-                        );
-                    }
+                } else {
+                    // convert annotations
+                    prop.get().getAnnotations().addAll(
+                            ctx.annotations.stream().map(aCtx -> PropertyAnnotation.newBuilder().
+                                    withText(tokens.getText(aCtx)).build()).collect(Collectors.toList())
+                    );
+                }
 
                 super.exitParameterMethod(ctx);
             }
@@ -196,18 +197,18 @@ public final class GrammarMetaInformationUtil {
             @Override
             public void exitDelegationMethod(CustomModelDefinitionsParser.DelegationMethodContext ctx) {
 
-                if(currentRuleName==null) return;
+                if (currentRuleName == null) return;
 
                 Optional<RuleClass> ruleClass = model.ruleClassByName(currentRuleName);
 
-                if(!ruleClass.isPresent()) {
-                    throw new RuntimeException("RuleClass '"+currentRuleName+"' referenced in line ["
-                            + ctx.name.getLine()+":"+ctx.name.getCharPositionInLine()+"] " +
+                if (!ruleClass.isPresent()) {
+                    throw new RuntimeException("RuleClass '" + currentRuleName + "' referenced in line ["
+                            + ctx.name.getLine() + ":" + ctx.name.getCharPositionInLine() + "] " +
                             "does not exist in the grammar.");
                 }
 
-                System.out.println("> adding delegation-method: " + tokens.getText(ctx.returnType) + " " +
-                        tokens.getText(ctx.name,ctx.name)+"()");
+                System.out.println(" -> adding delegation-method: " + tokens.getText(ctx.returnType) + " " +
+                        tokens.getText(ctx.name, ctx.name) + "()");
 
                 ruleClass.get().getDelegationMethods().add(
                         DelegationMethod.newBuilder().withText(tokens.getText(ctx)).build()
@@ -222,23 +223,34 @@ public final class GrammarMetaInformationUtil {
 
                 currentRuleName = ctx.ruleName.getText();
 
-                System.out.println("Entering rule '" + ctx.ruleName.getText() +"'");
+                System.out.println("> Entering rule '" + ctx.ruleName.getText() + "'");
 
-                if(!model.ruleClassByName(currentRuleName).isPresent()) {
+                if (!model.ruleClassByName(currentRuleName).isPresent()) {
 
-                    if(!definedCustomRules.contains(currentRuleName)) {
-                        System.out.println("> rule does not exist. Adding model class outside of the grammar spec.");
+                    if (!definedCustomRules.contains(currentRuleName)) {
+                        System.out.println(" -> rule does not exist. Adding model class outside of the grammar spec.");
                         definedCustomRules.add(currentRuleName);
                         model.getCustomRules().add(CustomRule.newBuilder().withText(tokens.getText(ctx)).build());
                     }
 
                     currentRuleName = null;
                 } else {
-                    if(ctx.identifierList()!=null) {
-                        model.ruleClassByName(currentRuleName).get().getSuperInterfaces().addAll(
+                    RuleClass ruleClass = model.ruleClassByName(currentRuleName).get();
+                    if (ctx.identifierList() != null) {
+                        ruleClass.getSuperInterfaces().addAll(
                                 ctx.identifierList().elements.stream().map(token -> tokens.getText(token, token)).
                                         collect(Collectors.toList()));
                     }
+
+                    if (ctx.annotations != null) {
+                        System.out.println(" -> adding custom annotations");
+                        ruleClass.getCustomRuleAnnotations().addAll(
+                                ctx.annotations.stream().map(aCtx -> RuleAnnotation.newBuilder().
+                                        withText(tokens.getText(aCtx)).build()).
+                                        collect(Collectors.toList())
+                        );
+                    }
+
                 }
             }
         };
