@@ -8,7 +8,6 @@ import eu.mihosoft.vmf.vmftext.grammar.TypeMappings;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Lexer;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
 import groovy.lang.GroovyClassLoader;
-import org.antlr.v4.Tool;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -16,11 +15,8 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.tool.ErrorType;
 import org.antlr.v4.tool.Grammar;
-import org.mdkt.compiler.InMemoryJavaCompiler;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -159,6 +155,16 @@ public class VMFText {
         for(String s : comments) {
             GrammarMetaInformationUtil.getCustomAnnotations(s, model);
         }
+
+        System.out.println("\n------------------------------------------------------");
+        System.out.println("Grammar Matcher:");
+        System.out.println("------------------------------------------------------");
+
+        GrammarToRuleMatcherListener matchListenr = new GrammarToRuleMatcherListener(tokens);
+
+        walker.walk(matchListenr, tree);
+
+        System.exit(0);
 
         return model;
     }

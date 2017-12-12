@@ -1,10 +1,7 @@
 package eu.mihosoft.vmf.vmftext;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import eu.mihosoft.vmf.core.io.FileResourceSet;
@@ -32,7 +29,7 @@ public class Main {
         ResourceSet outRes = new FileResourceSet(new File("build/tmp"));
 
         VMFText.generate(
-                new File("src/main/resources/eu/mihosoft/vmf/vmftext/antlr/GrammarVMF2.g4"),
+                new File("src/main/resources/eu/mihosoft/vmf/vmftext/antlr/RuleMatcher.g4"),
                 "me.p12345678",
                 outRes);
 
@@ -47,81 +44,6 @@ public class Main {
 
     static String firstToUpper (String name) {
         return name.substring(0,1).toUpperCase()+name.substring(1);
-    }
-}
-
-class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
-
-    private TokenStream stream;
-
-    private String currentRuleName;
-    private ANTLRv4Parser.AlternativeContext insideAlternative = null;
-
-    private boolean currentAltIsLabeled = false;
-
-    private final Map<String, Integer> rulesAltNames = new HashMap<>();
-
-
-    public GrammarToRuleMatcherListener(TokenStream stream) {
-        this.stream = stream;
-    }
-
-    private int newRuleAltIndex(String ruleName) {
-        Integer id = rulesAltNames.get(ruleName);
-
-        if(id==null) {
-            id = 0;
-
-        } else {
-            id++;
-        }
-
-        rulesAltNames.put(ruleName, id);
-
-        return id;
-    }
-
-    @Override
-    public void enterAlternative(ANTLRv4Parser.AlternativeContext ctx) {
-
-        if(insideAlternative==null) {
-            insideAlternative = ctx;
-
-            int ruleAltIndex = newRuleAltIndex(currentRuleName);
-
-            System.out.print(currentRuleName + "_alt_rule_" + ruleAltIndex + " : ");
-
-            System.out.print(stream.getText(ctx.getSourceInterval()));
-
-            System.out.println();
-
-            ctx.element().stream().
-                    filter(e -> ParseTreeUtil.isLabeledElement(e)).filter(e -> ParseTreeUtil.isLexerRule(e)||ParseTreeUtil.isRuleBlock(e)).
-                    forEach(e -> {
-                        System.out.print(currentRuleName + "_alt_" + ruleAltIndex + "_prop_rule_" + e.labeledElement().identifier().getText() + " : ");
-
-                        System.out.println(stream.getText(e.getSourceInterval()));
-            });
-
-            System.out.println();
-        }
-
-        super.enterAlternative(ctx);
-    }
-
-    @Override
-    public void exitAlternative(ANTLRv4Parser.AlternativeContext ctx) {
-        if(insideAlternative == ctx){
-            insideAlternative = null;
-        }
-
-        super.exitAlternative(ctx);
-    }
-
-    @Override
-    public void enterParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
-        currentRuleName = ctx.RULE_REF().getText();
-        super.enterParserRuleSpec(ctx);
     }
 }
 
