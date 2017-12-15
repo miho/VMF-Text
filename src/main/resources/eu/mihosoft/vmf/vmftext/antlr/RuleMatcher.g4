@@ -8,7 +8,8 @@ expr:	left=expr operator=('*'|'/') right=expr ';'? # MultDivOpExpr
     |	'(' expression = expr ')'                  ? # ParanExpr
     ;
 
-expr2:	expr ('*'{System.out.println("OUT:*")}|'/'{System.out.println("OUT:/")}) expr ';'? {System.out.println("ALT-1:")};
+nested:	'(' ('id' id=INT | 'name' name=IDENTIFIER ) ')'
+    |   '('  'otherName' otherName=IDENTIFIER ')';
 
 
 DOUBLE :

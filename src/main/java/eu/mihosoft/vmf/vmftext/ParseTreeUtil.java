@@ -71,4 +71,16 @@ public class ParseTreeUtil {
         return CodeRange.newBuilder().withStart(tokenToCodeLocationStart(ctx.start)).
                 withStop(tokenToCodeLocationStop(ctx.stop)).build();
     }
+
+    public static boolean isLabeledBlockElement(ANTLRv4Parser.ElementContext e) {
+        return isLabeledElement(e) && e.labeledElement().block()!=null;
+    }
+
+    public static boolean isBlockElement(ANTLRv4Parser.ElementContext e) {
+        return e.labeledElement()!=null && e.labeledElement().block()!=null;
+    }
+
+    public static boolean isUnlabeledBlockElement(ANTLRv4Parser.ElementContext e) {
+        return e.labeledElement()!=null && !isLabeledElement(e) && e.labeledElement().block()!=null;
+    }
 }
