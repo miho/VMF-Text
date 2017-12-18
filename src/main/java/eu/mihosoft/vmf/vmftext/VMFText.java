@@ -5,6 +5,7 @@ import eu.mihosoft.vmf.VMF;
 import eu.mihosoft.vmf.core.io.*;
 import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
 import eu.mihosoft.vmf.vmftext.grammar.TypeMappings;
+import eu.mihosoft.vmf.vmftext.grammar.UnparserModel;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Lexer;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
 import groovy.lang.GroovyClassLoader;
@@ -28,9 +29,15 @@ public class VMFText {
         throw new AssertionError("Don't instantiate me!");
     }
 
+
     //    public static void generate(String grammars, ResourceSet outputDir) {
 //
 //    }
+
+    private static class GrammarAndUnparser {
+        UnparserModel unparserModel;
+        GrammarModel model;
+    }
 
     public static void generate(File grammar, String packageName, File outputDir) {
         generate(grammar, packageName, new FileResourceSet(outputDir));
@@ -52,9 +59,10 @@ public class VMFText {
                 }
         );
 
-
         try {
-            GrammarModel model = convertGrammarToModel(grammar);
+            GrammarAndUnparser conversionResult = convertGrammarToModel(grammar);
+
+            GrammarModel model = conversionResult.model;
 
             model.setPackageName(packageName);
 
@@ -62,6 +70,11 @@ public class VMFText {
             ModelGenerator generator = new ModelGenerator();
             generator.generateModel(model, outputDir);
             generator.generateModelConverter(model, outputDir);
+
+
+            // generate mode unparser
+            UnparserModel unparserModel = conversionResult.unparserModel;
+            generator.generateModelUnparser(model, unparserModel, outputDir);
 
             // generate model classes for in-memory compilation
             MemoryResourceSet modelGenCode = new MemoryResourceSet();
@@ -115,7 +128,7 @@ public class VMFText {
         VMF.generate(outputDir, classes);
     }
 
-    private static GrammarModel convertGrammarToModel(File grammar) throws IOException {
+    private static GrammarAndUnparser convertGrammarToModel(File grammar) throws IOException {
         InputStream codeStream = new FileInputStream(grammar);
         CharStream input = CharStreams.fromStream(codeStream);
 
@@ -126,7 +139,6 @@ public class VMFText {
         ParserRuleContext tree = parser.grammarSpec();
 
         ParseTreeWalker walker = new ParseTreeWalker();
-
 
         List<String> comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
 
@@ -164,9 +176,10 @@ public class VMFText {
 
         walker.walk(matchListenr, tree);
 
-        System.exit(0);
-
-        return model;
+        GrammarAndUnparser grammarAndUnparser = new GrammarAndUnparser();
+        grammarAndUnparser.model = model;
+        grammarAndUnparser.unparserModel = matchListenr.getModel();
+        return grammarAndUnparser;
     }
 
 

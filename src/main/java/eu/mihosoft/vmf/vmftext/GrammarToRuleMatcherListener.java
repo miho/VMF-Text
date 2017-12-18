@@ -32,33 +32,16 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
     private ANTLRv4Parser.LabeledAltContext currentAlt = null;
     private Deque<UPRuleBase> currentRules = new ArrayDeque<>();
     private Deque<AlternativeBase> currentAlts = new ArrayDeque<>();
-    private Deque<ANTLRv4Parser.AlternativeContext> insideAlternative = new ArrayDeque<>();
-
-    private Interval currentInterval;
-
 
     private final UnparserModel model = UnparserModel.newInstance();
-
-    private boolean currentAltIsLabeled = false;
-
-    private final Map<String, Integer> rulesAltNames = new HashMap<>();
-    private int currentIndex = 0;
 
 
     public GrammarToRuleMatcherListener(TokenStream stream) {
         this.stream = stream;
-
-        model.getRules().addChangeListener(evt -> {
-            currentIndex = evt.source().size()-1;
-        });
     }
 
-    private int getCurrentIndex() {
-        if(currentIndex<0) {
-            throw new RuntimeException("Cannot access rules with index < 0");
-        }
-
-        return currentIndex;
+    public UnparserModel getModel() {
+        return model;
     }
 
     private UPRule getCurrentRule() {
@@ -95,8 +78,6 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
         currentAlts.push(alt);
 
-        currentInterval = ctx.getSourceInterval();
-
         super.enterLabeledAlt(ctx);
     }
 
@@ -128,9 +109,6 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
         System.out.println(" -> subrule id: " + subRule.getId());
 
-
-        currentInterval = ctx.getSourceInterval();
-
         super.enterBlock(ctx);
     }
 
@@ -160,8 +138,6 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
         currentAlts.push(alt);
 
-        currentInterval = ctx.getSourceInterval();
-
         super.enterAlternative(ctx);
     }
 
@@ -177,8 +153,6 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
     @Override
     public void enterElement(ANTLRv4Parser.ElementContext ctx) {
-
-        currentInterval = ctx.getSourceInterval();
 
         AlternativeBase currentAlt = currentAlts.peek();
         String elementText = stream.getText(ctx.getSourceInterval());
@@ -259,8 +233,6 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
     @Override
     public void enterParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
-
-        currentInterval = ctx.getSourceInterval();
 
         String ruleName = ctx.RULE_REF().getText();
         System.out.println("> entering rule:  '" + ruleName + "'");

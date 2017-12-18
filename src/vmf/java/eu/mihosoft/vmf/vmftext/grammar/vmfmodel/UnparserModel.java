@@ -48,6 +48,15 @@ interface AlternativeBase extends WithName, WithText, WithId {
 interface UPElement extends WithText {
     @Container(opposite = "elements")
     AlternativeBase getParentAlt();
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.ElementTypeChecker")
+    boolean namedElement();
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.ElementTypeChecker")
+    boolean namedSubRuleElement();
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.ElementTypeChecker")
+    boolean unnamedSubRuleElement();
 }
 
 interface UPNamedElement extends UPElement, WithName {
