@@ -80,7 +80,25 @@ public class UnparserCodeGenerator {
 
                 a.getElements().stream().filter(el->el instanceof SubRule).map(el->(SubRule)el).forEach(sr-> {
                     w.println("  public void unparse" + altName + "SubRule" + sr.getId() + "( " + ruleName + " obj, PrintWriter w) {");
-                    w.println();
+                    int aSubCounter = 0;
+                    for(AlternativeBase sa : sr.getAlternatives()) {
+
+                        String altSubName = ruleName + "SubRule" + "Alt" + sa.getId();
+
+                        w.println("    if( match" + altSubName + "( obj, w ) ) {");
+
+                        w.println("      unparse" + altSubName + "( obj, w );");
+
+                        w.print("    }");
+
+                        if(aSubCounter < sr.getAlternatives().size() -1 ) {
+                            w.print(" else ");
+                        } else {
+                            w.println();
+                        }
+
+                        aSubCounter++;
+                    }
                     w.println("  }");
                 });
             }
