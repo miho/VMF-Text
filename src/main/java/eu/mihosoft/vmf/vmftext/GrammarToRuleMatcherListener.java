@@ -44,13 +44,15 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         return model;
     }
 
-    private UPRule getCurrentRule() {
+    private UPRuleBase getCurrentRule() {
 
-        if(model.getRules().isEmpty()) {
-            throw new RuntimeException("Cannot access current rule (does not exist)");
-        }
+//        if(model.getRules().isEmpty()) {
+//            throw new RuntimeException("Cannot access current rule (does not exist)");
+//        }
 
-        return model.getRules().get(model.getRules().size()-1);
+        // return model.getRules().get(model.getRules().size()-1);
+
+        return currentRules.peek();
     }
 
     @Override
@@ -60,7 +62,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
         currentAlt = ctx;
 
-        UPRule currentRule = getCurrentRule();
+        UPRuleBase currentRule = getCurrentRule();
         AlternativeBase alt;
 
         if(ctx.identifier()==null) {
@@ -127,7 +129,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
         System.out.println("entering alt (*): " + ctx.getText());
 
-        UPRule currentRule = getCurrentRule();
+        UPRuleBase currentRule = getCurrentRule();
 
         AlternativeBase alt = Alternative.newBuilder().
                 withText(stream.getText(ctx.getSourceInterval())).build();
@@ -174,7 +176,6 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 currentRules.push(subRule);
 
                 // if sub-rule is a block-set we need to manually add alternatives
-
 
                 System.out.println(" -> subrule id: " + subRule.getId());
             } else {
