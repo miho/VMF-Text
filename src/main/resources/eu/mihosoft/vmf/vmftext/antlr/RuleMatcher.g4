@@ -5,7 +5,7 @@ prog:	expressions+=expr*;
 expr:	left=expr operator=('*'|'/') right=expr ';'? # MultDivOpExpr
     |	left=expr operator=('+'|'-') right=expr ';'? # PlusMinusOpExpr
     |	value=DOUBLE                            ';'? # NumberExpr
-    |	'(' expression = expr ')'                  ? # ParanExpr
+    |	'(' expression = expr ')'                    # ParanExpr
     ;
 
 nested:	'(' ('id' id=INT | 'name' name=IDENTIFIER ) ')'

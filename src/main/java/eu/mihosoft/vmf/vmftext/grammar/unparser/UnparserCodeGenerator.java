@@ -23,81 +23,74 @@ public class UnparserCodeGenerator {
 
             w.println("public class "+ruleName+"Unparser("+ ruleName + " obj, PrintWriter w ) {");
             w.println("  public void "+"unparse("+ ruleName + " obj, PrintWriter w ) {");
-            int aCounter = 0;
+
             for(AlternativeBase a : r.getAlternatives()) {
 
                 String altName = ruleName + "Alt" + a.getId();
 
-                w.println("    if( match" + altName + "( obj, w ) ) {");
+                w.println("    if( unparse" + altName + "( obj, w ) ) { return; }");
 
-                w.println("      unparse" + altName + "( obj, w );");
-
-                w.print("    }");
-
-                if(aCounter < r.getAlternatives().size() -1 ) {
-                    w.print(" else ");
-                } else {
-                    w.println();
-                }
-
-                aCounter++;
             }
             w.println("  }");
 
             for(AlternativeBase a : r.getAlternatives()) {
                 String altName = ruleName + "Alt" + a.getId();
-                w.println("  public String unparse"+ altName + "( " + ruleName + " obj, PrintWriter w) {");
+                w.println("  public boolean unparse"+ altName + "( " + ruleName + " obj, PrintWriter w) {");
 
                 w.println("    ");
 
-                w.print( "    return " );
+                w.println( "    java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();" );
+                w.println( "    PrintWriter internalW = new PrintWriter(output);" );
 
-                int eCount = 0;
                 for(UPElement e : a.getElements()) {
                     if(e instanceof UPSubRuleElement) {
                         UPSubRuleElement sre = (UPSubRuleElement) e;
-                        w.print("unparse"+ altName + "SubRule" + sre.getId() + "(obj, w) ");
+                        w.println("    unparse"+ altName + "SubRule" + sre.getId() + "( obj, internalW );");
                     } else if(e instanceof UPNamedSubRuleElement) {
                         UPNamedSubRuleElement sre = (UPNamedSubRuleElement) e;
-                        w.print("unparse"+ altName + "SubRule" + sre.getId() + "(obj, w) ");
+                        w.println("    unparse"+ altName + "SubRule" + sre.getId() + "( obj, internalW );");
                     } else if(e instanceof  UPNamedElement) {
                         UPNamedElement ne = (UPNamedElement) e;
-                        w.print("convertToString( obj.get"+StringUtil.firstToUpper(ne.getName())+"() )");
+                        w.println("    internalW.print( convertToString( obj.get"+StringUtil.firstToUpper(ne.getName())+"() ) );");
                     } else {
-                        w.print(""+e.getText().replace('\'', '"') + " + \" \"");
-                    }
+                        // remove ebnf multiplicity, optional and greedy characters
+                        String eText = e.getText();
+                        if(eText.endsWith("?")) {
+                            eText = eText.substring(0,eText.length()-1);
+                        }
+                        if(eText.endsWith("*")) {
+                            eText = eText.substring(0,eText.length()-1);
+                        }
+                        if(eText.endsWith("+")) {
+                            eText = eText.substring(0,eText.length()-1);
+                        }
+                        if(eText.endsWith(")")) {
+                            // remove ( )
+                            eText = eText.substring(1,eText.length()-1);
+                        }
 
-                    if(eCount < a.getElements().size()-1) {
-                        w.print(" + ");
-                    } else {
-                        w.println(";");
-                    }
+                        if(eText.startsWith("'")) {
+                            // replace ' with "
+                            eText = "\""+eText.substring(1,eText.length()-1)+"\"";
+                        }
 
-                    eCount++;
+                        w.println("    internalW.println( "+eText + " + \" \" );");
+                    }
                 }
+
+                w.println("    return match"+altName+"(s);");
 
                 w.println("\n  }");
 
                 a.getElements().stream().filter(el->el instanceof SubRule).map(el->(SubRule)el).forEach(sr-> {
                     w.println("  public void unparse" + altName + "SubRule" + sr.getId() + "( " + ruleName + " obj, PrintWriter w) {");
-                    int aSubCounter = 0;
+
                     for(AlternativeBase sa : sr.getAlternatives()) {
 
                         String altSubName = ruleName + "SubRule" + "Alt" + sa.getId();
 
-                        w.println("    if( match" + altSubName + "( obj, w ) ) {");
+                        w.println("    if( unparse" + altSubName + "( obj, w )) { return; }");
 
-                        w.println("      unparse" + altSubName + "( obj, w );");
-
-                        w.print("    }");
-
-                        if(aSubCounter < sr.getAlternatives().size() -1 ) {
-                            w.print(" else ");
-                        } else {
-                            w.println();
-                        }
-
-                        aSubCounter++;
                     }
                     w.println("  }");
                 });
