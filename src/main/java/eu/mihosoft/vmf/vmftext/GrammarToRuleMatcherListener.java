@@ -96,7 +96,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         String elementText = stream.getText(ctx.getSourceInterval());
 
         // remove the current element since the element is actually a block
-        // which will be readded as subrule element below
+        // which will be readded as sub-rule element below
         //
         // NOTE: this case actually only occurs for unnamed blocks
         currentElement.getParentAlt().getElements().remove(currentElement);
@@ -109,7 +109,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         currentAlt.getElements().add(subRule);
         currentRules.push(subRule);
 
-        System.out.println(" -> subrule id: " + subRule.getId());
+        System.out.println(" -> sub-rule id: " + subRule.getId());
 
         super.enterBlock(ctx);
     }
@@ -177,7 +177,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
                 // if sub-rule is a block-set we need to manually add alternatives
 
-                System.out.println(" -> subrule id: " + subRule.getId());
+                System.out.println(" -> sub-rule id: " + subRule.getId());
             } else {
 
                 System.out.println(">>> LE:           " +elementText);
@@ -200,7 +200,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
                 currentAlt.getElements().add(subRule);
 
-                System.out.println(" -> subrule id: " + subRule.getId());
+                System.out.println(" -> sub-rule id: " + subRule.getId());
 
                 currentRules.push(subRule);
             } else {

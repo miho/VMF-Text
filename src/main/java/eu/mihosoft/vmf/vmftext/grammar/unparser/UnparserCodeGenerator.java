@@ -28,6 +28,7 @@ public class UnparserCodeGenerator {
         // find parents of labeled alternatives
         List<UPRuleBase> delList = labeledAlternatives.values().stream().
                 flatMap(las->las.stream()).map(la->la.getParentRule()).collect(Collectors.toList());
+
         // and remove them from unparser generation since they are interface-only types and thus
         // don't need/support direct implementations
         rules.removeAll(delList);
@@ -56,7 +57,6 @@ public class UnparserCodeGenerator {
                 generateAltCode(w, ruleName, ruleName, a);
             }
 
-
             w.println("}\n");
         }
     }
@@ -65,7 +65,6 @@ public class UnparserCodeGenerator {
         UPRule r = UPRule.newBuilder().withName(name).build();
 
         List<Alternative> alts = la.stream().map(UnparserCodeGenerator::labeledAltToAlt).collect(Collectors.toList());
-
         r.getAlternatives().addAll(alts);
 
         return r;
@@ -78,7 +77,6 @@ public class UnparserCodeGenerator {
 
     private static void generateSubRuleCode(String ruleName, String altName, String objName, SubRule sr, PrintWriter w) {
 
-
         w.println("  private void unparse" + altName + "SubRule" + sr.getId() + "( " + objName + " obj, PrintWriter w ) {");
 
         for(AlternativeBase a : sr.getAlternatives()) {
@@ -86,8 +84,8 @@ public class UnparserCodeGenerator {
             String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
 
             w.println("    if( unparse" + altNameSub + "( obj, w ) ) { return; }");
-
         }
+
         w.println("  }");
 
         for(AlternativeBase a : sr.getAlternatives()) {
@@ -136,7 +134,7 @@ public class UnparserCodeGenerator {
                     eText = "\""+eText.substring(1,eText.length()-1)+"\"";
                 }
 
-                w.println("    internalW.println( "+eText + " + \" \" );");
+                w.println("    internalW.print( "+eText + " + \" \" );");
             }
         }
 
@@ -160,5 +158,4 @@ public class UnparserCodeGenerator {
             generateSubRuleCode(ruleName, altName, objName, sr, w);
         });
     }
-
 }
