@@ -4,7 +4,7 @@ prog:	expressions+=expr*;
 
 expr:	left=expr operator=('*'|'/') right=expr ';'? # MultDivOpExpr
     |	left=expr operator=('+'|'-') right=expr ';'? # PlusMinusOpExpr
-    |	value=DOUBLE                            ';'? # NumberExpr
+    |	value=DOUBLE                                 # NumberExpr
     |	'(' expression = expr ')'                    # ParanExpr
     ;
 
