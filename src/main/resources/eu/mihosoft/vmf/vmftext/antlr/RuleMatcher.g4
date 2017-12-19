@@ -11,6 +11,9 @@ expr:	left=expr operator=('*'|'/') right=expr ';'? # MultDivOpExpr
 nested:	'(' ('id' id=INT | 'name' name=IDENTIFIER ) ')'
     |   '('  'otherName' otherName=IDENTIFIER ')';
 
+array:
+        '(' values+=DOUBLE (',' values+=DOUBLE)* ')'
+    ;
 
 DOUBLE :
          SIGN? DIGIT+ DOT DIGIT*

@@ -20,7 +20,7 @@ interface WithId {
 
 @InterfaceOnly
 @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.AltIndexUpdater")
-interface UPRuleBase extends WithText, WithId {
+interface UPRuleBase extends WithId {
     @Contains(opposite = "parentRule")
     AlternativeBase[] getAlternatives();
 }
@@ -37,7 +37,7 @@ interface SubRule extends UPRuleBase {
 
 @InterfaceOnly
 @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.SubRuleIndexUpdater")
-interface AlternativeBase extends WithName, WithText, WithId {
+interface AlternativeBase extends WithText, WithId {
     @Container(opposite = "alternatives")
     UPRuleBase getParentRule();
 
@@ -75,7 +75,7 @@ interface Alternative extends AlternativeBase {
 
 }
 
-interface LabeledAlternative extends AlternativeBase, WithName {
+interface LabeledAlternative extends Alternative, WithName {
 
 }
 
