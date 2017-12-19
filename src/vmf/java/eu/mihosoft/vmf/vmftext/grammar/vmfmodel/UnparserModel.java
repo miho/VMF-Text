@@ -57,6 +57,17 @@ interface UPElement extends WithText {
 
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.ElementTypeChecker")
     boolean unnamedSubRuleElement();
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.EbnfTypeDelegate")
+    boolean ebnfOneMany();
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.EbnfTypeDelegate")
+    boolean ebnfZeroMany();
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.EbnfTypeDelegate")
+    boolean ebnfOne();
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.EbnfTypeDelegate")
+    boolean ebnfOptional();
+
+    boolean isListType();
 }
 
 interface UPNamedElement extends UPElement, WithName {

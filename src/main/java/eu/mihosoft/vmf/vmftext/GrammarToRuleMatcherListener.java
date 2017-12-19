@@ -162,6 +162,8 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         if (ParseTreeUtil.isLabeledElement(ctx)) {
             String propertyName = ctx.labeledElement().identifier().getText();
 
+            boolean listType = ctx.labeledElement().PLUS_ASSIGN()!=null;
+
             if(ctx.labeledElement().block()!=null) {
 
                 System.out.println(">>> LE-BLOCK:     "+elementText);
@@ -169,6 +171,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 UPNamedSubRuleElement subRule = UPNamedSubRuleElement.newBuilder().
                         withText(elementText).
                         withName(propertyName).
+                        withListType(listType).
                         build();
 
                 currentAlt.getElements().add(subRule);
@@ -185,6 +188,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 currentAlt.getElements().add(UPNamedElement.newBuilder().
                         withName(propertyName).
                         withText(stream.getText(ctx.getSourceInterval())).
+                        withListType(listType).
                         build());
             }
 
