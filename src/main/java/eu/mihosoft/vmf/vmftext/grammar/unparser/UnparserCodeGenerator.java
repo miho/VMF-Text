@@ -105,13 +105,54 @@ public class UnparserCodeGenerator {
         for(UPElement e : a.getElements()) {
             if(e instanceof UPSubRuleElement) {
                 UPSubRuleElement sre = (UPSubRuleElement) e;
+                w.println(":type: unnamed-subrule");
+
+                if(sre.ebnfOneMany()) {
+                    w.println("one-many:  " + sre.ebnfOneMany());
+                } else if(sre.ebnfZeroMany()) {
+                    w.println("zero-many: " + sre.ebnfZeroMany());
+                } else if(sre.ebnfOne()) {
+                    w.println("one:       " + sre.ebnfOne());
+                } else if(sre.ebnfOptional()) {
+                    w.println("optional:  " + sre.ebnfOptional());
+                }
                 w.println("    unparse"+ altName + "SubRule" + sre.getId() + "( obj, internalW );");
             } else if(e instanceof UPNamedSubRuleElement) {
                 UPNamedSubRuleElement sre = (UPNamedSubRuleElement) e;
-                w.println("    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) );");
+                w.println("    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \" );");
+
+                w.println(sre.getText());
+
+                w.println(":type: named-subrule");
+
+                if(sre.ebnfOneMany()) {
+                    w.println("one-many:  " + sre.ebnfOneMany());
+                } else if(sre.ebnfZeroMany()) {
+                    w.println("zero-many: " + sre.ebnfZeroMany());
+                } else if(sre.ebnfOne()) {
+                    w.println("one:       " + sre.ebnfOne());
+                } else if(sre.ebnfOptional()) {
+                    w.println("optional:  " + sre.ebnfOptional());
+                }
+
             } else if(e instanceof UPNamedElement) {
-                UPNamedElement ne = (UPNamedElement) e;
-                w.println("    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(ne.getName())+"() ) );");
+                UPNamedElement sre = (UPNamedElement) e;
+                w.println("    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \");");
+
+                w.println(sre.getText());
+
+                w.println(":type: named-element");
+
+                if(sre.ebnfOneMany()) {
+                    w.println("one-many:  " + sre.ebnfOneMany());
+                } else if(sre.ebnfZeroMany()) {
+                    w.println("zero-many: " + sre.ebnfZeroMany());
+                } else if(sre.ebnfOne()) {
+                    w.println("one:       " + sre.ebnfOne());
+                } else if(sre.ebnfOptional()) {
+                    w.println("optional:  " + sre.ebnfOptional());
+                }
+
             } else {
                 // remove ebnf multiplicity, optional and greedy characters
                 String eText = e.getText();

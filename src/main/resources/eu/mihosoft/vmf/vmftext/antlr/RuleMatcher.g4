@@ -1,16 +1,18 @@
 grammar RuleMatcher;
 prog:	expressions+=expr*;
 
-
-expr:	left=expr operator=('*'|'/') right=expr      # MultDivOpExpr
-    |	left=expr operator=('+'|'-') right=expr      # PlusMinusOpExpr
-    |	value=DOUBLE                                 # NumberExpr
-    |	'(' expression = expr ')'                    # ParanExpr
-    ;
-
-nested:	'(' ('id' id=INT | 'name' name=IDENTIFIER ) ')' ';'?
-    |   '('  'otherName' otherName=IDENTIFIER ')' ';'?
-    ;
+expr: IDENTIFIER;
+//
+//
+//expr:	left=expr operator=('*'|'/') right=expr      # MultDivOpExpr
+//    |	left=expr operator=('+'|'-') right=expr      # PlusMinusOpExpr
+//    |	value=DOUBLE                                 # NumberExpr
+//    |	'(' expression = expr ')'                    # ParanExpr
+//    ;
+//
+//nested:	'(' ('id' id=INT | 'name' name=IDENTIFIER ) ')' ';'?
+//    |   '('  'otherName' otherName=IDENTIFIER ')' ';'?
+//    ;
 
 array:
         '(' values+=DOUBLE (',' values+=DOUBLE)* ')'

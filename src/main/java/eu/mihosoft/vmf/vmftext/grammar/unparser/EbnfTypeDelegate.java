@@ -26,4 +26,6 @@ public class EbnfTypeDelegate implements DelegatedBehavior<UPElement>{
     public boolean ebnfOptional(){
         return caller.getText().endsWith("?");
     }
+
+    public boolean ebnfNonGreedy() { return caller.getText().endsWith("*?") || caller.getText().endsWith("+?");}
 }

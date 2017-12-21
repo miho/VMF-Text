@@ -66,6 +66,8 @@ interface UPElement extends WithText {
     boolean ebnfOne();
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.EbnfTypeDelegate")
     boolean ebnfOptional();
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.EbnfTypeDelegate")
+    boolean ebnfNonGreedy();
 
     boolean isListType();
 }
