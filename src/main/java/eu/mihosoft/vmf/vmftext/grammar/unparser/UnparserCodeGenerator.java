@@ -7,15 +7,16 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class UnparserCodeGenerator {
 
-    public static void generateUnparser(UnparserModel model, PrintWriter w) {
-        generateUPCode(model,w);
+    public static void generateUnparser(GrammarModel gModel, UnparserModel model, PrintWriter w) {
+        generateUPCode(gModel, model,w);
     }
 
-    private static void generateUPCode(UnparserModel model, PrintWriter w) {
+    private static void generateUPCode(GrammarModel gModel, UnparserModel model, PrintWriter w) {
 
         // convert labeled alts to rule classes
         Map<String,List<LabeledAlternative>> labeledAlternatives = model.getRules().stream().
@@ -42,6 +43,25 @@ public class UnparserCodeGenerator {
             String ruleName = StringUtil.firstToUpper(r.getName());
 
             w.println("public class "+ruleName+"Unparser {");
+
+            // find rule
+            RuleClass gRule = gModel.getRuleClasses().stream().filter(
+                    gRcl -> Objects.equals(r.getName(), gRcl.nameWithLower())).findFirst().get();
+
+            w.println();
+            w.println("  // list property iterators");
+
+            for(Property prop : gRule.getProperties()) {
+
+                if(!prop.getType().isArrayType()) {
+                    continue;
+                }
+
+                w.println("  int prop" + prop.nameWithUpper() + "ListIndex = 0;");
+            }
+
+            w.println();
+
             w.println("  public void "+"unparse("+ ruleName + " obj, PrintWriter w ) {");
 
             for(AlternativeBase a : r.getAlternatives()) {
@@ -105,7 +125,7 @@ public class UnparserCodeGenerator {
         for(UPElement e : a.getElements()) {
             if(e instanceof UPSubRuleElement) {
                 UPSubRuleElement sre = (UPSubRuleElement) e;
-                w.println(":type: unnamed-subrule");
+                w.println(":type: unnamed-sub-rule");
 
                 if(sre.ebnfOneMany()) {
                     w.println("one-many:  " + sre.ebnfOneMany());
@@ -123,7 +143,7 @@ public class UnparserCodeGenerator {
 
                 w.println(sre.getText());
 
-                w.println(":type: named-subrule");
+                w.println(":type: named-sub-rule");
 
                 if(sre.ebnfOneMany()) {
                     w.println("one-many:  " + sre.ebnfOneMany());
