@@ -45,13 +45,6 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
     }
 
     private UPRuleBase getCurrentRule() {
-
-//        if(model.getRules().isEmpty()) {
-//            throw new RuntimeException("Cannot access current rule (does not exist)");
-//        }
-
-        // return model.getRules().get(model.getRules().size()-1);
-
         return currentRules.peek();
     }
 
@@ -83,36 +76,37 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         super.enterLabeledAlt(ctx);
     }
 
-    @Override
-    public void enterBlock(ANTLRv4Parser.BlockContext ctx) {
-
-        // the block might not have identical source interval because of potential labels
-        // that's why we check for existing currentElement which will be added if we are in the
-        // "element-might-be-a-block" case
-        if(currentElement == null) return; // already covered via enterElement(ctx)
-
-        System.out.println(">>>  E-BLOCK:     "+stream.getText(ctx.getSourceInterval()));
-
-        String elementText = stream.getText(ctx.getSourceInterval());
-
-        // remove the current element since the element is actually a block
-        // which will be readded as sub-rule element below
-        //
-        // NOTE: this case actually only occurs for unnamed blocks
-        currentElement.getParentAlt().getElements().remove(currentElement);
-
-        UPSubRuleElement subRule = UPSubRuleElement.newBuilder().
-                withText(elementText).
-                build();
-
-        AlternativeBase currentAlt = currentAlts.peek();
-        currentAlt.getElements().add(subRule);
-        currentRules.push(subRule);
-
-        System.out.println(" -> sub-rule id: " + subRule.getId());
-
-        super.enterBlock(ctx);
-    }
+//    TODO test whether endsWith('(') in enterElement() is really enough for detecting sub-rules 21.12.2017
+//    @Override
+//    public void enterBlock(ANTLRv4Parser.BlockContext ctx) {
+//
+//        // the block might not have identical source interval because of potential labels
+//        // that's why we check for existing currentElement which will be added if we are in the
+//        // "element-might-be-a-block" case
+//        if(currentElement == null) return; // already covered via enterElement(ctx)
+//
+//        System.out.println(">>>  E-BLOCK:     "+stream.getText(ctx.getSourceInterval()));
+//
+//        String elementText = stream.getText(ctx.getSourceInterval());
+//
+//        // remove the current element since the element is actually a block
+//        // which will be readded as sub-rule element below
+//        //
+//        // NOTE: this case actually only occurs for unnamed blocks
+//        currentElement.getParentAlt().getElements().remove(currentElement);
+//
+//        UPSubRuleElement subRule = UPSubRuleElement.newBuilder().
+//                withText(elementText).
+//                build();
+//
+//        AlternativeBase currentAlt = currentAlts.peek();
+//        currentAlt.getElements().add(subRule);
+//        currentRules.push(subRule);
+//
+//        System.out.println(" -> sub-rule id: " + subRule.getId());
+//
+//        super.enterBlock(ctx);
+//    }
 
     @Override
     public void exitBlock(ANTLRv4Parser.BlockContext ctx) {
@@ -185,11 +179,21 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
                 System.out.println(">>> LE:           " +elementText);
 
-                currentAlt.getElements().add(UPNamedElement.newBuilder().
-                        withName(propertyName).
-                        withText(stream.getText(ctx.getSourceInterval())).
-                        withListType(listType).
-                        build());
+                // short-hand sub-rule detected
+                if(elementText.endsWith("*")|| elementText.endsWith("+") || elementText.endsWith("?")) {
+                    System.out.println(" -> shorthand sub-rule detected");
+                    currentAlt.getElements().add(UPNamedSubRuleElement.newBuilder().
+                            withName(propertyName).
+                            withText(stream.getText(ctx.getSourceInterval())).
+                            withListType(listType).
+                            build());
+                } else {
+                    currentAlt.getElements().add(UPNamedElement.newBuilder().
+                            withName(propertyName).
+                            withText(stream.getText(ctx.getSourceInterval())).
+                            withListType(listType).
+                            build());
+                }
             }
 
         } else {
@@ -209,15 +213,36 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 currentRules.push(subRule);
             } else {
 
-                System.out.println(">>>  E:           " + stream.getText(ctx.getSourceInterval()));
+
 
                 // we set the current element since we might hit a subrule element
                 // which will be readded via enterBlock(ctx)
 
-                currentElement = UPElement.newBuilder().
-                        withText(stream.getText(ctx.getSourceInterval())).build();
+                if(elementText.startsWith("(")) {
+                    System.out.println(">>>  E-BLOCK:     " + stream.getText(ctx.getSourceInterval()));
+                    UPSubRuleElement subRule = UPSubRuleElement.newBuilder().
+                            withText(elementText).
+                            build();
 
-                currentAlt.getElements().add(currentElement);
+                    currentAlt.getElements().add(subRule);
+                    currentRules.push(subRule);
+                } else {
+                    System.out.println(">>>  E:           " + stream.getText(ctx.getSourceInterval()));
+
+                    // short-hand sub-rule detected
+                    if(elementText.endsWith("*")|| elementText.endsWith("+") || elementText.endsWith("?")) {
+                        System.out.println(" -> shorthand sub-rule detected");
+                        currentAlt.getElements().add(UPSubRuleElement.newBuilder().
+                                withText(stream.getText(ctx.getSourceInterval())).
+                                build());
+                    } else {
+                        currentElement = UPElement.newBuilder().
+                                withText(stream.getText(ctx.getSourceInterval())).build();
+                        currentAlt.getElements().add(currentElement);
+                    }
+                }
+
+
 
             }
 
@@ -225,7 +250,6 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
         super.enterElement(ctx);
     }
-
 
 
     @Override
