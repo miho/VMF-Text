@@ -108,9 +108,10 @@ public class UnparserCodeGenerator {
 
         w.println("  }");
 
-        for(AlternativeBase a : sr.getAlternatives()) {
-            generateAltCode(w, ruleName, objName, a);
-        }
+        // TODO check whether we really don't need this 22.12.2017
+//        for(AlternativeBase a : sr.getAlternatives()) {
+//            generateAltCode(w, ruleName, objName, a);
+//        }
     }
 
     private static void generateAltCode(PrintWriter w, String ruleName, String objName, AlternativeBase a) {
@@ -119,8 +120,25 @@ public class UnparserCodeGenerator {
 
         w.println("    ");
 
-        w.println( "    java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();\n" );
-        w.println( "    PrintWriter internalW = new PrintWriter(output);" );
+        w.println("    java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();");
+
+        w.println("    PrintWriter internalW = new PrintWriter(output);");
+
+        boolean parentOfAisZeroToManyOrOneToMany = false;
+        String indent = "";
+
+        if(a.getParentRule() instanceof UPElement) {
+            UPElement parentOfa = (UPElement) a.getParentRule();
+
+            if(parentOfa.ebnfZeroMany()) {
+                parentOfAisZeroToManyOrOneToMany = true;
+                indent = "  ";
+                w.println();
+                w.println("    // handling sub-rule with zeroToMany or oneToMany");
+                w.println("    while(true) { ");
+            }
+        }
+
 
         for(UPElement e : a.getElements()) {
             if(e instanceof UPSubRuleElement) {
@@ -136,10 +154,12 @@ public class UnparserCodeGenerator {
 //                } else if(sre.ebnfOptional()) {
 //                    w.println("optional:  " + sre.ebnfOptional());
 //                }
-                w.println("    unparse"+ altName + "SubRule" + sre.getId() + "( obj, internalW );");
+                w.println(indent+"    // handling sub-rule " + sre.getId());
+                w.println(indent+"    unparse" + altName + "SubRule" + sre.getId() + "( obj, internalW );");
             } else if(e instanceof UPNamedSubRuleElement) {
                 UPNamedSubRuleElement sre = (UPNamedSubRuleElement) e;
-                w.println("    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \" );");
+                w.println(indent+"    // handling sub-rule " + sre.getId() + " with name '"+sre.getName()+"'");
+                w.println(indent+"    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \" );");
 
 //                w.println(":text: " + sre.getText());
 //
@@ -157,32 +177,36 @@ public class UnparserCodeGenerator {
 
             } else if(e instanceof UPNamedElement) {
                 UPNamedElement sre = (UPNamedElement) e;
-
+                w.println(indent+"    // handling element with name '"+sre.getName()+"'");
                 if(sre.isListType()) {
                     String indexName = "prop" + StringUtil.firstToUpper(sre.getName()) + "ListIndex";
-                    String propName = "obj.get" + StringUtil.firstToUpper(sre.getName());
+                    String propName = "obj.get" + StringUtil.firstToUpper(sre.getName()+"()");
                     if(sre.ebnfOne()) {
                         if(sre.ebnfOptional()) {
-                            w.println("    if(" + indexName +" < " +propName+ ".size() ) ");
-                            w.println("      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                            w.println(indent+"    if(" + indexName +" < " +propName+ ".size() -1 ) ");
+                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
                         } else {
-                            w.println("    if(" + indexName +" < " +propName+ ".size() || propName.isEmty()) { return false; }");
-                            w.println("      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                            w.println(indent+"    if(" + indexName +" < " +propName+ ".size() -1 || " + propName + ".isEmty()) { break; }");
+                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
                         }
                     } else if (sre.ebnfOneMany() || sre.ebnfZeroMany()) {
 
                         if(sre.ebnfOptional()) {
-                            w.println("    while(" + indexName +" < " +propName+ ".size() ) ");
-                            w.println("      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                            w.println(indent+"    while(" + indexName +" < " +propName+ ".size() -1 ) ");
+                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
                         } else {
-                            w.println("    while(" + indexName +" < " +propName+ ".size() || propName.isEmty()) {");
-                            w.println("      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
-                            w.println("      return false;");
-                            w.println("    }");
+                            w.println(indent+"    boolean matched"+StringUtil.firstToUpper(sre.getName()) +" = false;");
+                            w.println(indent+"    while(" + indexName +" < " +propName+ ".size() -1 || " + propName + ".isEmty()) {");
+                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                            w.println(indent+"      matched"+StringUtil.firstToUpper(sre.getName()) +" = true;");
+                            w.println(indent+"    }");
+                            w.println(indent+"    // we are in the non-optional case and return early if we didn't match");
+                            w.println(indent+"    if(!matched"+StringUtil.firstToUpper(sre.getName())+")");
+                            w.println(indent+"      return false;");
                         }
                     }
                 } else {
-                    w.println("    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \");");
+                    w.println(indent+"    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \");");
                 }
 
 //                w.println(":text: " + sre.getText());
@@ -221,8 +245,13 @@ public class UnparserCodeGenerator {
                     eText = "\""+eText.substring(1,eText.length()-1)+"\"";
                 }
 
-                w.println("    internalW.print( "+eText + " + \" \" );");
+                w.println(indent+"    // handling unnamed element  '"+eText+"'");
+                w.println(indent+"    internalW.print( "+eText + " + \" \" );");
             }
+        }
+
+        if(parentOfAisZeroToManyOrOneToMany) {
+            w.println("    } // end handling sub-rule with zeroToMany or oneToMany");
         }
 
         w.println("\n    String s = output.toString( \"UTF-8\" );");

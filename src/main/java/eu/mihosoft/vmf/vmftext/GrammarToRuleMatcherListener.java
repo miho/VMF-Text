@@ -215,16 +215,19 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
 
 
-                // we set the current element since we might hit a subrule element
+                // we set the current element since we might hit a sub-rule element
                 // which will be readded via enterBlock(ctx)
 
                 if(elementText.startsWith("(")) {
-                    System.out.println(">>>  E-BLOCK:     " + stream.getText(ctx.getSourceInterval()));
+                    System.out.println(">>>  E-BLOCK(*):  " + stream.getText(ctx.getSourceInterval()));
                     UPSubRuleElement subRule = UPSubRuleElement.newBuilder().
                             withText(elementText).
                             build();
 
                     currentAlt.getElements().add(subRule);
+
+                    System.out.println(" -> sub-rule id: " + subRule.getId());
+
                     currentRules.push(subRule);
                 } else {
                     System.out.println(">>>  E:           " + stream.getText(ctx.getSourceInterval()));
