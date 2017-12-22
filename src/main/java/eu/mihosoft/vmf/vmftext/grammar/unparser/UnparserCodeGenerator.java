@@ -125,53 +125,79 @@ public class UnparserCodeGenerator {
         for(UPElement e : a.getElements()) {
             if(e instanceof UPSubRuleElement) {
                 UPSubRuleElement sre = (UPSubRuleElement) e;
-                w.println(":type: unnamed-sub-rule");
-
-                if(sre.ebnfOneMany()) {
-                    w.println("one-many:  " + sre.ebnfOneMany());
-                } else if(sre.ebnfZeroMany()) {
-                    w.println("zero-many: " + sre.ebnfZeroMany());
-                } else if(sre.ebnfOne()) {
-                    w.println("one:       " + sre.ebnfOne());
-                } else if(sre.ebnfOptional()) {
-                    w.println("optional:  " + sre.ebnfOptional());
-                }
+//                w.println(":type: unnamed-sub-rule");
+//
+//                if(sre.ebnfOneMany()) {
+//                    w.println("one-many:  " + sre.ebnfOneMany());
+//                } else if(sre.ebnfZeroMany()) {
+//                    w.println("zero-many: " + sre.ebnfZeroMany());
+//                } else if(sre.ebnfOne()) {
+//                    w.println("one:       " + sre.ebnfOne());
+//                } else if(sre.ebnfOptional()) {
+//                    w.println("optional:  " + sre.ebnfOptional());
+//                }
                 w.println("    unparse"+ altName + "SubRule" + sre.getId() + "( obj, internalW );");
             } else if(e instanceof UPNamedSubRuleElement) {
                 UPNamedSubRuleElement sre = (UPNamedSubRuleElement) e;
                 w.println("    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \" );");
 
-                w.println(sre.getText());
-
-                w.println(":type: named-sub-rule");
-
-                if(sre.ebnfOneMany()) {
-                    w.println("one-many:  " + sre.ebnfOneMany());
-                } else if(sre.ebnfZeroMany()) {
-                    w.println("zero-many: " + sre.ebnfZeroMany());
-                } else if(sre.ebnfOne()) {
-                    w.println("one:       " + sre.ebnfOne());
-                } else if(sre.ebnfOptional()) {
-                    w.println("optional:  " + sre.ebnfOptional());
-                }
+//                w.println(":text: " + sre.getText());
+//
+//                w.println(":type: named-sub-rule");
+//
+//                if(sre.ebnfOneMany()) {
+//                    w.println("one-many:  " + sre.ebnfOneMany());
+//                } else if(sre.ebnfZeroMany()) {
+//                    w.println("zero-many: " + sre.ebnfZeroMany());
+//                } else if(sre.ebnfOne()) {
+//                    w.println("one:       " + sre.ebnfOne());
+//                } else if(sre.ebnfOptional()) {
+//                    w.println("optional:  " + sre.ebnfOptional());
+//                }
 
             } else if(e instanceof UPNamedElement) {
                 UPNamedElement sre = (UPNamedElement) e;
-                w.println("    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \");");
 
-                w.println(sre.getText());
+                if(sre.isListType()) {
+                    String indexName = "prop" + StringUtil.firstToUpper(sre.getName()) + "ListIndex";
+                    String propName = "obj.get" + StringUtil.firstToUpper(sre.getName());
+                    if(sre.ebnfOne()) {
+                        if(sre.ebnfOptional()) {
+                            w.println("    if(" + indexName +" < " +propName+ ".size() ) ");
+                            w.println("      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                        } else {
+                            w.println("    if(" + indexName +" < " +propName+ ".size() || propName.isEmty()) { return false; }");
+                            w.println("      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                        }
+                    } else if (sre.ebnfOneMany() || sre.ebnfZeroMany()) {
 
-                w.println(":type: named-element");
-
-                if(sre.ebnfOneMany()) {
-                    w.println("one-many:  " + sre.ebnfOneMany());
-                } else if(sre.ebnfZeroMany()) {
-                    w.println("zero-many: " + sre.ebnfZeroMany());
-                } else if(sre.ebnfOne()) {
-                    w.println("one:       " + sre.ebnfOne());
-                } else if(sre.ebnfOptional()) {
-                    w.println("optional:  " + sre.ebnfOptional());
+                        if(sre.ebnfOptional()) {
+                            w.println("    while(" + indexName +" < " +propName+ ".size() ) ");
+                            w.println("      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                        } else {
+                            w.println("    while(" + indexName +" < " +propName+ ".size() || propName.isEmty()) {");
+                            w.println("      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                            w.println("      return false;");
+                            w.println("    }");
+                        }
+                    }
+                } else {
+                    w.println("    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \");");
                 }
+
+//                w.println(":text: " + sre.getText());
+//
+//                w.println(":type: named-element");
+//
+//                if(sre.ebnfOneMany()) {
+//                    w.println("one-many:  " + sre.ebnfOneMany());
+//                } else if(sre.ebnfZeroMany()) {
+//                    w.println("zero-many: " + sre.ebnfZeroMany());
+//                } else if(sre.ebnfOne()) {
+//                    w.println("one:       " + sre.ebnfOne());
+//                } else if(sre.ebnfOptional()) {
+//                    w.println("optional:  " + sre.ebnfOptional());
+//                }
 
             } else {
                 // remove ebnf multiplicity, optional and greedy characters

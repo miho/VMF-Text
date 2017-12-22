@@ -179,21 +179,21 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
                 System.out.println(">>> LE:           " +elementText);
 
-                // short-hand sub-rule detected
-                if(elementText.endsWith("*")|| elementText.endsWith("+") || elementText.endsWith("?")) {
-                    System.out.println(" -> shorthand sub-rule detected");
-                    currentAlt.getElements().add(UPNamedSubRuleElement.newBuilder().
-                            withName(propertyName).
-                            withText(stream.getText(ctx.getSourceInterval())).
-                            withListType(listType).
-                            build());
-                } else {
+//                // short-hand sub-rule detected
+//                if(elementText.endsWith("*")|| elementText.endsWith("+") || elementText.endsWith("?")) {
+//                    System.out.println(" -> shorthand sub-rule detected");
+//                    currentAlt.getElements().add(UPNamedSubRuleElement.newBuilder().
+//                            withName(propertyName).
+//                            withText(stream.getText(ctx.getSourceInterval())).
+//                            withListType(listType).
+//                            build());
+//                } else {
                     currentAlt.getElements().add(UPNamedElement.newBuilder().
                             withName(propertyName).
                             withText(stream.getText(ctx.getSourceInterval())).
                             withListType(listType).
                             build());
-                }
+//                }
             }
 
         } else {
@@ -229,17 +229,17 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 } else {
                     System.out.println(">>>  E:           " + stream.getText(ctx.getSourceInterval()));
 
-                    // short-hand sub-rule detected
-                    if(elementText.endsWith("*")|| elementText.endsWith("+") || elementText.endsWith("?")) {
-                        System.out.println(" -> shorthand sub-rule detected");
-                        currentAlt.getElements().add(UPSubRuleElement.newBuilder().
-                                withText(stream.getText(ctx.getSourceInterval())).
-                                build());
-                    } else {
+//                    // short-hand sub-rule detected
+//                    if(elementText.endsWith("*")|| elementText.endsWith("+") || elementText.endsWith("?")) {
+//                        System.out.println(" -> shorthand sub-rule detected");
+//                        currentAlt.getElements().add(UPSubRuleElement.newBuilder().
+//                                withText(stream.getText(ctx.getSourceInterval())).
+//                                build());
+//                    } else {
                         currentElement = UPElement.newBuilder().
                                 withText(stream.getText(ctx.getSourceInterval())).build();
                         currentAlt.getElements().add(currentElement);
-                    }
+//                    }
                 }
 
 

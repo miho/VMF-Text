@@ -1,7 +1,7 @@
 grammar RuleMatcher;
 prog:	expressions+=expr*;
 
-expr: IDENTIFIER;
+expr: name=IDENTIFIER;
 //
 //
 //expr:	left=expr operator=('*'|'/') right=expr      # MultDivOpExpr
