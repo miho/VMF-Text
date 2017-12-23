@@ -211,21 +211,22 @@ public class UnparserCodeGenerator {
                     String propName = "obj.get" + StringUtil.firstToUpper(sre.getName()+"()");
                     if(sre.ebnfOne()) {
                         if(sre.ebnfOptional()) {
-                            w.println(indent+"    if(" + indexName +" < " +propName+ ".size() -1 ) ");
-                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                            w.println(indent+"    if(" + indexName +" < " +propName+ ".size() -1 ) {");
+                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
+                            w.println(indent+"    }");
                         } else {
-                            w.println(indent+"    if(" + indexName +" < " +propName+ ".size() -1 || " + propName + ".isEmty()) { break; }");
-                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                            w.println(indent+"    if(" + indexName +" > " +propName+ ".size() -1 || " + propName + ".isEmty()) { /*non-optional case*/ return false; }");
+                            w.println(indent+"    internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
                         }
                     } else if (sre.ebnfOneMany() || sre.ebnfZeroMany()) {
 
                         if(sre.ebnfOptional()||sre.ebnfZeroMany()) {
                             w.println(indent+"    while(" + indexName +" < " +propName+ ".size() -1 ) ");
-                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
                         } else {
                             w.println(indent+"    boolean matched"+StringUtil.firstToUpper(sre.getName()) +" = false;");
                             w.println(indent+"    while(" + indexName +" < " +propName+ ".size() -1 || " + propName + ".isEmty()) {");
-                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
+                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
                             w.println(indent+"      matched"+StringUtil.firstToUpper(sre.getName()) +" = true;");
                             w.println(indent+"    }");
                             w.println(indent+"    // we are in the non-optional case and return early if we didn't match");
