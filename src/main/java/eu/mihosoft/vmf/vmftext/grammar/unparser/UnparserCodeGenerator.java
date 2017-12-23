@@ -46,10 +46,10 @@ public class UnparserCodeGenerator {
 
             // find rule
             RuleClass gRule = gModel.getRuleClasses().stream().filter(
-                    gRcl -> Objects.equals(r.getName(), gRcl.nameWithLower())).findFirst().get();
+                    gRcl -> Objects.equals(StringUtil.firstToUpper(r.getName()), gRcl.nameWithUpper())).findFirst().get();
 
             w.println();
-            w.println("  // list property iterators");
+            w.println("  // declare list property indices/iterators");
 
             for(Property prop : gRule.getProperties()) {
 
@@ -57,12 +57,25 @@ public class UnparserCodeGenerator {
                     continue;
                 }
 
-                w.println("  int prop" + prop.nameWithUpper() + "ListIndex = 0;");
+                w.println("  int prop" + prop.nameWithUpper() + "ListIndex;");
             }
 
             w.println();
 
             w.println("  public void "+"unparse("+ ruleName + " obj, PrintWriter w ) {");
+
+            w.println("    // reset list property indices/iterators");
+
+            for(Property prop : gRule.getProperties()) {
+
+                if(prop.getType().isArrayType()) {
+                    w.println("    prop" + prop.nameWithUpper() + "ListIndex = 0;");
+                }
+            }
+
+            w.println();
+
+            w.println("    // try to unparse alternatives of this rule");
 
             for(AlternativeBase a : r.getAlternatives()) {
 
@@ -74,7 +87,7 @@ public class UnparserCodeGenerator {
             w.println("  }");
 
             for(AlternativeBase a : r.getAlternatives()) {
-                generateAltCode(w, ruleName, ruleName, a);
+                generateAltCode(w, gModel, r, gRule, ruleName, ruleName, a);
             }
 
             w.println("}\n");
@@ -97,6 +110,7 @@ public class UnparserCodeGenerator {
 
     private static void generateSubRuleCode(String ruleName, String altName, String objName, SubRule sr, PrintWriter w) {
 
+        w.println();
         w.println("  private void unparse" + altName + "SubRule" + sr.getId() + "( " + objName + " obj, PrintWriter w ) {");
 
         for(AlternativeBase a : sr.getAlternatives()) {
@@ -114,8 +128,9 @@ public class UnparserCodeGenerator {
 //        }
     }
 
-    private static void generateAltCode(PrintWriter w, String ruleName, String objName, AlternativeBase a) {
+    private static void generateAltCode(PrintWriter w, GrammarModel gModel, UPRule r, RuleClass gRule, String ruleName, String objName, AlternativeBase a) {
         String altName = ruleName + "Alt" + a.getId();
+        w.println();
         w.println("  private boolean unparse"+ altName + "( " + objName + " obj, PrintWriter w ) {");
 
         w.println("    ");
@@ -123,6 +138,19 @@ public class UnparserCodeGenerator {
         w.println("    java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();");
 
         w.println("    PrintWriter internalW = new PrintWriter(output);");
+
+
+        w.println("    ");
+        w.println("    // preparing local list indices/iterators");
+
+        for(Property prop : gRule.getProperties()) {
+            if(!prop.getType().isArrayType()) {
+                continue;
+            }
+            w.println("    int localProp" + prop.nameWithUpper() + "ListIndex = prop" + prop.nameWithUpper() + "ListIndex;");
+        }
+        w.println("    ");
+
 
         boolean parentOfAisZeroToManyOrOneToMany = false;
         String indent = "";
@@ -134,7 +162,7 @@ public class UnparserCodeGenerator {
                 parentOfAisZeroToManyOrOneToMany = true;
                 indent = "  ";
                 w.println();
-                w.println("    // handling sub-rule with zeroToMany or oneToMany");
+                w.println("    // begin handling sub-rule with zeroToMany or oneToMany");
                 w.println("    while(true) { ");
             }
         }
@@ -179,7 +207,7 @@ public class UnparserCodeGenerator {
                 UPNamedElement sre = (UPNamedElement) e;
                 w.println(indent+"    // handling element with name '"+sre.getName()+"'");
                 if(sre.isListType()) {
-                    String indexName = "prop" + StringUtil.firstToUpper(sre.getName()) + "ListIndex";
+                    String indexName = "localProp" + StringUtil.firstToUpper(sre.getName()) + "ListIndex";
                     String propName = "obj.get" + StringUtil.firstToUpper(sre.getName()+"()");
                     if(sre.ebnfOne()) {
                         if(sre.ebnfOptional()) {
@@ -191,7 +219,7 @@ public class UnparserCodeGenerator {
                         }
                     } else if (sre.ebnfOneMany() || sre.ebnfZeroMany()) {
 
-                        if(sre.ebnfOptional()) {
+                        if(sre.ebnfOptional()||sre.ebnfZeroMany()) {
                             w.println(indent+"    while(" + indexName +" < " +propName+ ".size() -1 ) ");
                             w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(++" + indexName +") )" + ") ) + \" \");");
                         } else {
@@ -251,13 +279,24 @@ public class UnparserCodeGenerator {
         }
 
         if(parentOfAisZeroToManyOrOneToMany) {
-            w.println("    } // end handling sub-rule with zeroToMany or oneToMany");
+            w.println("    }");
+            w.println("    // end   handling sub-rule with zeroToMany or oneToMany");
         }
 
         w.println("\n    String s = output.toString( \"UTF-8\" );");
 
         w.println("\n    if( match"+altName+"(s)) {");
         w.println("        w.print(s + \" \");");
+        w.println();
+        w.println("        // update global list indices/iterators since we consumed this alt successfully");
+
+        for(Property prop : gRule.getProperties()) {
+            if(!prop.getType().isArrayType()) {
+                continue;
+            }
+            w.println("        prop" + prop.nameWithUpper() + "ListIndex = localProp" + prop.nameWithUpper() + "ListIndex;");
+        }
+        w.println("    ");
         w.println("        return true;");
         w.println("    } else {");
         w.println("        return false;");
@@ -268,7 +307,7 @@ public class UnparserCodeGenerator {
                 map(el->(SubRule)el).forEach(sr-> {
 
             for(AlternativeBase sa : sr.getAlternatives()) {
-                generateAltCode(w, altName + "SubRule" + sr.getId(), objName, sa);
+                generateAltCode(w, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa);
             }
 
             generateSubRuleCode(ruleName, altName, objName, sr, w);
