@@ -145,20 +145,5 @@ public class ModelGenerator {
         System.out.println(memoryResourceSet.asString());
 
         System.exit(0);
-
-        if(engine==null) {
-            engine = createDefaultEngine();
-        }
-
-        try (Resource resource =
-                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
-                             model.getPackageName()+".unparser."+model.getGrammarName() + "Unparser"))) {
-
-            Writer w = resource.open();
-            generateUnparser(w, engine, model.getPackageName(),
-                    model.getPackageName()+".unparser", model, unparserModel);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 }

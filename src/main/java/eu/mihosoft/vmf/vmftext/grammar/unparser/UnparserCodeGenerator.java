@@ -13,10 +13,6 @@ import java.util.stream.Collectors;
 public class UnparserCodeGenerator {
 
     public static void generateUnparser(GrammarModel gModel, UnparserModel model, PrintWriter w) {
-        generateUPCode(gModel, model,w);
-    }
-
-    private static void generateUPCode(GrammarModel gModel, UnparserModel model, PrintWriter w) {
 
         // convert labeled alts to rule classes
         Map<String,List<LabeledAlternative>> labeledAlternatives = model.getRules().stream().
@@ -38,18 +34,53 @@ public class UnparserCodeGenerator {
         labeledAlternatives.values().stream().
                 map(la->labeledAltToRule(la.get(0).getName(),la)).collect(Collectors.toCollection(()->rules));
 
+
+        generateUPParentUnparserCode(gModel, model,rules, w);
+        generateUPCode(gModel, model,rules, w);
+
+        //generateUPGrammarCode(gModel, model, w);
+    }
+
+    private static void generateUPParentUnparserCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, PrintWriter w) {
+        w.println("public class "+gModel.getGrammarName()+"Unparser {");
+
+
         for (UPRule r : rules) {
 
             String ruleName = StringUtil.firstToUpper(r.getName());
 
-            w.println("public class "+ruleName+"Unparser {");
+            w.println("  private " + StringUtil.firstToLower(ruleName) + "Unparser = new " + ruleName + "Unparser();");
+        }
+
+        String rootClassNameUpperCase = gModel.rootClass().nameWithUpper();
+        String rootClassNameLowerCase = gModel.rootClass().nameWithLower();
+
+        String rootClassUnparserName = rootClassNameLowerCase + "Unparser";
+
+        w.println();
+        w.println("  public void unparse(" + gModel.getGrammarName()+"Model model, PrintWriter w) {");
+        w.println("    "+rootClassUnparserName+".unparse(model.getRoot(), w);");
+        w.println("  }");
+        w.println();
+        w.println();
+        w.println("}");
+    }
+
+    private static void generateUPCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, PrintWriter w) {
+
+
+        for (UPRule r : rules) {
+
+            String ruleName = StringUtil.firstToUpper(r.getName());
+
+            w.println("/*package private*/ class "+ruleName+"Unparser {");
 
             // find rule
             RuleClass gRule = gModel.getRuleClasses().stream().filter(
                     gRcl -> Objects.equals(StringUtil.firstToUpper(r.getName()), gRcl.nameWithUpper())).findFirst().get();
 
             w.println();
-            w.println("  // declare list property indices/iterators");
+            w.println("  // begin declare list property indices/iterators");
 
             for(Property prop : gRule.getProperties()) {
 
@@ -59,12 +90,13 @@ public class UnparserCodeGenerator {
 
                 w.println("  int prop" + prop.nameWithUpper() + "ListIndex;");
             }
+            w.println("  // end   declare list property indices/iterators");
 
             w.println();
 
             w.println("  public void "+"unparse("+ ruleName + " obj, PrintWriter w ) {");
-
-            w.println("    // reset list property indices/iterators");
+            w.println("    ");
+            w.println("    // begin reset list property indices/iterators");
 
             for(Property prop : gRule.getProperties()) {
 
@@ -72,6 +104,7 @@ public class UnparserCodeGenerator {
                     w.println("    prop" + prop.nameWithUpper() + "ListIndex = 0;");
                 }
             }
+            w.println("    // end   reset list property indices/iterators");
 
             w.println();
 
@@ -93,6 +126,7 @@ public class UnparserCodeGenerator {
             w.println("}\n");
         }
     }
+
 
     private static UPRule labeledAltToRule(String name, List<LabeledAlternative> la) {
         UPRule r = UPRule.newBuilder().withName(name).build();
@@ -141,7 +175,8 @@ public class UnparserCodeGenerator {
 
 
         w.println("    ");
-        w.println("    // preparing local list indices/iterators");
+        w.println("    // begin preparing local list indices/iterators");
+
 
         for(Property prop : gRule.getProperties()) {
             if(!prop.getType().isArrayType()) {
@@ -149,9 +184,45 @@ public class UnparserCodeGenerator {
             }
             w.println("    int localProp" + prop.nameWithUpper() + "ListIndex = prop" + prop.nameWithUpper() + "ListIndex;");
         }
+
+        w.println("    // end   preparing local list indices/iterators");
         w.println("    ");
 
+        generateElements(w, gRule, a, altName);
 
+        w.println("\n    String s = output.toString( \"UTF-8\" );");
+
+        w.println("\n    if( match"+altName+"(s)) {");
+        w.println("        w.print(s + \" \");");
+        w.println();
+        w.println("        // begin update global list indices/iterators since we consumed this alt successfully");
+
+        for(Property prop : gRule.getProperties()) {
+            if(!prop.getType().isArrayType()) {
+                continue;
+            }
+            w.println("        prop" + prop.nameWithUpper() + "ListIndex = localProp" + prop.nameWithUpper() + "ListIndex;");
+        }
+        w.println("        // end   update global list indices/iterators since we consumed this alt successfully");
+        w.println("    ");
+        w.println("        return true;");
+        w.println("    } else {");
+        w.println("        return false;");
+        w.println("    }");
+        w.println("\n  }");
+
+        a.getElements().stream().filter(el->el instanceof SubRule).filter(el->!(el instanceof UPNamedSubRuleElement)).
+                map(el->(SubRule)el).forEach(sr-> {
+
+            for(AlternativeBase sa : sr.getAlternatives()) {
+                generateAltCode(w, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa);
+            }
+
+            generateSubRuleCode(ruleName, altName, objName, sr, w);
+        });
+    }
+
+    private static void generateElements(PrintWriter w, RuleClass gRule, AlternativeBase a, String altName) {
         boolean parentOfAisZeroToManyOrOneToMany = false;
         String indent = "";
 
@@ -166,9 +237,8 @@ public class UnparserCodeGenerator {
                 w.println("    while(true) { ");
             }
         }
-
-
         for(UPElement e : a.getElements()) {
+            w.println();
             if(e instanceof UPSubRuleElement) {
                 UPSubRuleElement sre = (UPSubRuleElement) e;
 //                w.println(":type: unnamed-sub-rule");
@@ -187,7 +257,9 @@ public class UnparserCodeGenerator {
             } else if(e instanceof UPNamedSubRuleElement) {
                 UPNamedSubRuleElement sre = (UPNamedSubRuleElement) e;
                 w.println(indent+"    // handling sub-rule " + sre.getId() + " with name '"+sre.getName()+"'");
-                w.println(indent+"    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \" );");
+                // w.println(indent+"    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \" );");
+                w.println(indent+"    convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"(), internalW);");
+                w.println(indent+"    internalW.print(\" \"); // insert whitespace");
 
 //                w.println(":text: " + sre.getText());
 //
@@ -212,21 +284,29 @@ public class UnparserCodeGenerator {
                     if(sre.ebnfOne()) {
                         if(sre.ebnfOptional()) {
                             w.println(indent+"    if(" + indexName +" < " +propName+ ".size() -1 ) {");
-                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
+//                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
+                            w.println(indent+"      convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + "), internalW );");
+                            w.println(indent+"      internalW.print(\" \"); // insert whitespace");
                             w.println(indent+"    }");
                         } else {
                             w.println(indent+"    if(" + indexName +" > " +propName+ ".size() -1 || " + propName + ".isEmty()) { /*non-optional case*/ return false; }");
-                            w.println(indent+"    internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
+//                            w.println(indent+"    internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
+                            w.println(indent+"      convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + "), internalW );");
+                            w.println(indent+"      internalW.print(\" \"); // insert whitespace");
                         }
                     } else if (sre.ebnfOneMany() || sre.ebnfZeroMany()) {
 
                         if(sre.ebnfOptional()||sre.ebnfZeroMany()) {
                             w.println(indent+"    while(" + indexName +" < " +propName+ ".size() -1 ) ");
-                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
+                            // w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
+                            w.println(indent+"      convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + "), internalW );");
+                            w.println(indent+"      internalW.print(\" \"); // insert whitespace");
                         } else {
                             w.println(indent+"    boolean matched"+StringUtil.firstToUpper(sre.getName()) +" = false;");
                             w.println(indent+"    while(" + indexName +" < " +propName+ ".size() -1 || " + propName + ".isEmty()) {");
-                            w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
+                           // w.println(indent+"      internalW.print( convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + ") ) + \" \");");
+                            w.println(indent+"      convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++) )" + "), internalW );");
+                            w.println(indent+"      internalW.print(\" \"); // insert whitespace");
                             w.println(indent+"      matched"+StringUtil.firstToUpper(sre.getName()) +" = true;");
                             w.println(indent+"    }");
                             w.println(indent+"    // we are in the non-optional case and return early if we didn't match");
@@ -234,8 +314,11 @@ public class UnparserCodeGenerator {
                             w.println(indent+"      return false;");
                         }
                     }
+
                 } else {
-                    w.println(indent+"    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \");");
+                    //w.println(indent+"    internalW.print( convertToString( obj.get"+ StringUtil.firstToUpper(sre.getName())+"() ) + \" \");");
+                    w.println(indent+"    convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "() )" + "), internalW );");
+                    w.println(indent+"    internalW.print(\" \"); // insert whitespace");
                 }
 
 //                w.println(":text: " + sre.getText());
@@ -284,34 +367,5 @@ public class UnparserCodeGenerator {
             w.println("    // end   handling sub-rule with zeroToMany or oneToMany");
         }
 
-        w.println("\n    String s = output.toString( \"UTF-8\" );");
-
-        w.println("\n    if( match"+altName+"(s)) {");
-        w.println("        w.print(s + \" \");");
-        w.println();
-        w.println("        // update global list indices/iterators since we consumed this alt successfully");
-
-        for(Property prop : gRule.getProperties()) {
-            if(!prop.getType().isArrayType()) {
-                continue;
-            }
-            w.println("        prop" + prop.nameWithUpper() + "ListIndex = localProp" + prop.nameWithUpper() + "ListIndex;");
-        }
-        w.println("    ");
-        w.println("        return true;");
-        w.println("    } else {");
-        w.println("        return false;");
-        w.println("    }");
-        w.println("\n  }");
-
-        a.getElements().stream().filter(el->el instanceof SubRule).filter(el->!(el instanceof UPNamedSubRuleElement)).
-                map(el->(SubRule)el).forEach(sr-> {
-
-            for(AlternativeBase sa : sr.getAlternatives()) {
-                generateAltCode(w, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa);
-            }
-
-            generateSubRuleCode(ruleName, altName, objName, sr, w);
-        });
     }
 }
