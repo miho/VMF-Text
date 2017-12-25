@@ -87,7 +87,7 @@ dependencies {
     compile (group: 'org.antlr', name: 'antlr4', version: '4.7')
     compile (group: 'org.antlr', name: 'antlr4', version: '4.7', classifier: 'sources')
 
-    compile group: 'org.apache.velocity', name: 'velocity', version: '1.7+'
+    compile group: 'org.apache.velocity', name: 'velocity-engine-core', version: '1.7'
 
     vmfCompile group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
     compile group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
