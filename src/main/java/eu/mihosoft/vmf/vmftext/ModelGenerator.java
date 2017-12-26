@@ -134,12 +134,9 @@ public class ModelGenerator {
 
         MemoryResourceSet memoryResourceSet = new MemoryResourceSet();
 
-        try(Resource mr = memoryResourceSet.open(StringUtil.firstToUpper(model.getGrammarName())+"ModelUnparser.java")) {
-            PrintWriter w = mr.open();
-            UnparserCodeGenerator.generateUnparser(model, unparserModel, w);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
+
+        UnparserCodeGenerator.generateUnparser(model, unparserModel, memoryResourceSet);
+
 
 
         System.out.println(memoryResourceSet.asString());
