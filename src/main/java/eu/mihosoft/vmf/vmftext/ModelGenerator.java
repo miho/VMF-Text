@@ -120,7 +120,7 @@ public class ModelGenerator {
 
         try (Resource resource =
                      fileset.open(TypeUtil.computeFileNameFromJavaFQN(
-                             model.getPackageName()+".parser."+model.getGrammarName() + "ModelConverter"))) {
+                             model.getPackageName()+".parser."+model.getGrammarName() + "ModelParser"))) {
 
             Writer w = resource.open();
             generateModelConverter(w, engine, model.getPackageName(),
@@ -134,13 +134,10 @@ public class ModelGenerator {
 
         MemoryResourceSet memoryResourceSet = new MemoryResourceSet();
 
-
         UnparserCodeGenerator.generateUnparser(model, unparserModel, memoryResourceSet);
-
-
 
         System.out.println(memoryResourceSet.asString());
 
-        System.exit(0);
+        UnparserCodeGenerator.generateUnparser(model, unparserModel, fileset);
     }
 }

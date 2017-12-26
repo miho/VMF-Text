@@ -43,7 +43,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import ${modelPackageName}.*;
 import static ${packageName}.${Util.firstToUpper($model.grammarName)}Parser.*;
 
-public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
+public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
     // TODO remove this class if compile time conversions works
     // private final TypeConversionRegistry typeConversionRegistry
@@ -52,7 +52,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
       // typeConversionRegistry = new TypeConversionRegistryImpl();
     }
 
-    public ${Util.firstToUpper($model.grammarName)}Model convertToModel(InputStream codeStream) throws IOException{
+    public ${Util.firstToUpper($model.grammarName)}Model parse(InputStream codeStream) throws IOException{
         CharStream input = CharStreams.fromStream(codeStream);
 
         ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
@@ -64,19 +64,19 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelConverter {
         return convertToModel(parser.${model.rootClass().name}());
     }
 
-    public ${Util.firstToUpper($model.grammarName)}Model convertToModel(File code) throws IOException{
+    public ${Util.firstToUpper($model.grammarName)}Model parse(File code) throws IOException{
         try(FileInputStream codeStream = new FileInputStream(code)) {
             return convertToModel(codeStream);
         }
     }
 
-    public ${Util.firstToUpper($model.grammarName)}Model convertToModel(String code) throws IOException{
+    public ${Util.firstToUpper($model.grammarName)}Model parse(String code) throws IOException{
         try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
             return convertToModel(codeStream);
         }
     }
 
-    public ${Util.firstToUpper($model.grammarName)}Model convertToModel(${model.rootClass().nameWithUpper()}Context ctx) {
+    public ${Util.firstToUpper($model.grammarName)}Model parse(${model.rootClass().nameWithUpper()}Context ctx) {
 
       ${Util.firstToUpper($model.grammarName)}Model model = ${Util.firstToUpper($model.grammarName)}Model.newInstance();
 
