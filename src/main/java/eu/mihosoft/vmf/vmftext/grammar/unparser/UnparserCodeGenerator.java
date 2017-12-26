@@ -44,12 +44,14 @@ public class UnparserCodeGenerator {
     private static void generateUPParentUnparserCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, PrintWriter w) {
         w.println("public class "+gModel.getGrammarName()+"Unparser {");
 
+        w.println();
+        w.println("  // rule unparsers");
 
         for (UPRule r : rules) {
 
             String ruleName = StringUtil.firstToUpper(r.getName());
 
-            w.println("  private " + StringUtil.firstToLower(ruleName) + "Unparser = new " + ruleName + "Unparser();");
+            w.println("  private final " + ruleName + "Unparser " + StringUtil.firstToLower(ruleName) + "Unparser = new " + ruleName + "Unparser();");
         }
 
         String rootClassNameUpperCase = gModel.rootClass().nameWithUpper();
@@ -64,6 +66,7 @@ public class UnparserCodeGenerator {
         w.println();
         w.println();
         w.println("}");
+        w.println();
     }
 
     private static void generateUPCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, PrintWriter w) {
