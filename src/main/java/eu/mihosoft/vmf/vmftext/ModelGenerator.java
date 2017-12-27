@@ -92,9 +92,10 @@ public class ModelGenerator {
 
         try (Resource resource =
                      fileset.open(TypeUtil.computeFileNameFromJavaFQN(
-                             model.getPackageName()+".vmfmodel."+model.getGrammarName() + "Model"))) {
+                             model.getPackageName()+".vmfmodel."+model.getGrammarName() + "Model"));
 
-            Writer w = resource.open();
+             Writer w = resource.open()) {
+
             generateModelDefinition(w, engine, model.getPackageName()+".vmfmodel", model);
         } catch (IOException e) {
             e.printStackTrace();
@@ -111,9 +112,10 @@ public class ModelGenerator {
 
         try (Resource resource =
                      fileset.open(TypeUtil.computeFileNameFromJavaFQN(
-                             model.getPackageName()+".parser."+model.getGrammarName() + "ModelParser"))) {
+                             model.getPackageName()+".parser."+model.getGrammarName() + "ModelParser"));
 
-            Writer w = resource.open();
+             Writer w = resource.open()) {
+
             generateModelConverter(w, engine, model.getPackageName(),
                     model.getPackageName()+".parser", model);
         } catch (IOException e) {

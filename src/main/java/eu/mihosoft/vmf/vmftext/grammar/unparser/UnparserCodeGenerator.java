@@ -27,9 +27,10 @@ public class UnparserCodeGenerator {
 
         try (Resource resource =
                      resourceSet.open(TypeUtil.computeFileNameFromJavaFQN(
-                             gModel.getPackageName()+".unparser."+gModel.getGrammarName() + "ModelUnparser"))) {
+                             gModel.getPackageName()+".unparser."+gModel.getGrammarName() + "ModelUnparser"));
 
-            Writer w = resource.open();
+             Writer w = resource.open()) {
+
             generateUPParentUnparserCode(gModel, model,rules, w);
 
 
@@ -43,9 +44,9 @@ public class UnparserCodeGenerator {
         try (Resource resource =
                      resourceSet.open(
                              (gModel.getPackageName()+".unparser."+gModel.getGrammarName()).
-                                     replace('.','/') + "ModelUnparserGrammar.g4")) {
+                                     replace('.','/') + "ModelUnparserGrammar.g4");
+             Writer w = resource.open()) {
 
-            Writer w = resource.open();
             generateUPGrammarCode(gModel, model, rules, w);
 
 
