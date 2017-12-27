@@ -48,7 +48,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     // TODO remove this class if compile time conversions works
     // private final TypeConversionRegistry typeConversionRegistry
 
-    public ${Util.firstToUpper($model.grammarName)}ModelConverter() {
+    public ${Util.firstToUpper($model.grammarName)}ModelParser() {
       // typeConversionRegistry = new TypeConversionRegistryImpl();
     }
 
@@ -61,18 +61,18 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
         // ParserRuleContext tree = parser.${model.rootClass().nameWithUpper()}();
 
-        return convertToModel(parser.${model.rootClass().name}());
+        return parse(parser.${model.rootClass().name}());
     }
 
     public ${Util.firstToUpper($model.grammarName)}Model parse(File code) throws IOException{
         try(FileInputStream codeStream = new FileInputStream(code)) {
-            return convertToModel(codeStream);
+            return parse(codeStream);
         }
     }
 
     public ${Util.firstToUpper($model.grammarName)}Model parse(String code) throws IOException{
         try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
-            return convertToModel(codeStream);
+            return parse(codeStream);
         }
     }
 

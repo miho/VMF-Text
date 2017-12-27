@@ -16,8 +16,86 @@ import java.util.stream.Collectors;
 
 public class UnparserCodeGenerator {
 
-    public static void generateUnparser(GrammarModel gModel, UnparserModel model, ResourceSet resourceSet) {
+    public static void generateUnparser(GrammarModel gModel, ReadOnlyUnparserModel roModel, ResourceSet resourceSet) {
 
+        // ensure we work on our own modifiable copy of the model
+        UnparserModel model = roModel.asModifiable();
+
+
+        List<UPRule> rules = computeFinalUnparserRuleList(model);
+
+
+        try (Resource resource =
+                     resourceSet.open(TypeUtil.computeFileNameFromJavaFQN(
+                             gModel.getPackageName()+".unparser."+gModel.getGrammarName() + "ModelUnparser"))) {
+
+            Writer w = resource.open();
+            generateUPParentUnparserCode(gModel, model,rules, w);
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        generateUPCode(gModel, model,rules, resourceSet);
+
+
+        try (Resource resource =
+                     resourceSet.open(
+                             (gModel.getPackageName()+".unparser."+gModel.getGrammarName()).
+                                     replace('.','/') + "ModelUnparserGrammar.g4")) {
+
+            Writer w = resource.open();
+            generateUPGrammarCode(gModel, model, rules, w);
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private static void generateUPGrammarCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, Writer w) throws IOException {
+        w.append("grammar ").append(gModel.getGrammarName()+"ModelUnparserGrammar;").append('\n');
+        w.append("import ").append(gModel.getGrammarName()).append(";\n");
+        w.append('\n');
+
+        for(UPRule rule :rules) {
+            String ruleName = StringUtil.firstToLower(rule.getName());
+            generateAltGrammarCode(gModel, model, rules, rule, ruleName, w);
+        }
+    }
+
+    private static void generateAltGrammarCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, UPRuleBase rule, String parentName, Writer w) throws IOException {
+        for(AlternativeBase a : rule.getAlternatives()) {
+            String aName = parentName + "Alt"+a.getId();
+
+            // filter alt name elements (have to be removed to produce a valid grammar)
+            String aText = a.getElements().stream().filter(e->!e.getText().
+                    startsWith("#")).map(e->e.getText() + " ").collect(Collectors.joining());
+
+            w.append(aName+": ").append(aText + ";\n");
+
+            generateElementGrammarCode(gModel,model,rules,a,aName,w);
+        }
+    }
+
+    private static void generateElementGrammarCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, AlternativeBase alt, String parentName, Writer w) throws IOException {
+        for(UPElement e : alt.getElements()) {
+            if(e instanceof SubRule) {
+                SubRule sr = (SubRule) e;
+                String srName = parentName+"SubRule"+sr.getId();
+
+                String eText = e.getText(); // TODO 27.12.2017 maybe simplify expression by removing all labels and substitute subrules?
+
+                w.append(srName+": ").append(eText+";\n");
+
+                generateAltGrammarCode(gModel, model, rules, sr, srName, w);
+            }
+        }
+    }
+
+    private static List<UPRule> computeFinalUnparserRuleList(UnparserModel model) {
         // convert labeled alts to rule classes
         Map<String,List<LabeledAlternative>> labeledAlternatives = model.getRules().stream().
                 flatMap(r->r.getAlternatives().stream()).filter(a->a instanceof LabeledAlternative).
@@ -37,31 +115,23 @@ public class UnparserCodeGenerator {
         // convert labeled alternatives to rules (which are added to rules list)
         labeledAlternatives.values().stream().
                 map(la->labeledAltToRule(la.get(0).getName(),la)).collect(Collectors.toCollection(()->rules));
-
-        try (Resource resource =
-                     resourceSet.open(TypeUtil.computeFileNameFromJavaFQN(
-                             gModel.getPackageName()+".unparser."+gModel.getGrammarName() + "ModelUnparser"))) {
-
-            Writer w = resource.open();
-            generateUPParentUnparserCode(gModel, model,rules, w);
-
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        generateUPCode(gModel, model,rules, resourceSet);
-
-
-
-        // generateUPGrammarCode(gModel, model, w);
+        return rules;
     }
 
     private static void generateUPParentUnparserCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, Writer w) throws IOException {
 
-        w.append("package " + gModel.getPackageName()+".unparser;").append('\n').append('\n');;
+        w.append("package " + gModel.getPackageName()+".unparser;").append('\n').append('\n');
 
-        w.append("// rule imports").append('\n');
+        w.append("// Java API imports").append('\n');
+        w.append("import java.io.UnsupportedEncodingException;").append('\n');
+        w.append("import java.io.ByteArrayOutputStream;").append('\n');
+        w.append("import java.io.Writer;").append('\n');
+        w.append("import java.io.PrintWriter;").append('\n').append('\n');
+
+        w.append("// Model API imports").append('\n');
+        w.append("import "+gModel.getPackageName()+"." + gModel.getGrammarName() + "Model;").append('\n').append('\n');
+
+        w.append("// rule imports (from model api)").append('\n');
 
         for (UPRule rImport : rules) {
 
@@ -72,7 +142,7 @@ public class UnparserCodeGenerator {
 
         w.append('\n');
 
-        w.append("public class "+gModel.getGrammarName()+"Unparser {").append('\n');
+        w.append("public class "+gModel.getGrammarName()+"ModelUnparser {").append('\n');
 
         w.append('\n');
         w.append("  // rule unparsers").append('\n');
@@ -86,7 +156,7 @@ public class UnparserCodeGenerator {
 
         w.append('\n');
 
-        w.append("  public "+gModel.getGrammarName()+"Unparser() {").append('\n');
+        w.append("  public "+gModel.getGrammarName()+"ModelUnparser() {").append('\n');
 
         for (UPRule r : rules) {
             String ruleName = StringUtil.firstToUpper(r.getName());
@@ -101,6 +171,11 @@ public class UnparserCodeGenerator {
         String rootClassUnparserName = rootClassNameLowerCase + "Unparser";
 
         w.append('\n');
+        w.append("  public void unparse(" + gModel.getGrammarName()+"Model model, Writer w) {").append('\n');
+        w.append("    "+rootClassUnparserName+".unparse(model.getRoot(), new PrintWriter(w));").append('\n');
+        w.append("  }").append('\n');
+        w.append('\n');
+        w.append('\n');
         w.append("  public void unparse(" + gModel.getGrammarName()+"Model model, PrintWriter w) {").append('\n');
         w.append("    "+rootClassUnparserName+".unparse(model.getRoot(), w);").append('\n');
         w.append("  }").append('\n');
@@ -110,18 +185,26 @@ public class UnparserCodeGenerator {
             String ruleName = StringUtil.firstToUpper(r.getName());
             String ruleUnparserInstanceName = StringUtil.firstToLower(r.getName())+"Unparser";
             w.append('\n');
+            w.append("  public void unparse(" + ruleName + " rule, Writer w) {").append('\n');
+            w.append("    "+ruleUnparserInstanceName+".unparse(rule, new PrintWriter(w));").append('\n');
+            w.append("  }").append('\n');
+            w.append('\n');
+            w.append('\n');
             w.append("  public void unparse(" + ruleName + " rule, PrintWriter w) {").append('\n');
             w.append("    "+ruleUnparserInstanceName+".unparse(rule, w);").append('\n');
             w.append("  }").append('\n');
             w.append('\n');
         }
 
+        w.append("  public void unparse(Object o, Writer w) throws java.io.IOException {").append('\n');
+        w.append("     w.append(o.toString()); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("  }").append('\n');
         w.append("  public void unparse(Object o, PrintWriter w) {").append('\n');
-        w.append("    return o.toString(); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("     w.print(o.toString()); // TODO introduce type mapping from rule type to string").append('\n');
         w.append("  }").append('\n');
         w.append('\n');
         w.append('\n');
-        w.append("}").append('\n');
+        w.append("} // end class").append('\n');
         w.append('\n');
     }
 
@@ -139,9 +222,18 @@ public class UnparserCodeGenerator {
 
                 Writer w = resource.open();
 
-                w.append("package " + gModel.getPackageName()+".unparser;").append('\n').append('\n');;
+                w.append("package " + gModel.getPackageName()+".unparser;").append('\n').append('\n');
 
-                w.append("// rule imports").append('\n');
+                w.append("// Java API imports").append('\n');
+                w.append("import java.io.UnsupportedEncodingException;").append('\n');
+                w.append("import java.io.ByteArrayOutputStream;").append('\n');
+                w.append("import java.io.Writer;").append('\n');
+                w.append("import java.io.PrintWriter;").append('\n').append('\n');
+
+                w.append("// Model API imports").append('\n');
+                w.append("import "+gModel.getPackageName()+"." + gModel.getGrammarName() + "Model;").append('\n').append('\n');
+
+                w.append("// rule imports (from model api)").append('\n');
 
                 for (UPRule rImport : rules) {
 
@@ -173,16 +265,16 @@ public class UnparserCodeGenerator {
 
                 w.append('\n');
 
-                w.append("  private final " + gModel.getGrammarName() + "Unparser unparser;").append('\n');
+                w.append("  private final " + gModel.getGrammarName() + "ModelUnparser unparser;").append('\n');
 
                 w.append('\n');
 
-                w.append("  /*package private*/ " + ruleName + "Unparser(" + gModel.getGrammarName() + "Unparser unparser" + ") {").append('\n');
+                w.append("  /*package private*/ " + ruleName + "Unparser(" + gModel.getGrammarName() + "ModelUnparser unparser" + ") {").append('\n');
                 w.append("    this.unparser = unparser;").append('\n');
                 w.append("  }").append('\n');
                 w.append('\n');
 
-                w.append("  private " + gModel.getGrammarName() + "Unparser getUnparser() { return this.unparser; }").append('\n').append('\n');
+                w.append("  private " + gModel.getGrammarName() + "ModelUnparser getUnparser() { return this.unparser; }").append('\n').append('\n');
 
                 w.append("  public void " + "unparse(" + ruleName + " obj, PrintWriter w ) {").append('\n');
                 w.append('\n');
@@ -262,7 +354,7 @@ public class UnparserCodeGenerator {
 
         w.append('\n');
 
-        w.append("    java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();").append('\n');
+        w.append("    ByteArrayOutputStream output = new ByteArrayOutputStream();").append('\n');
 
         w.append("    PrintWriter internalW = new PrintWriter(output);").append('\n');
 
@@ -286,12 +378,12 @@ public class UnparserCodeGenerator {
 
         w.append("    try {").append('\n');
         w.append("        s = output.toString(\"UTF-8\");").append('\n');
-        w.append("    } catch(java.io.UnsupportedEncodingException ex) {").append('\n');
+        w.append("    } catch(UnsupportedEncodingException ex) {").append('\n');
         w.append("        s = output.toString();").append("\n");
         w.append("        ex.printStackTrace();").append('\n');
         w.append("    }").append('\n');
 
-        w.append("\n    if( match"+altName+"(s)) {").append('\n');
+        w.append("\n    if( match"+altName+"(s) ) {").append('\n');
         w.append("        w.print(s + \" \");").append('\n');
         w.append('\n');
         w.append("        // begin update global list indices/iterators since we consumed this alt successfully").append('\n');
@@ -344,18 +436,16 @@ public class UnparserCodeGenerator {
                 w.append("    while(true) { ").append('\n');
             }
         }
+
         for(UPElement e : a.getElements()) {
             w.append('\n');
             if(e instanceof UPSubRuleElement) {
-                UPSubRuleElement sre = (UPSubRuleElement) e;
-
-                generateSubRuleElementCode(w, altName, indent, sre);
+                generateSubRuleElementCode(w, altName, indent, (UPSubRuleElement) e);
             } else if(e instanceof UPNamedSubRuleElement) {
                 generateNamedSubRuleElementCode(w, indent, (UPNamedSubRuleElement) e);
             } else if(e instanceof UPNamedElement) {
                 UPNamedElement sre = (UPNamedElement) e;
                 generateNamedElementCode(w, indent, sre);
-
             } else {
                 generateUnnamedElementCode(w, indent, e);
             }
@@ -431,7 +521,7 @@ public class UnparserCodeGenerator {
             }
 
         } else {
-            w.append(indent+"    getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "() )" + "), internalW );").append('\n');
+            w.append(indent+"    getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "()" + ", internalW );").append('\n');
             w.append(indent+"    internalW.print(\" \"); // insert whitespace").append('\n');
         }
     }

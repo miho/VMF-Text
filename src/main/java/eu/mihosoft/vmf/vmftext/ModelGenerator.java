@@ -6,6 +6,7 @@ import eu.mihosoft.vmf.core.io.MemoryResourceSet;
 import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
 import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
+import eu.mihosoft.vmf.vmftext.grammar.UPRule;
 import eu.mihosoft.vmf.vmftext.grammar.UnparserModel;
 import eu.mihosoft.vmf.vmftext.grammar.unparser.UnparserCodeGenerator;
 import org.apache.velocity.VelocityContext;
@@ -15,6 +16,7 @@ import org.apache.velocity.runtime.RuntimeConstants;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.util.List;
 
 public class ModelGenerator {
 
@@ -61,18 +63,7 @@ public class ModelGenerator {
         mergeTemplate("model-converter", engine, context, out);
     }
 
-    private static void generateUnparser(
-            Writer out, VelocityEngine engine, String modelPackageName, String packageName, GrammarModel model, UnparserModel unparserModel) throws IOException {
-        VelocityContext context = new VelocityContext();
-        context.put("model", model);
-        context.put("unparserModel", unparserModel);
-        context.put("TEMPLATE_PATH",TEMPLATE_PATH);
-        context.put("modelPackageName", modelPackageName);
-        context.put("packageName", packageName);
-        context.put("Util", StringUtil.class);
 
-        mergeTemplate("model-unparser", engine, context, out);
-    }
 
     /**
      * Generates template code for the specified template.
@@ -134,10 +125,9 @@ public class ModelGenerator {
 
         MemoryResourceSet memoryResourceSet = new MemoryResourceSet();
 
-        UnparserCodeGenerator.generateUnparser(model, unparserModel, memoryResourceSet);
+        UnparserCodeGenerator.generateUnparser(model, unparserModel.asReadOnly(), fileset);
+        UnparserCodeGenerator.generateUnparser(model, unparserModel.asReadOnly(), memoryResourceSet);
 
         System.out.println(memoryResourceSet.asString());
-
-        UnparserCodeGenerator.generateUnparser(model, unparserModel, fileset);
     }
 }
