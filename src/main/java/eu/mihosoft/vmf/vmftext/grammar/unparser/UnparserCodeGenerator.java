@@ -197,8 +197,8 @@ public class UnparserCodeGenerator {
         }
 
         w.append("  public void unparse(Object o, Writer w) throws java.io.IOException {").append('\n');
-        w.append("    if(!(o instanceof eu.mihosoft.vmf.runtime.core.VObject)) {").append('\n');
-        w.append("      w.append(o.toString()); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("    if(!(o instanceof eu.mihosoft.vmf.runtime.core.VObject) && o!=null) {").append('\n');
+        w.append("      w.append(o.toString() + \" \"); // TODO introduce type mapping from rule type to string").append('\n');
         w.append("    } else ");
 
         for (UPRule r : rules) {
@@ -213,8 +213,8 @@ public class UnparserCodeGenerator {
 
         w.append("  }").append('\n');
         w.append("  public void unparse(Object o, PrintWriter w) {").append('\n');
-        w.append("    if(!(o instanceof eu.mihosoft.vmf.runtime.core.VObject)) {").append('\n');
-        w.append("      w.print(o.toString()); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("    if(!(o instanceof eu.mihosoft.vmf.runtime.core.VObject) && o!=null) {").append('\n');
+        w.append("      w.print(o.toString() + \" \"); // TODO introduce type mapping from rule type to string").append('\n');
         w.append("    } else ");
 
         for (UPRule r : rules) {
@@ -372,19 +372,53 @@ public class UnparserCodeGenerator {
         w.append('\n');
         w.append("  private void unparse" + altName + "SubRule" + sr.getId() + "( " + objName + " obj, PrintWriter w ) {").append('\n');
 
+        boolean multiplierCase = false;
+        if(sr instanceof UPElement) {
+            UPElement ruleElement = (UPElement) sr;
+            if(ruleElement.ebnfZeroMany() || ruleElement.ebnfOneMany()) {
+                multiplierCase = true;
+            }
+        }
+
+        if(multiplierCase) {
+            generateAltCodeForSubRulesWithMultiplier(altName, sr, w);
+        } else {
+            for(AlternativeBase a : sr.getAlternatives()) {
+
+                String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
+
+                w.append("    if( unparse" + altNameSub + "( obj, w ) ) { return; }").append('\n');
+            }
+        }
+
+        w.append("  }").append('\n');
+    }
+
+    private static void generateAltCodeForSubRulesWithMultiplier(String altName, SubRule sr, Writer w) throws IOException {
+        w.append('\n');
+        w.append("    // begin handling sub-rule with zeroToMany or oneToMany").append('\n');
+        w.append("    while(true) { ").append('\n');
+        w.append("      boolean matchedAnyAlt = false;").append('\n');
+
+        boolean first = true;
+        String elseStr = "";
         for(AlternativeBase a : sr.getAlternatives()) {
 
             String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
 
-            w.append("    if( unparse" + altNameSub + "( obj, w ) ) { return; }").append('\n');
+            if(!first) {
+                elseStr = " else";
+            } else {
+                first=false;
+            }
+
+            w.append("     " + elseStr + " if( unparse" + altNameSub + "( obj, w ) ) { matchedAnyAlt = true; }").append('\n');
+
         }
 
-        w.append("  }").append('\n');
-
-        // TODO check whether we really don't need this 22.12.2017
-//        for(AlternativeBase a : sr.getAlternatives()) {
-//            generateAltCode(w, ruleName, objName, a);
-//        }
+        w.append("      if( matchedAnyAlt == false ) break;").append('\n');
+        w.append("    }").append('\n');
+        w.append("    // end   handling sub-rule with zeroToMany or oneToMany").append('\n').append('\n');
     }
 
     private static void generateAltCode(Writer w, GrammarModel gModel, UPRule r, RuleClass gRule, String ruleName, String objName, AlternativeBase a) throws IOException {
@@ -406,7 +440,7 @@ public class UnparserCodeGenerator {
             if(!prop.getType().isArrayType()) {
                 continue;
             }
-            w.append("    int localProp" + prop.nameWithUpper() + "ListIndex = prop" + prop.nameWithUpper() + "ListIndex;").append('\n');
+            w.append("    int prevProp" + prop.nameWithUpper() + "ListIndex = prop" + prop.nameWithUpper() + "ListIndex;").append('\n');
         }
 
         w.append("    // end   preparing local list indices/iterators").append('\n');
@@ -427,7 +461,11 @@ public class UnparserCodeGenerator {
         w.append("    }").append('\n');
 
         w.append("\n    if( match"+altName+"(s) ) {").append('\n');
-        w.append("        w.print(s + \" \");").append('\n');
+        w.append("         w.print(s /*+ \" \"*/);").append('\n');
+
+        w.append('\n');
+        w.append("        return true;").append('\n');
+        w.append("    } else {").append('\n');
         w.append('\n');
         w.append("        // begin update global list indices/iterators since we consumed this alt successfully").append('\n');
 
@@ -435,12 +473,9 @@ public class UnparserCodeGenerator {
             if(!prop.getType().isArrayType()) {
                 continue;
             }
-            w.append("        prop" + prop.nameWithUpper() + "ListIndex = localProp" + prop.nameWithUpper() + "ListIndex;").append('\n');
+            w.append("        prop" + prop.nameWithUpper() + "ListIndex = prevProp" + prop.nameWithUpper() + "ListIndex;").append('\n');
         }
         w.append("        // end   update global list indices/iterators since we consumed this alt successfully").append('\n');
-        w.append('\n');
-        w.append("        return true;").append('\n');
-        w.append("    } else {").append('\n');
         w.append("        return false;").append('\n');
         w.append("    }").append('\n');
         w.append("\n  }").append('\n').append('\n');
@@ -486,20 +521,7 @@ public class UnparserCodeGenerator {
     }
 
     private static void generateElements(Writer w, RuleClass gRule, AlternativeBase a, String altName) throws IOException {
-        boolean parentOfAisZeroToManyOrOneToMany = false;
         String indent = "";
-
-        if(a.getParentRule() instanceof UPElement) {
-            UPElement parentOfa = (UPElement) a.getParentRule();
-
-            if(parentOfa.ebnfZeroMany()) {
-                parentOfAisZeroToManyOrOneToMany = true;
-                indent = "  ";
-                w.append('\n');
-                w.append("    // begin handling sub-rule with zeroToMany or oneToMany").append('\n');
-                w.append("    while(true) { ").append('\n');
-            }
-        }
 
         for(UPElement e : a.getElements()) {
             w.append('\n');
@@ -514,12 +536,6 @@ public class UnparserCodeGenerator {
                 generateUnnamedElementCode(w, indent, e);
             }
         }
-
-        if(parentOfAisZeroToManyOrOneToMany) {
-            w.append("    }").append('\n');
-            w.append("    // end   handling sub-rule with zeroToMany or oneToMany").append('\n');
-        }
-
     }
 
     private static void generateUnnamedElementCode(Writer w, String indent, UPElement e) throws IOException {
@@ -540,18 +556,20 @@ public class UnparserCodeGenerator {
         }
 
         if(eText.startsWith("'")) {
-            // replace ' with "
-            eText = "\""+eText.substring(1,eText.length()-1)+"\"";
+            // remove '
+            eText = eText.substring(1,eText.length()-1);
         }
 
+
+
         w.append(indent+"    // handling unnamed element  '"+eText+"'").append('\n');
-        w.append(indent+"    internalW.print( "+eText + " + \" \" );").append('\n');
+        w.append(indent+"    internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" + \" \" );").append('\n');
     }
 
     private static void generateNamedElementCode(Writer w, String indent, UPNamedElement sre) throws IOException {
         w.append(indent+"    // handling element with name '"+sre.getName()+"'").append('\n');
         if(sre.isListType()) {
-            String indexName = "localProp" + StringUtil.firstToUpper(sre.getName()) + "ListIndex";
+            String indexName = "prop" + StringUtil.firstToUpper(sre.getName()) + "ListIndex";
             String propName = "obj.get" + StringUtil.firstToUpper(sre.getName()+"()");
             if(sre.ebnfOne()) {
                 if(sre.ebnfOptional()) {
@@ -561,31 +579,24 @@ public class UnparserCodeGenerator {
                     w.append(indent+"    }").append('\n');
                 } else {
 
-                    String breakOrReturn = "return false;";
-
-                    if(sre.getParentAlt().getParentRule() instanceof UPElement) {
-                       UPElement parentSubRule = (UPElement) sre.getParentAlt().getParentRule();
-                        if(parentSubRule.ebnfZeroMany()||parentSubRule.ebnfOneMany()) {
-                            breakOrReturn = "break;";
-                        }
-                    }
+                    String breakOrReturn = " /*non optional case*/ return false;";
 
                     w.append(indent+"    if(" + indexName +" > " +propName+ ".size() -1 || " + propName + ".isEmpty()) { " +breakOrReturn + " }").append('\n');
                     w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
-                    w.append(indent+"      internalW.print(\" \"); // insert whitespace").append('\n');
+                    w.append(indent+"      // internalW.print(\" \"); // insert whitespace").append('\n');
                 }
             } else if (sre.ebnfOneMany() || sre.ebnfZeroMany()) {
 
                 if(sre.ebnfOptional()||sre.ebnfZeroMany()) {
                     w.append(indent+"    while(" + indexName +" < " +propName+ ".size() ) {").append('\n');
                     w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
-                    w.append(indent+"      internalW.print(\" \"); // insert whitespace").append('\n');
+                    w.append(indent+"      // internalW.print(\" \"); // insert whitespace").append('\n');
                     w.append(indent+"    }").append('\n');
                 } else {
                     w.append(indent+"    boolean matched"+StringUtil.firstToUpper(sre.getName()) +" = false;").append('\n');
                     w.append(indent+"    while(" + indexName +" < " +propName+ ".size() || " + propName + ".isEmpty()) {").append('\n');
                     w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
-                    w.append(indent+"      internalW.print(\" \"); // insert whitespace").append('\n');
+                    w.append(indent+"      // internalW.print(\" \"); // insert whitespace").append('\n');
                     w.append(indent+"      matched"+StringUtil.firstToUpper(sre.getName()) +" = true;").append('\n');
                     w.append(indent+"    }").append('\n');
                     w.append(indent+"    // we are in the non-optional case and return early if we didn't match").append('\n');
@@ -596,7 +607,7 @@ public class UnparserCodeGenerator {
 
         } else {
             w.append(indent+"    getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "()" + ", internalW );").append('\n');
-            w.append(indent+"    internalW.print(\" \"); // insert whitespace").append('\n');
+            w.append(indent+"    // internalW.print(\" \"); // insert whitespace").append('\n');
         }
     }
 
@@ -604,7 +615,7 @@ public class UnparserCodeGenerator {
         UPNamedSubRuleElement sre = e;
         w.append(indent+"    // handling sub-rule " + sre.getId() + " with name '"+sre.getName()+"'").append('\n');
         w.append(indent+"    getUnparser().unparse( obj.get"+ StringUtil.firstToUpper(sre.getName())+"(), internalW);").append('\n');
-        w.append(indent+"    internalW.print(\" \"); // insert whitespace").append('\n');
+        w.append(indent+"    // internalW.print(\" \"); // insert whitespace").append('\n');
     }
 
     private static void generateSubRuleElementCode(Writer w, String altName, String indent, UPSubRuleElement sre) throws IOException {

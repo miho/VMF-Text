@@ -178,6 +178,9 @@ public class VMFText {
         GrammarAndUnparser grammarAndUnparser = new GrammarAndUnparser();
         grammarAndUnparser.model = model;
         grammarAndUnparser.unparserModel = matchListenr.getModel();
+
+        System.out.println("  -> unparser model generated.");
+
         return grammarAndUnparser;
     }
 

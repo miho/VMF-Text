@@ -202,8 +202,16 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     }
 
     public static CodeRange ctxToCodeRange(ParserRuleContext ctx) {
-      return CodeRange.newBuilder().withStart(tokenToCodeLocationStart(ctx.start)).
-        withStop(tokenToCodeLocationStop(ctx.stop)).build();
+      CodeRange.Builder builder = CodeRange.newBuilder().withStart(tokenToCodeLocationStart(ctx.start));
+
+      if(ctx.stop==null) {
+        // if no stop is present use start token
+        builder.withStop(tokenToCodeLocationStart(ctx.start));
+      } else {
+        builder.withStop(tokenToCodeLocationStop(ctx.stop));
+      }
+
+      return builder.build();
     }
 
 // TODO remove this class if compile time conversion works

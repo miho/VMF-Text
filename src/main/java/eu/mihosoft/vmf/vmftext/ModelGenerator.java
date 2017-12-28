@@ -127,23 +127,16 @@ public class ModelGenerator {
 
     public void generateModelUnparser(GrammarModel model, UnparserModel unparserModel, File grammarFile, ResourceSet fileset) {
 
-        MemoryResourceSet memoryResourceSet = new MemoryResourceSet();
-        MemoryResourceSet memoryResourceSet2 = new MemoryResourceSet();
-
         if (!(fileset instanceof FileResourceSet)) {
             throw new UnsupportedOperationException("FIXME: implement support for other resource sets (currently only file-resource-sets are supported)");
         }
 
         FileResourceSet resourceSet = (FileResourceSet) fileset;
 
-
         String unparserGrammarFile = (model.getPackageName()+".unparser.antlr4."+model.getGrammarName()).
                 replace('.','/') + "ModelUnparserGrammar.g4";
 
         UnparserCodeGenerator.generateUnparser(model, unparserModel.asReadOnly(), unparserGrammarFile, fileset);
-        UnparserCodeGenerator.generateUnparser(model, unparserModel.asReadOnly(), unparserGrammarFile, memoryResourceSet);
-
-        System.out.println(memoryResourceSet.asString());
 
         VMFText.AntlrTool.setOutput(fileset);
 
@@ -159,20 +152,5 @@ public class ModelGenerator {
                 }
         );
 
-        VMFText.AntlrTool.setOutput(memoryResourceSet2);
-
-        VMFText.AntlrTool.main(
-                new String[]{
-                        ((FileResourceSet) fileset).getRootSrcFolder()+"/"+unparserGrammarFile,
-                        grammarFile.getAbsolutePath(),
-                        "-listener",
-                        "-package", model.getPackageName()+".unparser.antlr4",
-//                "-lib",
-//                "srcPath",
-                        "-o", "" // packageName.replace('.','/')
-                }
-        );
-
-        System.out.println(memoryResourceSet2.asString());
     }
 }

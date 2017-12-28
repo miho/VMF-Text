@@ -15,14 +15,6 @@ import vjavax.observer.collection.CollectionChangeListener;
 
 import java.util.*;
 
-class GrammarToRuleMatcherVisitor extends ANTLRv4ParserBaseVisitor {
-    @Override
-    public Object visitAlternative(ANTLRv4Parser.AlternativeContext ctx) {
-
-        return super.visitAlternative(ctx);
-    }
-}
-
 class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
     private TokenStream stream;
@@ -48,9 +40,12 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         return currentRules.peek();
     }
 
+    private static boolean debug = false;
+
     @Override
     public void enterLabeledAlt(ANTLRv4Parser.LabeledAltContext ctx) {
 
+        if(debug)
         System.out.println("entering alt (l): " + ctx.getText());
 
         currentAlt = ctx;
@@ -62,6 +57,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
             alt = Alternative.newBuilder().
                     withText(stream.getText(ctx.getSourceInterval())).build();
         } else {
+            if(debug)
             System.out.println(" -> labeled: " + ctx.identifier().getText());
             alt = LabeledAlternative.newBuilder().
                     withName(ctx.identifier().getText()).
@@ -69,6 +65,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         }
         currentRule.getAlternatives().add(alt);
 
+        if(debug)
         System.out.println(" -> alt id: " + alt.getId());
 
         currentAlts.push(alt);
@@ -121,6 +118,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         // do not enter alt if we already processed as labeled alt
         if(currentAlt!=null&&currentAlt.alternative()==ctx) return;
 
+        if(debug)
         System.out.println("entering alt (*): " + ctx.getText());
 
         UPRuleBase currentRule = getCurrentRule();
@@ -130,6 +128,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
         currentRule.getAlternatives().add(alt);
 
+        if(debug)
         System.out.println(" -> alt id: " + alt.getId());
 
         currentAlts.push(alt);
@@ -142,6 +141,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
         AlternativeBase a = currentAlts.pop();
 
+        if(debug)
         System.out.println("exiting alt:      " + ctx.getText());
 
         super.exitAlternative(ctx);
@@ -160,6 +160,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
             if(ctx.labeledElement().block()!=null) {
 
+                if(debug)
                 System.out.println(">>> LE-BLOCK:     "+elementText);
 
                 UPNamedSubRuleElement subRule = UPNamedSubRuleElement.newBuilder().
@@ -173,33 +174,25 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 currentRules.push(subRule);
 
                 // if sub-rule is a block-set we need to manually add alternatives
-
+                if(debug)
                 System.out.println(" -> sub-rule id: " + subRule.getId());
             } else {
-
+                if(debug)
                 System.out.println(">>> LE:           " +elementText);
 
-//                // short-hand sub-rule detected
-//                if(elementText.endsWith("*")|| elementText.endsWith("+") || elementText.endsWith("?")) {
-//                    System.out.println(" -> shorthand sub-rule detected");
-//                    currentAlt.getElements().add(UPNamedSubRuleElement.newBuilder().
-//                            withName(propertyName).
-//                            withText(stream.getText(ctx.getSourceInterval())).
-//                            withListType(listType).
-//                            build());
-//                } else {
                     currentAlt.getElements().add(UPNamedElement.newBuilder().
                             withName(propertyName).
                             withText(stream.getText(ctx.getSourceInterval())).
                             withListType(listType).
                             build());
-//                }
+
             }
 
         } else {
 
             if(ParseTreeUtil.isBlockElement(ctx)) {
 
+                if(debug)
                 System.out.println(">>>  E-BLOCK:     "+stream.getText(ctx.getSourceInterval()));
 
                 UPSubRuleElement subRule = UPSubRuleElement.newBuilder().
@@ -208,6 +201,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
                 currentAlt.getElements().add(subRule);
 
+                if(debug)
                 System.out.println(" -> sub-rule id: " + subRule.getId());
 
                 currentRules.push(subRule);
@@ -219,6 +213,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 // which will be readded via enterBlock(ctx)
 
                 if(elementText.startsWith("(")) {
+                    if(debug)
                     System.out.println(">>>  E-BLOCK(*):  " + stream.getText(ctx.getSourceInterval()));
                     UPSubRuleElement subRule = UPSubRuleElement.newBuilder().
                             withText(elementText).
@@ -226,26 +221,18 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
                     currentAlt.getElements().add(subRule);
 
+                    if(debug)
                     System.out.println(" -> sub-rule id: " + subRule.getId());
 
                     currentRules.push(subRule);
                 } else {
+                    if(debug)
                     System.out.println(">>>  E:           " + stream.getText(ctx.getSourceInterval()));
 
-//                    // short-hand sub-rule detected
-//                    if(elementText.endsWith("*")|| elementText.endsWith("+") || elementText.endsWith("?")) {
-//                        System.out.println(" -> shorthand sub-rule detected");
-//                        currentAlt.getElements().add(UPSubRuleElement.newBuilder().
-//                                withText(stream.getText(ctx.getSourceInterval())).
-//                                build());
-//                    } else {
                         currentElement = UPElement.newBuilder().
                                 withText(stream.getText(ctx.getSourceInterval())).build();
                         currentAlt.getElements().add(currentElement);
-//                    }
                 }
-
-
 
             }
 
@@ -267,6 +254,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
     public void enterParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
 
         String ruleName = ctx.RULE_REF().getText();
+        if(debug)
         System.out.println("> entering rule:  '" + ruleName + "'");
         currentRuleNames.push(ruleName);
 
@@ -274,7 +262,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
         currentRules.push(rule);
         model.getRules().add(rule);
-
+        if(debug)
         System.out.println(" -> rule id: " + rule.getId());
 
         super.enterParserRuleSpec(ctx);
@@ -282,6 +270,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
     @Override
     public void exitParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
+        if(debug)
         System.out.println("< exiting rule:   '" + ((UPRule)currentRules.pop()).getName() + "'");
 
         super.exitParserRuleSpec(ctx);
