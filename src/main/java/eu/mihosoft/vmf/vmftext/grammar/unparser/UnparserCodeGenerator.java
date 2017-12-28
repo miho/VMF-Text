@@ -648,6 +648,12 @@ public class UnparserCodeGenerator {
     }
 
     private static void generateUnnamedElementCode(Writer w, String indent, UPElement e) throws IOException {
+
+        // ignore EOF element
+        if("EOF".equals(e.getText().trim())){
+            return;
+        }
+
         // remove ebnf multiplicity, optional and greedy characters
         String eText = e.getText();
         if(eText.endsWith("?")) {
