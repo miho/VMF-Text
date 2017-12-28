@@ -27,6 +27,7 @@
     CharStream input = CharStreams.fromString(s);
 
     ${grammarName}ModelUnparserGrammarLexer lexer = new ${grammarName}ModelUnparserGrammarLexer(input);
+    lexer.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
     CommonTokenStream tokens = new CommonTokenStream(lexer);
     ${grammarName}ModelUnparserGrammarParser parser = new ${grammarName}ModelUnparserGrammarParser(tokens);
 
