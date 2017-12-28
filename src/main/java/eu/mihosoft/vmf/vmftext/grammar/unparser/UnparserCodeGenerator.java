@@ -464,6 +464,8 @@ public class UnparserCodeGenerator {
         w.append("  private boolean unparse"+ altName + "( " + objName + " obj, PrintWriter w ) {").append('\n');
 
         w.append('\n');
+        w.append("    if(obj==null) return false;").append('\n');
+        w.append('\n');
 
         w.append("    // begin check whether unused properties are set").append('\n');
 
