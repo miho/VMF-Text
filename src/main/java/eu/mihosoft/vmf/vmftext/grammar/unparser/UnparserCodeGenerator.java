@@ -11,10 +11,7 @@ import org.apache.velocity.VelocityContext;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class UnparserCodeGenerator {
@@ -428,6 +425,18 @@ public class UnparserCodeGenerator {
 
         w.append('\n');
 
+        w.append("    // begin check whether unused properties are set").append('\n');
+
+        // alternatives of grammar rules need to check whether they use all properties that are set and do
+        // not use any unset property
+        if(a.getParentRule() == r) {
+            generateUnusedPropertiesCheck(a, r, w);
+        }
+
+        w.append("    // end   check whether unused properties are set").append('\n');
+
+        w.append('\n');
+
         w.append("    ByteArrayOutputStream output = new ByteArrayOutputStream();").append('\n');
 
         w.append("    PrintWriter internalW = new PrintWriter(output);").append('\n');
@@ -499,6 +508,64 @@ public class UnparserCodeGenerator {
                 e.printStackTrace();
             }
         });
+    }
+
+    private static void _getPropertiesUsedInAlternative(AlternativeBase a, List<String> propertyNames, Map<String, Boolean> listTypeMap) {
+        for(UPElement e : a.getElements()) {
+            if(e instanceof WithName) {
+                String pName = ((WithName)e).getName();
+                propertyNames.add(pName);
+                if(listTypeMap!=null) {
+                    listTypeMap.put(pName, e.isListType());
+                }
+            }
+
+            if(e instanceof SubRule) {
+                SubRule sr = (SubRule) e;
+                for(AlternativeBase subA : sr.getAlternatives()) {
+                    _getPropertiesUsedInAlternative(subA,propertyNames, listTypeMap);
+                }
+            }
+        }
+
+    }
+
+    private static List<String> getPropertiesUsedInAlternative(AlternativeBase a) {
+
+        List<String> propertyNames = new ArrayList<>();
+
+        _getPropertiesUsedInAlternative(a, propertyNames, null);
+
+        return propertyNames;
+    }
+
+    private static void generateUnusedPropertiesCheck(AlternativeBase a, UPRule r, Writer w) throws IOException {
+        List<String> propertyNamesUsed = getPropertiesUsedInAlternative(a);
+        Map<String,Boolean> propertyNamesInRule = getPropertyNamesOfRule(r);
+
+        List<String> propertiesNotUsedInAlt = new ArrayList<>();
+        propertiesNotUsedInAlt.addAll(propertyNamesInRule.keySet());
+        propertiesNotUsedInAlt.removeAll(propertyNamesUsed);
+
+        for(String pName : propertiesNotUsedInAlt) {
+
+            if(propertyNamesInRule.get(pName)) {
+                w.append("    if(!obj.get" + StringUtil.firstToUpper(pName) + "().isEmpty()) return false;").append('\n');
+            } else {
+                w.append("    if(obj.get" + StringUtil.firstToUpper(pName) + "() !=null) return false;").append('\n');
+            }
+        }
+    }
+
+    private static Map<String,Boolean> getPropertyNamesOfRule(UPRule r) {
+        List<String> propertyNames = new ArrayList<>();
+        Map<String,Boolean> listType = new HashMap<>();
+
+        for(AlternativeBase a : r.getAlternatives()) {
+            _getPropertiesUsedInAlternative(a, propertyNames, listType);
+        }
+
+        return listType;
     }
 
     private static TemplateEngine tEngine;
