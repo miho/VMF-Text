@@ -3,8 +3,11 @@ package eu.mihosoft.vmf.vmftext.grammar.unparser;
 import eu.mihosoft.vmf.core.TypeUtil;
 import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
+import eu.mihosoft.vmf.vmftext.ModelGenerator;
 import eu.mihosoft.vmf.vmftext.StringUtil;
+import eu.mihosoft.vmf.vmftext.TemplateEngine;
 import eu.mihosoft.vmf.vmftext.grammar.*;
+import org.apache.velocity.VelocityContext;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -16,14 +19,12 @@ import java.util.stream.Collectors;
 
 public class UnparserCodeGenerator {
 
-    public static void generateUnparser(GrammarModel gModel, ReadOnlyUnparserModel roModel, ResourceSet resourceSet) {
+    public static void generateUnparser(GrammarModel gModel, ReadOnlyUnparserModel roModel, String unparserGrammarPath, ResourceSet resourceSet) {
 
         // ensure we work on our own modifiable copy of the model
         UnparserModel model = roModel.asModifiable();
 
-
         List<UPRule> rules = computeFinalUnparserRuleList(model);
-
 
         try (Resource resource =
                      resourceSet.open(TypeUtil.computeFileNameFromJavaFQN(
@@ -42,9 +43,7 @@ public class UnparserCodeGenerator {
 
 
         try (Resource resource =
-                     resourceSet.open(
-                             (gModel.getPackageName()+".unparser."+gModel.getGrammarName()).
-                                     replace('.','/') + "ModelUnparserGrammar.g4");
+                     resourceSet.open(unparserGrammarPath);
              Writer w = resource.open()) {
 
             generateUPGrammarCode(gModel, model, rules, w);
@@ -87,7 +86,7 @@ public class UnparserCodeGenerator {
                 SubRule sr = (SubRule) e;
                 String srName = parentName+"SubRule"+sr.getId();
 
-                String eText = e.getText(); // TODO 27.12.2017 maybe simplify expression by removing all labels and substitute subrules?
+                String eText = e.getText(); // TODO 27.12.2017 maybe simplify expression by removing all labels and substitute sub-rules?
 
                 w.append(srName+": ").append(eText+";\n");
 
@@ -198,10 +197,37 @@ public class UnparserCodeGenerator {
         }
 
         w.append("  public void unparse(Object o, Writer w) throws java.io.IOException {").append('\n');
-        w.append("     w.append(o.toString()); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("    if(!(o instanceof eu.mihosoft.vmf.runtime.core.VObject)) {").append('\n');
+        w.append("      w.append(o.toString()); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("    } else ");
+
+        for (UPRule r : rules) {
+            String ruleName = StringUtil.firstToUpper(r.getName());
+            w.append("if ( o instanceof " + ruleName + " ) {").append('\n');
+            w.append("      unparse( ("+ruleName+")o, w );").append('\n');
+            w.append("    }");
+        }
+
+        w.append('\n');
+        w.append("    w.flush();").append('\n');
+
         w.append("  }").append('\n');
         w.append("  public void unparse(Object o, PrintWriter w) {").append('\n');
-        w.append("     w.print(o.toString()); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("    if(!(o instanceof eu.mihosoft.vmf.runtime.core.VObject)) {").append('\n');
+        w.append("      w.print(o.toString()); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("    } else ");
+
+        for (UPRule r : rules) {
+            String ruleName = StringUtil.firstToUpper(r.getName());
+            w.append("if ( o instanceof " + ruleName + " ) {").append('\n');
+            w.append("      unparse( ("+ruleName+")o, w );").append('\n');
+            w.append("    }");
+        }
+
+        w.append('\n');
+
+        w.append("    w.flush();").append('\n');
+
         w.append("  }").append('\n');
         w.append('\n');
         w.append('\n');
@@ -230,6 +256,19 @@ public class UnparserCodeGenerator {
                 w.append("import java.io.ByteArrayOutputStream;").append('\n');
                 w.append("import java.io.Writer;").append('\n');
                 w.append("import java.io.PrintWriter;").append('\n').append('\n');
+
+                w.append("// ANTLR4 imports").append('\n');
+                w.append("import org.antlr.v4.runtime.CharStream;").append('\n');
+                w.append("import org.antlr.v4.runtime.CharStreams;").append('\n');
+                w.append("import org.antlr.v4.runtime.ParserRuleContext;").append('\n');
+                w.append("import org.antlr.v4.runtime.CommonTokenStream;").append('\n');
+                w.append("import org.antlr.v4.runtime.tree.ErrorNode;").append('\n');
+                w.append("import org.antlr.v4.runtime.tree.ParseTreeWalker;").append('\n').append('\n');
+
+                w.append("// ANTLR4 generated parser imports").append('\n');
+                w.append("import "+ gModel.getPackageName()+ ".unparser.antlr4."+gModel.getGrammarName()+"ModelUnparserGrammarLexer;").append('\n');
+                w.append("import "+ gModel.getPackageName()+ ".unparser.antlr4."+gModel.getGrammarName()+"ModelUnparserGrammarParser;").append('\n');
+                w.append("import "+ gModel.getPackageName()+ ".unparser.antlr4."+gModel.getGrammarName()+"ModelUnparserGrammarBaseListener;").append('\n').append('\n');
 
                 w.append("// Model API imports").append('\n');
                 w.append("import "+gModel.getPackageName()+"." + gModel.getGrammarName() + "Model;").append('\n').append('\n');
@@ -371,9 +410,12 @@ public class UnparserCodeGenerator {
         }
 
         w.append("    // end   preparing local list indices/iterators").append('\n');
-        w.append('\n');
 
         generateElements(w, gRule, a, altName);
+
+        w.append('\n');
+        w.append("    internalW.close();");
+        w.append('\n');
 
         w.append("\n    String s;").append('\n');
 
@@ -401,7 +443,9 @@ public class UnparserCodeGenerator {
         w.append("    } else {").append('\n');
         w.append("        return false;").append('\n');
         w.append("    }").append('\n');
-        w.append("\n  }").append('\n');
+        w.append("\n  }").append('\n').append('\n');
+
+        generateMatchAltMethod(gModel, altName, w);
 
         a.getElements().stream().filter(el->el instanceof SubRule).filter(el->!(el instanceof UPNamedSubRuleElement)).
                 map(el->(SubRule)el).forEach(sr-> {
@@ -420,6 +464,25 @@ public class UnparserCodeGenerator {
                 e.printStackTrace();
             }
         });
+    }
+
+    private static TemplateEngine tEngine;
+
+    private static void generateMatchAltMethod(GrammarModel gModel, String altName, Writer w) throws IOException {
+
+        if(tEngine==null) {
+            tEngine = new TemplateEngine();
+        }
+
+        TemplateEngine.Engine engine = tEngine.getEngine();
+        VelocityContext context = engine.context;
+        context.put("model", gModel);
+        context.put("altName", altName);
+        context.put("grammarName", gModel.getGrammarName());
+        context.put("packageName", gModel.getPackageName());
+        context.put("Util", StringUtil.class);
+
+        tEngine.mergeTemplate("model-unparser-match-alt",w);
     }
 
     private static void generateElements(Writer w, RuleClass gRule, AlternativeBase a, String altName) throws IOException {
@@ -492,25 +555,35 @@ public class UnparserCodeGenerator {
             String propName = "obj.get" + StringUtil.firstToUpper(sre.getName()+"()");
             if(sre.ebnfOne()) {
                 if(sre.ebnfOptional()) {
-                    w.append(indent+"    if(" + indexName +" < " +propName+ ".size() -1 ) {").append('\n');
+                    w.append(indent+"    if(" + indexName +" < " +propName+ ".size() ) {").append('\n');
                     w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
                     w.append(indent+"      internalW.print(\" \"); // insert whitespace").append('\n');
                     w.append(indent+"    }").append('\n');
                 } else {
-                    w.append(indent+"    if(" + indexName +" > " +propName+ ".size() -1 || " + propName + ".isEmty()) { /*non-optional case*/ return false; }").append('\n');
+
+                    String breakOrReturn = "return false;";
+
+                    if(sre.getParentAlt().getParentRule() instanceof UPElement) {
+                       UPElement parentSubRule = (UPElement) sre.getParentAlt().getParentRule();
+                        if(parentSubRule.ebnfZeroMany()||parentSubRule.ebnfOneMany()) {
+                            breakOrReturn = "break;";
+                        }
+                    }
+
+                    w.append(indent+"    if(" + indexName +" > " +propName+ ".size() -1 || " + propName + ".isEmpty()) { " +breakOrReturn + " }").append('\n');
                     w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
                     w.append(indent+"      internalW.print(\" \"); // insert whitespace").append('\n');
                 }
             } else if (sre.ebnfOneMany() || sre.ebnfZeroMany()) {
 
                 if(sre.ebnfOptional()||sre.ebnfZeroMany()) {
-                    w.append(indent+"    while(" + indexName +" < " +propName+ ".size() -1 ) {").append('\n');
+                    w.append(indent+"    while(" + indexName +" < " +propName+ ".size() ) {").append('\n');
                     w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
                     w.append(indent+"      internalW.print(\" \"); // insert whitespace").append('\n');
                     w.append(indent+"    }").append('\n');
                 } else {
                     w.append(indent+"    boolean matched"+StringUtil.firstToUpper(sre.getName()) +" = false;").append('\n');
-                    w.append(indent+"    while(" + indexName +" < " +propName+ ".size() -1 || " + propName + ".isEmty()) {").append('\n');
+                    w.append(indent+"    while(" + indexName +" < " +propName+ ".size() || " + propName + ".isEmpty()) {").append('\n');
                     w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
                     w.append(indent+"      internalW.print(\" \"); // insert whitespace").append('\n');
                     w.append(indent+"      matched"+StringUtil.firstToUpper(sre.getName()) +" = true;").append('\n');

@@ -1,0 +1,61 @@
+#*
+ * Copyright 2016-2017 Michael Hoffer <info@michaelhoffer.de>. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * If you use this software for scientific research then please cite the following publication(s):
+ *
+ * M. Hoffer, C. Poliwoda, & G. Wittum. (2013). Visual reflection library:
+ * a framework for declarative GUI programming on the Java platform.
+ * Computing and Visualization in Science, 2013, 16(4),
+ * 181–192. http://doi.org/10.1007/s00791-014-0230-y
+ *#
+  private boolean match${altName}(String s) {
+
+    // System.out.println("MATCH-STR-${altName}: " + s);
+
+    CharStream input = CharStreams.fromString(s);
+
+    ${grammarName}ModelUnparserGrammarLexer lexer = new ${grammarName}ModelUnparserGrammarLexer(input);
+    CommonTokenStream tokens = new CommonTokenStream(lexer);
+    ${grammarName}ModelUnparserGrammarParser parser = new ${grammarName}ModelUnparserGrammarParser(tokens);
+
+    ParserRuleContext tree = parser.$Util.firstToLower(${altName})();
+    ParseTreeWalker walker = new ParseTreeWalker();
+
+    class Listener extends ${grammarName}ModelUnparserGrammarBaseListener {
+
+      public boolean matches = true;
+
+      @Override
+      public void visitErrorNode(ErrorNode node) {
+        matches = false;
+      }
+
+      @Override
+      public void enter${altName}(
+        ${grammarName}ModelUnparserGrammarParser.${altName}Context ctx) {
+        matches = true;
+        super.enter${altName}(ctx);
+      }
+    } // end listener class
+
+    Listener l = new Listener();
+    walker.walk(l, tree);
+
+    // System.out.println("MATCHES ${altName}: " + l.matches);
+
+    return l.matches;
+  }
+
+

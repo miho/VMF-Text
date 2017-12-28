@@ -74,7 +74,7 @@ public class VMFText {
 
             // generate mode unparser
             UnparserModel unparserModel = conversionResult.unparserModel;
-            generator.generateModelUnparser(model, unparserModel, outputDir);
+            generator.generateModelUnparser(model, unparserModel, grammar, outputDir);
 
             // generate model classes for in-memory compilation
             MemoryResourceSet modelGenCode = new MemoryResourceSet();
@@ -137,7 +137,6 @@ public class VMFText {
         ANTLRv4Parser parser = new ANTLRv4Parser(tokens);
 
         ParserRuleContext tree = parser.grammarSpec();
-
         ParseTreeWalker walker = new ParseTreeWalker();
 
         List<String> comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
@@ -184,7 +183,7 @@ public class VMFText {
 
 
 
-    private static class AntlrTool extends org.antlr.v4.Tool {
+    static class AntlrTool extends org.antlr.v4.Tool {
 
         private static ResourceSet output;
         private static final List<Resource> openedResources = new ArrayList<>();

@@ -2,6 +2,7 @@ package eu.mihosoft.vmf.vmftext;
 
 
 import eu.mihosoft.vmf.core.TypeUtil;
+import eu.mihosoft.vmf.core.io.FileResourceSet;
 import eu.mihosoft.vmf.core.io.MemoryResourceSet;
 import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
@@ -13,6 +14,7 @@ import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -123,13 +125,54 @@ public class ModelGenerator {
         }
     }
 
-    public void generateModelUnparser(GrammarModel model, UnparserModel unparserModel, ResourceSet fileset) {
+    public void generateModelUnparser(GrammarModel model, UnparserModel unparserModel, File grammarFile, ResourceSet fileset) {
 
         MemoryResourceSet memoryResourceSet = new MemoryResourceSet();
+        MemoryResourceSet memoryResourceSet2 = new MemoryResourceSet();
 
-        UnparserCodeGenerator.generateUnparser(model, unparserModel.asReadOnly(), fileset);
-        UnparserCodeGenerator.generateUnparser(model, unparserModel.asReadOnly(), memoryResourceSet);
+        if (!(fileset instanceof FileResourceSet)) {
+            throw new UnsupportedOperationException("FIXME: implement support for other resource sets (currently only file-resource-sets are supported)");
+        }
+
+        FileResourceSet resourceSet = (FileResourceSet) fileset;
+
+
+        String unparserGrammarFile = (model.getPackageName()+".unparser.antlr4."+model.getGrammarName()).
+                replace('.','/') + "ModelUnparserGrammar.g4";
+
+        UnparserCodeGenerator.generateUnparser(model, unparserModel.asReadOnly(), unparserGrammarFile, fileset);
+        UnparserCodeGenerator.generateUnparser(model, unparserModel.asReadOnly(), unparserGrammarFile, memoryResourceSet);
 
         System.out.println(memoryResourceSet.asString());
+
+        VMFText.AntlrTool.setOutput(fileset);
+
+        VMFText.AntlrTool.main(
+                new String[]{
+                        ((FileResourceSet) fileset).getRootSrcFolder()+"/"+unparserGrammarFile,
+                        grammarFile.getAbsolutePath(),
+                        "-listener",
+                        "-package", model.getPackageName()+".unparser.antlr4",
+//                "-lib",
+//                "srcPath",
+                        "-o", "" // packageName.replace('.','/')
+                }
+        );
+
+        VMFText.AntlrTool.setOutput(memoryResourceSet2);
+
+        VMFText.AntlrTool.main(
+                new String[]{
+                        ((FileResourceSet) fileset).getRootSrcFolder()+"/"+unparserGrammarFile,
+                        grammarFile.getAbsolutePath(),
+                        "-listener",
+                        "-package", model.getPackageName()+".unparser.antlr4",
+//                "-lib",
+//                "srcPath",
+                        "-o", "" // packageName.replace('.','/')
+                }
+        );
+
+        System.out.println(memoryResourceSet2.asString());
     }
 }
