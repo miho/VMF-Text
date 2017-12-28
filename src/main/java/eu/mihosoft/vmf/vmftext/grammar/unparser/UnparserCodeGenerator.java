@@ -3,7 +3,6 @@ package eu.mihosoft.vmf.vmftext.grammar.unparser;
 import eu.mihosoft.vmf.core.TypeUtil;
 import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
-import eu.mihosoft.vmf.vmftext.ModelGenerator;
 import eu.mihosoft.vmf.vmftext.StringUtil;
 import eu.mihosoft.vmf.vmftext.TemplateEngine;
 import eu.mihosoft.vmf.vmftext.grammar.*;
@@ -138,6 +137,9 @@ public class UnparserCodeGenerator {
         }
 
         w.append('\n');
+        w.append("import " + gModel.getPackageName()+ ".unparser." +gModel.getGrammarName()+ "ModelUnparser.IntValue;").append('\n');
+        w.append('\n');
+        w.append('\n');
 
         w.append("public class "+gModel.getGrammarName()+"ModelUnparser {").append('\n');
 
@@ -228,6 +230,8 @@ public class UnparserCodeGenerator {
         w.append("  }").append('\n');
         w.append('\n');
         w.append('\n');
+        w.append(" static class IntValue { private int value; public void set(int v) {this.value = v;} public int get() { return this.value; } int getAndInc() {int result = this.value;this.value++; return result;} }").append('\n');
+        w.append('\n');
         w.append("} // end class").append('\n');
         w.append('\n');
     }
@@ -252,7 +256,9 @@ public class UnparserCodeGenerator {
                 w.append("import java.io.UnsupportedEncodingException;").append('\n');
                 w.append("import java.io.ByteArrayOutputStream;").append('\n');
                 w.append("import java.io.Writer;").append('\n');
-                w.append("import java.io.PrintWriter;").append('\n').append('\n');
+                w.append("import java.io.PrintWriter;").append('\n');
+                w.append("import java.util.Deque;").append('\n');
+                w.append("import java.util.ArrayDeque;").append('\n').append('\n');
 
                 w.append("// ANTLR4 imports").append('\n');
                 w.append("import org.antlr.v4.runtime.CharStream;").append('\n');
@@ -269,6 +275,11 @@ public class UnparserCodeGenerator {
 
                 w.append("// Model API imports").append('\n');
                 w.append("import "+gModel.getPackageName()+"." + gModel.getGrammarName() + "Model;").append('\n').append('\n');
+
+                w.append('\n');
+                w.append("import " + gModel.getPackageName()+ ".unparser." +gModel.getGrammarName()+ "ModelUnparser.IntValue;").append('\n');
+                w.append('\n');
+                w.append('\n');
 
                 w.append("// rule imports (from model api)").append('\n');
 
@@ -296,13 +307,39 @@ public class UnparserCodeGenerator {
                         continue;
                     }
 
-                    w.append("  int prop" + prop.nameWithUpper() + "ListIndex;").append('\n');
+                    w.append("  IntValue prop" + prop.nameWithUpper() + "ListIndex = new IntValue();").append('\n');
+                    w.append("  final Deque<IntValue> prop"+ prop.nameWithUpper() + "State = new ArrayDeque<>();").append('\n');
                 }
+
                 w.append("  // end   declare list property indices/iterators").append('\n');
 
                 w.append('\n');
 
                 w.append("  private final " + gModel.getGrammarName() + "ModelUnparser unparser;").append('\n');
+
+                w.append('\n');
+
+                w.append("  private void pushState() {").append('\n');
+                for (Property prop : gRule.getProperties()) {
+
+                    if (!prop.getType().isArrayType()) {
+                        continue;
+                    }
+
+                    w.append("    prop"+ prop.nameWithUpper() + "State.push( prop" + prop.nameWithUpper() + "ListIndex );").append('\n');
+                }
+                w.append("  }").append('\n');
+
+                w.append("  private void popState() {").append('\n');
+                for (Property prop : gRule.getProperties()) {
+
+                    if (!prop.getType().isArrayType()) {
+                        continue;
+                    }
+
+                    w.append("    prop" + prop.nameWithUpper() + "ListIndex = prop"+ prop.nameWithUpper() + "State.pop();").append('\n');
+                }
+                w.append("  }").append('\n');
 
                 w.append('\n');
 
@@ -315,12 +352,14 @@ public class UnparserCodeGenerator {
 
                 w.append("  public void " + "unparse(" + ruleName + " obj, PrintWriter w ) {").append('\n');
                 w.append('\n');
+                w.append("    pushState();").append('\n');
+                w.append('\n');
                 w.append("    // begin reset list property indices/iterators").append('\n');
 
                 for (Property prop : gRule.getProperties()) {
 
                     if (prop.getType().isArrayType()) {
-                        w.append("    prop" + prop.nameWithUpper() + "ListIndex = 0;").append('\n');
+                        w.append("    prop" + prop.nameWithUpper() + "ListIndex = new IntValue();").append('\n');
                     }
                 }
                 w.append("    // end   reset list property indices/iterators").append('\n');
@@ -333,9 +372,10 @@ public class UnparserCodeGenerator {
 
                     String altName = ruleName + "Alt" + a.getId();
 
-                    w.append("    if( unparse" + altName + "( obj, w ) ) { return; }").append('\n');
+                    w.append("    if( unparse" + altName + "( obj, w ) ) { popState(); return; }").append('\n').append('\n');
 
                 }
+                w.append("    popState();").append('\n').append('\n');
                 w.append("  }").append('\n');
 
                 for (AlternativeBase a : r.getAlternatives()) {
@@ -449,7 +489,7 @@ public class UnparserCodeGenerator {
             if(!prop.getType().isArrayType()) {
                 continue;
             }
-            w.append("    int prevProp" + prop.nameWithUpper() + "ListIndex = prop" + prop.nameWithUpper() + "ListIndex;").append('\n');
+            w.append("    int prevProp" + prop.nameWithUpper() + "ListIndex = prop" + prop.nameWithUpper() + "ListIndex.get();").append('\n');
         }
 
         w.append("    // end   preparing local list indices/iterators").append('\n');
@@ -482,7 +522,7 @@ public class UnparserCodeGenerator {
             if(!prop.getType().isArrayType()) {
                 continue;
             }
-            w.append("        prop" + prop.nameWithUpper() + "ListIndex = prevProp" + prop.nameWithUpper() + "ListIndex;").append('\n');
+            w.append("        prop" + prop.nameWithUpper() + "ListIndex.set(prevProp" + prop.nameWithUpper() + "ListIndex);").append('\n');
         }
         w.append("        // end   update global list indices/iterators since we consumed this alt successfully").append('\n');
         w.append("        return false;").append('\n');
@@ -640,29 +680,29 @@ public class UnparserCodeGenerator {
             String propName = "obj.get" + StringUtil.firstToUpper(sre.getName()+"()");
             if(sre.ebnfOne()) {
                 if(sre.ebnfOptional()) {
-                    w.append(indent+"    if(" + indexName +" < " +propName+ ".size() ) {").append('\n');
-                    w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
+                    w.append(indent+"    if(" + indexName+ ".get()" +" < " +propName+ ".size() ) {").append('\n');
+                    w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())" + ", internalW );").append('\n');
                     w.append(indent+"      internalW.print(\" \"); // insert whitespace").append('\n');
                     w.append(indent+"    }").append('\n');
                 } else {
 
                     String breakOrReturn = " /*non optional case*/ return false;";
 
-                    w.append(indent+"    if(" + indexName +" > " +propName+ ".size() -1 || " + propName + ".isEmpty()) { " +breakOrReturn + " }").append('\n');
-                    w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
+                    w.append(indent+"    if(" + indexName + ".get()" +" > " +propName+ ".size() -1 || " + propName + ".isEmpty()) { " +breakOrReturn + " }").append('\n');
+                    w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())" + ", internalW );").append('\n');
                     w.append(indent+"      // internalW.print(\" \"); // insert whitespace").append('\n');
                 }
             } else if (sre.ebnfOneMany() || sre.ebnfZeroMany()) {
 
                 if(sre.ebnfOptional()||sre.ebnfZeroMany()) {
-                    w.append(indent+"    while(" + indexName +" < " +propName+ ".size() ) {").append('\n');
-                    w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
+                    w.append(indent+"    while(" + indexName+ ".get()" +" < " +propName+ ".size() ) {").append('\n');
+                    w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())" + ", internalW );").append('\n');
                     w.append(indent+"      // internalW.print(\" \"); // insert whitespace").append('\n');
                     w.append(indent+"    }").append('\n');
                 } else {
                     w.append(indent+"    boolean matched"+StringUtil.firstToUpper(sre.getName()) +" = false;").append('\n');
-                    w.append(indent+"    while(" + indexName +" < " +propName+ ".size() || " + propName + ".isEmpty()) {").append('\n');
-                    w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +"++)" + ", internalW );").append('\n');
+                    w.append(indent+"    while(" + indexName+ ".get()" +" < " +propName+ ".size() || " + propName + ".isEmpty()) {").append('\n');
+                    w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())" + ", internalW );").append('\n');
                     w.append(indent+"      // internalW.print(\" \"); // insert whitespace").append('\n');
                     w.append(indent+"      matched"+StringUtil.firstToUpper(sre.getName()) +" = true;").append('\n');
                     w.append(indent+"    }").append('\n');
