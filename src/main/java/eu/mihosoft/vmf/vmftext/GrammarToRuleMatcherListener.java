@@ -276,4 +276,27 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         super.exitParserRuleSpec(ctx);
     }
 
+    @Override
+    public void enterLexerRuleSpec(ANTLRv4Parser.LexerRuleSpecContext ctx) {
+
+        if(debug)
+        System.out.println("> entering lexer rule:   '" + ctx.TOKEN_REF().getText() + "'");
+
+        UPLexerRule lr = UPLexerRule.newBuilder().
+                withName(ctx.TOKEN_REF().getText()).
+                withText(stream.getText(ctx.lexerRuleBlock())).build();
+
+        model.getLexerRules().add(lr);
+
+        super.enterLexerRuleSpec(ctx);
+    }
+
+    @Override
+    public void exitLexerRuleSpec(ANTLRv4Parser.LexerRuleSpecContext ctx) {
+
+        if(debug)
+            System.out.println("< exiting lexer rule:   '" + ctx.TOKEN_REF().getText() + "'");
+
+        super.exitLexerRuleSpec(ctx);
+    }
 }

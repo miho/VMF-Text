@@ -11,6 +11,14 @@ interface UnparserModel {
 
     @Contains(opposite = "parent")
     UPRule[] getRules();
+
+    @Contains(opposite = "parent")
+    UPLexerRule[] getLexerRules();
+}
+
+interface UPLexerRule extends WithName, WithText {
+    @Container(opposite = "lexerRules")
+    UnparserModel getParent();
 }
 
 @InterfaceOnly

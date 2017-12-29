@@ -352,6 +352,9 @@ public class UnparserCodeGenerator {
 
                 w.append("  public void " + "unparse(" + ruleName + " obj, PrintWriter w ) {").append('\n');
                 w.append('\n');
+                w.append("    // ignore null objects").append('\n');
+                w.append("    if(obj==null) return;").append('\n');
+                w.append('\n');
                 w.append("    pushState();").append('\n');
                 w.append('\n');
                 w.append("    // begin reset list property indices/iterators").append('\n');
@@ -375,11 +378,13 @@ public class UnparserCodeGenerator {
                     w.append("    if( unparse" + altName + "( obj, w ) ) { popState(); return; }").append('\n').append('\n');
 
                 }
-                w.append("    popState();").append('\n').append('\n');
+                w.append("    // TODO: 29.12.2017 introduce unparser error handler etc.").append('\n');
+                w.append("    throw new RuntimeException(\"Cannot unparse rule '" + ruleName + "'. Language model is invalid!\");").append('\n');
+                w.append("    // popState();").append('\n').append('\n');
                 w.append("  }").append('\n');
 
                 for (AlternativeBase a : r.getAlternatives()) {
-                    generateAltCode(w, gModel, r, gRule, ruleName, ruleName, a);
+                    generateAltCode(w, model, gModel, r, gRule, ruleName, ruleName, a);
                 }
 
                 w.append("}").append('\n').append('\n');
@@ -458,7 +463,7 @@ public class UnparserCodeGenerator {
         w.append("    // end   handling sub-rule with zeroToMany or oneToMany").append('\n').append('\n');
     }
 
-    private static void generateAltCode(Writer w, GrammarModel gModel, UPRule r, RuleClass gRule, String ruleName, String objName, AlternativeBase a) throws IOException {
+    private static void generateAltCode(Writer w, UnparserModel model, GrammarModel gModel, UPRule r, RuleClass gRule, String ruleName, String objName, AlternativeBase a) throws IOException {
         String altName = ruleName + "Alt" + a.getId();
         w.append('\n');
         w.append("  private boolean unparse"+ altName + "( " + objName + " obj, PrintWriter w ) {").append('\n');
@@ -496,7 +501,7 @@ public class UnparserCodeGenerator {
 
         w.append("    // end   preparing local list indices/iterators").append('\n');
 
-        generateElements(w, gRule, a, altName);
+        generateElements(model, w, gRule, a, altName);
 
         w.append('\n');
         w.append("    internalW.close();");
@@ -538,7 +543,7 @@ public class UnparserCodeGenerator {
 
             for(AlternativeBase sa : sr.getAlternatives()) {
                 try {
-                    generateAltCode(w, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa);
+                    generateAltCode(w, model, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -629,7 +634,7 @@ public class UnparserCodeGenerator {
         tEngine.mergeTemplate("model-unparser-match-alt",w);
     }
 
-    private static void generateElements(Writer w, RuleClass gRule, AlternativeBase a, String altName) throws IOException {
+    private static void generateElements(UnparserModel model, Writer w, RuleClass gRule, AlternativeBase a, String altName) throws IOException {
         String indent = "";
 
         for(UPElement e : a.getElements()) {
@@ -642,20 +647,71 @@ public class UnparserCodeGenerator {
                 UPNamedElement sre = (UPNamedElement) e;
                 generateNamedElementCode(w, indent, sre);
             } else {
-                generateUnnamedElementCode(w, indent, e);
+                generateUnnamedElementCode(model, w, indent, e);
             }
         }
     }
 
-    private static void generateUnnamedElementCode(Writer w, String indent, UPElement e) throws IOException {
+    private static void generateUnnamedElementCode(UnparserModel model, Writer w, String indent, UPElement e) throws IOException {
 
         // ignore EOF element
-        if("EOF".equals(e.getText().trim())){
+        if("EOF".equals(e.getText().trim())) {
             return;
         }
 
         // remove ebnf multiplicity, optional and greedy characters
         String eText = e.getText();
+        eText = removeEBNFModifierFromElementText(eText);
+
+        if(eText.startsWith("'")) {
+            // terminal element
+            // remove '
+            eText = eText.substring(1,eText.length()-1);
+            w.append(indent+"    // handling unnamed terminal element  '"+eText+"'").append('\n');
+            w.append(indent+"    internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" + \" \" );").append('\n');
+            return;
+        } else if(Character.isUpperCase(eText.charAt(0))){
+            // we are a lexer rule ref
+            final String lexerRuleName = eText;
+
+            Optional<UPLexerRule> lexerRuleOptional =
+                    model.getLexerRules().stream().
+                            filter(lr->Objects.equals(lr.getName(),lexerRuleName)).findFirst();
+
+
+            boolean lexerRuleToTerminalPossible = lexerRuleOptional.isPresent();
+
+            if(lexerRuleToTerminalPossible) {
+                UPLexerRule lexerRule = lexerRuleOptional.get();
+
+                String lexerRuleString = removeEBNFModifierFromElementText(lexerRule.getText());
+
+                if(lexerRuleString.startsWith("'")) {
+                    // terminal element
+                    // remove '
+                    lexerRuleString = lexerRuleString.substring(1, lexerRuleString.length() - 1);
+
+                    w.append(indent + "    // handling lexer rule  '" + eText + "'").append('\n');
+                    w.append(indent + "    // we could successfully find terminal text of the rule").append('\n');
+                    w.append(indent + "    internalW.print( \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\" + \" \" );").append('\n');
+                    return;
+                }  else {
+                    w.append(indent+"    // handling lexer rule  '"+eText+"'").append('\n');
+                    w.append(indent+"    // FIXME: cannot process rule since it is not terminal only (that's why we ignore it)").append('\n');
+                    w.append(indent+"    // RULE-TEXT: " + lexerRuleString).append('\n');
+                    w.append(indent+"    // internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" + \" \" );").append('\n');
+                    return;
+                }
+            }
+        }
+
+        w.append(indent+"    // handling unrecognized element  '"+eText+"'").append('\n');
+        w.append(indent+"    // FIXME: cannot recognize element (that's why we ignore it)").append('\n');
+        w.append(indent+"    // internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" + \" \" );").append('\n');
+
+    }
+
+    private static String removeEBNFModifierFromElementText(String eText) {
         if(eText.endsWith("?")) {
             eText = eText.substring(0,eText.length()-1);
         }
@@ -669,16 +725,7 @@ public class UnparserCodeGenerator {
             // remove ( )
             eText = eText.substring(1,eText.length()-1);
         }
-
-        if(eText.startsWith("'")) {
-            // remove '
-            eText = eText.substring(1,eText.length()-1);
-        }
-
-
-
-        w.append(indent+"    // handling unnamed element  '"+eText+"'").append('\n');
-        w.append(indent+"    internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" + \" \" );").append('\n');
+        return eText;
     }
 
     private static void generateNamedElementCode(Writer w, String indent, UPNamedElement sre) throws IOException {

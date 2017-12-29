@@ -31,6 +31,8 @@
     CommonTokenStream tokens = new CommonTokenStream(lexer);
     ${grammarName}ModelUnparserGrammarParser parser = new ${grammarName}ModelUnparserGrammarParser(tokens);
 
+    parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+
     ParserRuleContext tree = parser.$Util.firstToLower(${altName})();
     ParseTreeWalker walker = new ParseTreeWalker();
 
