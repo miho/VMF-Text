@@ -15,7 +15,8 @@ import java.util.stream.Collectors;
 
 public class UnparserCodeGenerator {
 
-    public static void generateUnparser(GrammarModel gModel, ReadOnlyUnparserModel roModel, String unparserGrammarPath, ResourceSet resourceSet) {
+    public static void generateUnparser(GrammarModel gModel, ReadOnlyUnparserModel roModel,
+                                        String unparserGrammarPath, ResourceSet resourceSet) {
 
         // ensure we work on our own modifiable copy of the model
         UnparserModel model = roModel.asModifiable();
@@ -44,14 +45,14 @@ public class UnparserCodeGenerator {
 
             generateUPGrammarCode(gModel, model, rules, w);
 
-
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
 
-    private static void generateUPGrammarCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, Writer w) throws IOException {
+    private static void generateUPGrammarCode(GrammarModel gModel, UnparserModel model,
+                                              List<UPRule> rules, Writer w) throws IOException {
         w.append("grammar ").append(gModel.getGrammarName()+"ModelUnparserGrammar;").append('\n');
         w.append("import ").append(gModel.getGrammarName()).append(";\n");
         w.append('\n');
@@ -62,7 +63,8 @@ public class UnparserCodeGenerator {
         }
     }
 
-    private static void generateAltGrammarCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, UPRuleBase rule, String parentName, Writer w) throws IOException {
+    private static void generateAltGrammarCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules,
+                                               UPRuleBase rule, String parentName, Writer w) throws IOException {
         for(AlternativeBase a : rule.getAlternatives()) {
             String aName = parentName + "Alt"+a.getId();
 
@@ -76,7 +78,8 @@ public class UnparserCodeGenerator {
         }
     }
 
-    private static void generateElementGrammarCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, AlternativeBase alt, String parentName, Writer w) throws IOException {
+    private static void generateElementGrammarCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules,
+                                                   AlternativeBase alt, String parentName, Writer w) throws IOException {
         for(UPElement e : alt.getElements()) {
             if(e instanceof SubRule) {
                 SubRule sr = (SubRule) e;
@@ -114,7 +117,8 @@ public class UnparserCodeGenerator {
         return rules;
     }
 
-    private static void generateUPParentUnparserCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, Writer w) throws IOException {
+    private static void generateUPParentUnparserCode(GrammarModel gModel, UnparserModel model,
+                                                     List<UPRule> rules, Writer w) throws IOException {
 
         w.append("package " + gModel.getPackageName()+".unparser;").append('\n').append('\n');
 
@@ -123,6 +127,7 @@ public class UnparserCodeGenerator {
         w.append("import java.io.ByteArrayOutputStream;").append('\n');
         w.append("import java.io.Writer;").append('\n');
         w.append("import java.io.PrintWriter;").append('\n').append('\n');
+        w.append("import java.util.function.BiFunction;").append('\n');
 
         w.append("// Model API imports").append('\n');
         w.append("import "+gModel.getPackageName()+"." + gModel.getGrammarName() + "Model;").append('\n').append('\n');
@@ -153,6 +158,10 @@ public class UnparserCodeGenerator {
             w.append("  private final " + ruleName + "Unparser " + StringUtil.firstToLower(ruleName) + "Unparser;").append('\n');
         }
 
+        w.append('\n');
+        w.append("  private Formatter formatter = Formatter.newDefaultFormatter();").append('\n');
+        w.append("  public Formatter getFormatter() {return formatter;};").append('\n');
+        w.append("  public void setFormatter(Formatter formatter) { if(formatter==null) {formatter = Formatter.newDefaultFormatter();} this.formatter = formatter; };").append('\n');
         w.append('\n');
 
         w.append("  public "+gModel.getGrammarName()+"ModelUnparser() {").append('\n');
@@ -197,7 +206,10 @@ public class UnparserCodeGenerator {
 
         w.append("  public void unparse(Object o, Writer w) throws java.io.IOException {").append('\n');
         w.append("    if(!(o instanceof eu.mihosoft.vmf.runtime.core.VObject) && o!=null) {").append('\n');
-        w.append("      w.append(o.toString() + \" \"); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("      PrintWriter pw = new PrintWriter(w);").append('\n');
+        w.append("      this.getFormatter().pre( this, o, o.toString(), pw);").append('\n');
+        w.append("      w.append(o.toString()/* + \" \"*/); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("      this.getFormatter().post(this, o, o.toString(), pw);").append('\n');
         w.append("    } else ");
 
         for (UPRule r : rules) {
@@ -213,7 +225,9 @@ public class UnparserCodeGenerator {
         w.append("  }").append('\n');
         w.append("  public void unparse(Object o, PrintWriter w) {").append('\n');
         w.append("    if(!(o instanceof eu.mihosoft.vmf.runtime.core.VObject) && o!=null) {").append('\n');
-        w.append("      w.print(o.toString() + \" \"); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("      this.getFormatter().pre( this, o, o.toString(), w);").append('\n');
+        w.append("      w.print(o.toString() /*+ \" \"*/); // TODO introduce type mapping from rule type to string").append('\n');
+        w.append("      this.getFormatter().post(this, o, o.toString(), w);").append('\n');
         w.append("    } else ");
 
         for (UPRule r : rules) {
@@ -667,8 +681,11 @@ public class UnparserCodeGenerator {
             // terminal element
             // remove '
             eText = eText.substring(1,eText.length()-1);
-            w.append(indent+"    // handling unnamed terminal element  '"+eText+"'").append('\n');
-            w.append(indent+"    internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" + \" \" );").append('\n');
+            w.append(indent + "    // handling unnamed terminal element  '"+eText+"'").append('\n');
+            String ruleString = StringUtil.escapeJavaStyleString(eText,true);
+            w.append(indent + "    getUnparser().getFormatter().pre( unparser, \"" + ruleString + "\", \"" + ruleString + "\", " + "internalW);").append('\n');
+            w.append(indent + "    internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\");").append('\n');
+            w.append(indent + "    getUnparser().getFormatter().post(unparser, \"" + ruleString + "\", \"" + ruleString + "\", " + "internalW);").append('\n');
             return;
         } else if(Character.isUpperCase(eText.charAt(0))){
             // we are a lexer rule ref
@@ -691,15 +708,21 @@ public class UnparserCodeGenerator {
                     // remove '
                     lexerRuleString = lexerRuleString.substring(1, lexerRuleString.length() - 1);
 
-                    w.append(indent + "    // handling lexer rule  '" + eText + "'").append('\n');
+                    w.append(indent + "    // handling unnamed lexer rule ref '" + eText + "'").append('\n');
                     w.append(indent + "    // we could successfully find terminal text of the rule").append('\n');
-                    w.append(indent + "    internalW.print( \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\" + \" \" );").append('\n');
+                    String ruleString = StringUtil.escapeJavaStyleString(eText,true);
+                    w.append(indent + "    getUnparser().getFormatter().pre( unparser, \"" + ruleString + "\", \"" + ruleString + "\", " + "internalW);").append('\n');
+                    w.append(indent + "    internalW.print( \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\" /*+ \" \" */);").append('\n');
+                    w.append(indent + "    getUnparser().getFormatter().post(unparser, \"" + ruleString + "\", \"" + ruleString + "\", " + "internalW);").append('\n');
                     return;
                 }  else {
-                    w.append(indent+"    // handling lexer rule  '"+eText+"'").append('\n');
+                    w.append(indent+"    // handling unnamed lexer rule ref '"+eText+"'").append('\n');
                     w.append(indent+"    // FIXME: cannot process rule since it is not terminal only (that's why we ignore it)").append('\n');
                     w.append(indent+"    // RULE-TEXT: " + lexerRuleString).append('\n');
-                    w.append(indent+"    // internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" + \" \" );").append('\n');
+                    w.append(indent+"    // TODO SOLUTION: specify a property name, e.g., 'myProperty = " +eText+ "'").append('\n');
+                    w.append(indent+"    // getUnparser().getFormatter().pre( unparser, obj, \""+StringUtil.escapeJavaStyleString(eText,true)+"\", internalW);").append('\n');
+                    w.append(indent+"    // internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" );").append('\n');
+                    w.append(indent+"    // getUnparser().getFormatter().post(unparser, obj, \""+StringUtil.escapeJavaStyleString(eText,true)+"\", internalW);").append('\n');
                     return;
                 }
             }
@@ -707,7 +730,9 @@ public class UnparserCodeGenerator {
 
         w.append(indent+"    // handling unrecognized element  '"+eText+"'").append('\n');
         w.append(indent+"    // FIXME: cannot recognize element (that's why we ignore it)").append('\n');
-        w.append(indent+"    // internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" + \" \" );").append('\n');
+        w.append(indent+"    // getUnparser().getFormatter().pre( unparser, obj, \""+StringUtil.escapeJavaStyleString(eText,true)+"\", internalW);").append('\n');
+        w.append(indent+"    // internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" );").append('\n');
+        w.append(indent+"    // getUnparser().getFormatter().post(unparser, obj, \""+StringUtil.escapeJavaStyleString(eText,true)+"\", internalW);").append('\n');
 
     }
 
@@ -736,8 +761,10 @@ public class UnparserCodeGenerator {
             if(sre.ebnfOne()) {
                 if(sre.ebnfOptional()) {
                     w.append(indent+"    if(" + indexName+ ".get()" +" < " +propName+ ".size() ) {").append('\n');
-                    w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())" + ", internalW );").append('\n');
-                    w.append(indent+"      internalW.print(\" \"); // insert whitespace").append('\n');
+                    w.append(indent+"      Object listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())").append('\n');
+                    w.append(indent+"      // getUnparser().getFormatter().pre( unparser, listElemObj, listElemeText, internalW);").append('\n');
+                    w.append(indent+"      getUnparser().unparse( listElemObj" + ", internalW );").append('\n');
+                    w.append(indent+"      // getUnparser().getFormatter().post(unparser, listElemObj, listElemeText, internalW);").append('\n');
                     w.append(indent+"    }").append('\n');
                 } else {
 
@@ -768,7 +795,9 @@ public class UnparserCodeGenerator {
             }
 
         } else {
-            w.append(indent+"    getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "()" + ", internalW );").append('\n');
+            w.append(indent+"    // getUnparser().getFormatter().pre( unparser, obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), \"\", internalW);").append('\n');
+            w.append(indent+"    getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), internalW );").append('\n');
+            w.append(indent+"    // getUnparser().getFormatter().post(unparser, obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), \"\", internalW);").append('\n');
             w.append(indent+"    // internalW.print(\" \"); // insert whitespace").append('\n');
         }
     }

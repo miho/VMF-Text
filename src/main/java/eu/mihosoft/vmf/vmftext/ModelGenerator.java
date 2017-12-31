@@ -152,5 +152,28 @@ public class ModelGenerator {
                 }
         );
 
+        try (Resource resource =
+                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
+                             model.getPackageName()+".unparser.Formatter"));
+
+             Writer w = resource.open()) {
+
+            generateUnparserFormatter(w, engine,model.getPackageName(), model);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
+    private static void generateUnparserFormatter(
+            Writer out, VelocityEngine engine, String modelPackageName, GrammarModel model) throws IOException {
+        VelocityContext context = new VelocityContext();
+        context.put("model", model);
+        context.put("TEMPLATE_PATH",TEMPLATE_PATH);
+        context.put("modelPackageName", modelPackageName);
+        context.put("Util", StringUtil.class);
+
+        mergeTemplate("unparser-formatter", engine, context, out);
     }
 }
