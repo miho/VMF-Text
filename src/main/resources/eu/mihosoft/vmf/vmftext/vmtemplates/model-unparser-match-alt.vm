@@ -20,7 +20,7 @@
  * Computing and Visualization in Science, 2013, 16(4),
  * 181–192. http://doi.org/10.1007/s00791-014-0230-y
  *#
-  private boolean match${altName}(String s) {
+  public static boolean match${altName}(String s) {
 
     // System.out.println("MATCH-STR-${altName}: " + s);
 

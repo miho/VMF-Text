@@ -180,6 +180,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 if(debug)
                 System.out.println(">>> LE:           " +elementText);
 
+
                     currentAlt.getElements().add(UPNamedElement.newBuilder().
                             withName(propertyName).
                             withText(stream.getText(ctx.getSourceInterval())).

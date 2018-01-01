@@ -81,7 +81,8 @@ interface UPElement extends WithText {
 }
 
 interface UPNamedElement extends UPElement, WithName {
-
+  boolean isLexerRule();
+  boolean isTerminal();
 }
 
 interface UPSubRuleElement extends UPElement, SubRule {

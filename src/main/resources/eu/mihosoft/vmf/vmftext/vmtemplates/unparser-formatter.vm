@@ -25,22 +25,73 @@ package ${modelPackageName}.unparser;
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Optional;
 
 import ${modelPackageName}.CodeElement;
 
 public interface Formatter {
 
-  default void pre( ${model.grammarName}ModelUnparser unparser, CodeElement ruleObj, String ruleText, PrintWriter w ){};
-  default void post(${model.grammarName}ModelUnparser unparser, CodeElement ruleObj, String ruleText, PrintWriter w ){};
+  default void pushState() {};
+  default void acceptState()  {};
+  default void rejectState()  {};
 
-  default void pre( ${model.grammarName}ModelUnparser unparser, Object ruleObj, String ruleText, PrintWriter w ){};
-  default void post(${model.grammarName}ModelUnparser unparser, Object ruleObj, String ruleText, PrintWriter w ){};
+  default void pre( ${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){};
+  default void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){};
 
   static Formatter newDefaultFormatter() { return new DefaultFormatter();}
+  static Formatter newJavaStyleFormatter() { return new JavaStyleFormatter();}
+
+  static enum RuleType {
+    LEXER_RULE,
+    TERMINAL
+  }
+
+  static class RuleInfo {
+
+    private final CodeElement parentObject;
+    private final RuleType ruleType;
+    private final String ruleName;
+    private final String ruleText;
+
+    private RuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText) {
+      this.parentObject = parentObject;
+      this.ruleType = ruleType;
+      this.ruleName = ruleName;
+      this.ruleText = ruleText;
+    }
+
+    /*package private*/ static RuleInfo newRuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText) {
+      return new RuleInfo(parentObject, ruleType, ruleName, ruleText);
+    }
+
+    public CodeElement getParentObject() {
+      return this.parentObject;
+    }
+
+    public RuleType getRuleType() {
+      return this.ruleType;
+    }
+
+    public Optional<String> getRuleName() {
+      return Optional.ofNullable(this.ruleName);
+    }
+
+    public String getRuleText() {
+      return this.ruleText;
+    }
+
+  }
 
 }
 
 class DefaultFormatter implements Formatter {
+  public void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
+    w.append(" ");
+  }
+}
+
+
+class JavaStyleFormatter implements Formatter {
 
   private String last = "";
   private String indent = "";
@@ -59,25 +110,25 @@ class DefaultFormatter implements Formatter {
     }
   }
 
-  public void pre( ${model.grammarName}ModelUnparser unparser, CodeElement ruleObj, String ruleText, PrintWriter w ) {
+  public void pre( ${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
 
 
 
-    if(Objects.equals(ruleText, "}")) {
+    if(Objects.equals(ruleInfo.getRuleText(), "}")) {
       dec();
       w.append('\n').append(getIndent());
     }
   }
-  public void post(${model.grammarName}ModelUnparser unparser, CodeElement ruleObj, String ruleText, PrintWriter w ) {
-    if(Objects.equals(ruleText, "{")) {
+  public void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
+    if(Objects.equals(ruleInfo.getRuleText(), "{")) {
       inc();
       w.append('\n').append(getIndent());
-    } else if(Objects.equals(ruleText, ";")) {
+    } else if(Objects.equals(ruleInfo.getRuleText(), ";")) {
       w.append('\n').append(getIndent());
     } else{
       w.append(" ");
     }
 
-    last = ruleText;
+    last = ruleInfo.getRuleText();
   }
 }
