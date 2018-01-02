@@ -23,6 +23,7 @@
 package ${packageName};
 
 // java core imports
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.io.File;
@@ -38,6 +39,8 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.ANTLRErrorListener;
+import org.antlr.v4.runtime.ANTLRErrorStrategy;
 
 // model imports
 import ${modelPackageName}.*;
@@ -45,21 +48,57 @@ import static ${packageName}.${Util.firstToUpper($model.grammarName)}Parser.*;
 
 public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
-    // TODO remove this class if compile time conversions works
-    // private final TypeConversionRegistry typeConversionRegistry
-
     public ${Util.firstToUpper($model.grammarName)}ModelParser() {
-      // typeConversionRegistry = new TypeConversionRegistryImpl();
+      //
+    }
+
+    private final List<ANTLRErrorListener> errorListeners = new ArrayList<>();
+    private ANTLRErrorStrategy errorHandler;
+    private boolean consoleOutputDisabled;
+
+    public void setConsoleOutputDisabled(boolean state) {
+        this.consoleOutputDisabled = state;
+    }
+
+    public boolean isConsoleOutputDisabled() {
+        return this.consoleOutputDisabled;
+    }
+
+    public List<ANTLRErrorListener> getErrorListeners() {
+        return this.errorListeners;
+    }
+
+    public void setErrorHandler(ANTLRErrorStrategy errorHandler) {
+        this.errorHandler = errorHandler;
     }
 
     public ${Util.firstToUpper($model.grammarName)}Model parse(InputStream codeStream) throws IOException{
         CharStream input = CharStreams.fromStream(codeStream);
 
         ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
+
+        for(ANTLRErrorListener l : errorListeners) {
+          lexer.addErrorListener(l);
+        }
+
+        if(isConsoleOutputDisabled()) {
+            lexer.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+        }
+
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
 
-        // ParserRuleContext tree = parser.${model.rootClass().nameWithUpper()}();
+        if(errorHandler!=null) {
+            parser.setErrorHandler(errorHandler);
+        }
+
+        for(ANTLRErrorListener l : errorListeners) {
+            parser.addErrorListener(l);
+        }
+
+        if(isConsoleOutputDisabled()) {
+            parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+        }
 
         return parse(parser.${model.rootClass().name}());
     }
