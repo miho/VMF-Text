@@ -43,8 +43,15 @@ public class VMFText {
         generate(grammar, packageName, new FileResourceSet(outputDir));
     }
 
+    public static void generate(File grammar, String packageName, File outputDir, File modelOutputDir) {
+        generate(grammar, packageName, new FileResourceSet(outputDir),new FileResourceSet(modelOutputDir));
+    }
 
     public static void generate(File grammar, String packageName, ResourceSet outputDir) {
+        generate(grammar, packageName, outputDir,null);
+    }
+
+    public static void generate(File grammar, String packageName, ResourceSet outputDir, ResourceSet modelOutputDir) {
 
         AntlrTool.setOutput(outputDir);
 
@@ -68,7 +75,9 @@ public class VMFText {
 
             // generate model classes for src output
             ModelGenerator generator = new ModelGenerator();
-            generator.generateModel(model, outputDir);
+            if(modelOutputDir!=null) {
+                generator.generateModel(model, modelOutputDir);
+            }
             generator.generateModelConverter(model, outputDir);
 
 

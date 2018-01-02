@@ -26,12 +26,13 @@ public class Main {
      */
     public static void main(String[] args) throws IOException {
 
-        ResourceSet outRes = new FileResourceSet(new File("build/tmp"));
+        ResourceSet outRes = new FileResourceSet(new File("build/tmp/src-gen"));
+        ResourceSet outResModel = new FileResourceSet(new File("build/tmp/src-modeldef"));
 
         VMFText.generate(
                 new File("src/main/resources/eu/mihosoft/vmf/vmftext/antlr/RuleMatcher.g4"),
                 "me.p12345678",
-                outRes);
+                outRes,outResModel);
 
 //        emitGrammarBindingCode(model);
     }
