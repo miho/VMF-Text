@@ -163,6 +163,17 @@ public class ModelGenerator {
             e.printStackTrace();
         }
 
+        try (Resource resource =
+                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
+                             model.getPackageName()+".unparser.BaseFormatter"));
+
+             Writer w = resource.open()) {
+
+            generateUnparserBaseFormatter(w, engine,model.getPackageName(), model);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
 
@@ -175,5 +186,16 @@ public class ModelGenerator {
         context.put("Util", StringUtil.class);
 
         mergeTemplate("unparser-formatter", engine, context, out);
+    }
+
+    private static void generateUnparserBaseFormatter(
+            Writer out, VelocityEngine engine, String modelPackageName, GrammarModel model) throws IOException {
+        VelocityContext context = new VelocityContext();
+        context.put("model", model);
+        context.put("TEMPLATE_PATH",TEMPLATE_PATH);
+        context.put("modelPackageName", modelPackageName);
+        context.put("Util", StringUtil.class);
+
+        mergeTemplate("unparser-base-formatter", engine, context, out);
     }
 }

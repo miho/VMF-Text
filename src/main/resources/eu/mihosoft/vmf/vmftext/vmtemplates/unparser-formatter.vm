@@ -27,26 +27,31 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 
+import eu.mihosoft.vmf.runtime.core.VMF;
+
+import ${modelPackageName}.ReadOnlyCodeElement;
 import ${modelPackageName}.CodeElement;
+import ${modelPackageName}.CodeRange;
 
 public interface Formatter {
 
-  default void pushState() {};
-  default void acceptState()  {};
-  default void rejectState()  {};
+  default void pushState()   {}
+  default void acceptState() {}
+  default void rejectState() {}
 
-  default void pre( ${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){};
-  default void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){};
+  default void pre( ${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
+  default void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
 
   static Formatter newDefaultFormatter() { return new DefaultFormatter();}
   static Formatter newJavaStyleFormatter() { return new JavaStyleFormatter();}
 
   static enum RuleType {
     LEXER_RULE,
-    TERMINAL
+    TERMINAL,
+    NONE
   }
 
-  static class RuleInfo {
+  static final class RuleInfo {
 
     private final CodeElement parentObject;
     private final RuleType ruleType;
@@ -58,6 +63,36 @@ public interface Formatter {
       this.ruleType = ruleType;
       this.ruleName = ruleName;
       this.ruleText = ruleText;
+    }
+
+    public static RuleInfo emptyRule() {
+      return new RuleInfo(
+        new CodeElement() {
+            @Override
+            public CodeRange getCodeRange() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public void setCodeRange(CodeRange codeRange) {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public ReadOnlyCodeElement asReadOnly() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public VMF vmf() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public CodeElement clone() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+        }, RuleType.NONE, "","");
     }
 
     /*package private*/ static RuleInfo newRuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText) {
@@ -79,7 +114,6 @@ public interface Formatter {
     public String getRuleText() {
       return this.ruleText;
     }
-
   }
 
 }
