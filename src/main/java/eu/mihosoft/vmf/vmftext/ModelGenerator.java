@@ -6,9 +6,7 @@ import eu.mihosoft.vmf.core.io.FileResourceSet;
 import eu.mihosoft.vmf.core.io.MemoryResourceSet;
 import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
-import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
-import eu.mihosoft.vmf.vmftext.grammar.UPRule;
-import eu.mihosoft.vmf.vmftext.grammar.UnparserModel;
+import eu.mihosoft.vmf.vmftext.grammar.*;
 import eu.mihosoft.vmf.vmftext.grammar.unparser.UnparserCodeGenerator;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
@@ -174,6 +172,17 @@ public class ModelGenerator {
             e.printStackTrace();
         }
 
+        try (Resource resource =
+                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
+                             model.getPackageName()+".unparser.TypeToStringConverter"));
+
+             Writer w = resource.open()) {
+
+            generateTypeToStringConverter(w, engine,model.getPackageName(), model);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
 
@@ -197,5 +206,16 @@ public class ModelGenerator {
         context.put("Util", StringUtil.class);
 
         mergeTemplate("unparser-base-formatter", engine, context, out);
+    }
+
+    private static void generateTypeToStringConverter(
+            Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
+        VelocityContext context = new VelocityContext();
+        context.put("model", model);
+        context.put("TEMPLATE_PATH",TEMPLATE_PATH);
+        context.put("packageName", packageName);
+        context.put("Util", StringUtil.class);
+
+        mergeTemplate("type-to-string-converter", engine, context, out);
     }
 }

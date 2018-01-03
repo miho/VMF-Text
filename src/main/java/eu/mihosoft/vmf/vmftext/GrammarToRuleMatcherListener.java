@@ -167,7 +167,14 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                         withText(elementText).
                         withName(propertyName).
                         withListType(listType).
+                        withParserRule(ParseTreeUtil.isParserRule(ctx)).
+                        withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
+                        withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
                         build();
+
+                if(subRule.isParserRule()||subRule.isLexerRule()) {
+                    subRule.setRuleName(StringUtil.firstToUpper(ParseTreeUtil.getElementText(ctx)));
+                }
 
                 currentAlt.getElements().add(subRule);
 
@@ -180,12 +187,20 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 if(debug)
                 System.out.println(">>> LE:           " +elementText);
 
+                UPNamedElement namedElement = UPNamedElement.newBuilder().
+                        withName(propertyName).
+                        withText(stream.getText(ctx.getSourceInterval())).
+                        withListType(listType).
+                        withParserRule(ParseTreeUtil.isParserRule(ctx)).
+                        withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
+                        withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
+                        build();
 
-                    currentAlt.getElements().add(UPNamedElement.newBuilder().
-                            withName(propertyName).
-                            withText(stream.getText(ctx.getSourceInterval())).
-                            withListType(listType).
-                            build());
+                if(namedElement.isParserRule()||namedElement.isLexerRule()) {
+                    namedElement.setRuleName(StringUtil.firstToUpper(ParseTreeUtil.getElementText(ctx)));
+                }
+
+                currentAlt.getElements().add(namedElement);
 
             }
 
@@ -198,7 +213,14 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
                 UPSubRuleElement subRule = UPSubRuleElement.newBuilder().
                         withText(elementText).
+                        withParserRule(ParseTreeUtil.isParserRule(ctx)).
+                        withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
+                        withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
                         build();
+
+                if(subRule.isParserRule()||subRule.isLexerRule()) {
+                    subRule.setRuleName(StringUtil.firstToUpper(ParseTreeUtil.getElementText(ctx)));
+                }
 
                 currentAlt.getElements().add(subRule);
 
@@ -218,7 +240,14 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                     System.out.println(">>>  E-BLOCK(*):  " + stream.getText(ctx.getSourceInterval()));
                     UPSubRuleElement subRule = UPSubRuleElement.newBuilder().
                             withText(elementText).
+                            withParserRule(ParseTreeUtil.isParserRule(ctx)).
+                            withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
+                            withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
                             build();
+
+                    if(subRule.isParserRule()||subRule.isLexerRule()) {
+                        subRule.setRuleName(StringUtil.firstToUpper(ParseTreeUtil.getElementText(ctx)));
+                    }
 
                     currentAlt.getElements().add(subRule);
 
@@ -230,9 +259,18 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                     if(debug)
                     System.out.println(">>>  E:           " + stream.getText(ctx.getSourceInterval()));
 
-                        currentElement = UPElement.newBuilder().
-                                withText(stream.getText(ctx.getSourceInterval())).build();
-                        currentAlt.getElements().add(currentElement);
+                    currentElement = UPElement.newBuilder().
+                                withText(stream.getText(ctx.getSourceInterval())).
+                                withParserRule(ParseTreeUtil.isParserRule(ctx)).
+                                withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
+                                withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
+                                build();
+
+                    if(currentElement.isParserRule()||currentElement.isLexerRule()) {
+                        currentElement.setRuleName(StringUtil.firstToUpper(ParseTreeUtil.getElementText(ctx)));
+                    }
+
+                    currentAlt.getElements().add(currentElement);
                 }
 
             }

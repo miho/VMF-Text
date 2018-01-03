@@ -1,9 +1,12 @@
 package eu.mihosoft.vmf.vmftext.grammar;
 
+import eu.mihosoft.vcollections.VList;
 import eu.mihosoft.vmf.runtime.core.DelegatedBehavior;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class TypeMappingsLookup implements DelegatedBehavior<TypeMappings>{
     private TypeMappings caller;
@@ -28,6 +31,17 @@ public class TypeMappingsLookup implements DelegatedBehavior<TypeMappings>{
     }
 
     /**
+     * Returns all mappings that are applied to the specified rule
+     * @param containerRuleName the name of the rule
+     * @return all mappings that are applied to the specified rule
+     */
+    public VList<Mapping> mappingsByRuleName(String containerRuleName) {
+        return VList.newInstance(caller.getTypeMappings().stream().filter(tm->tm.getApplyToNames().isEmpty()
+                || tm.getApplyToNames().contains(containerRuleName)).
+                flatMap(tm->tm.getEntries().stream()).distinct().collect(Collectors.toList()));
+    }
+
+    /**
      * Returns the target type name of the specified mapping.
      *
      * @param containerRuleName the name of the rule that contains the parameter which shall be converted
@@ -45,8 +59,19 @@ public class TypeMappingsLookup implements DelegatedBehavior<TypeMappings>{
      * @param paramRuleName name of the lexer rule that parses the parameter (conversion is applied to the lexer rule. e.g. ANTLR token instance)
      * @return the conversion code of the specified mapping; returns default conversion code to {@code String} if the specified mapping does not exist
      */
-    public String conversionCodeOfMapping(String containerRuleName, String paramRuleName) {
-        return mappingByRuleName(containerRuleName, paramRuleName).map(tm->tm.getMappingCode()).orElse("entry.getText()");
+    public String conversionCodeOfMappingStringToType(String containerRuleName, String paramRuleName) {
+        return mappingByRuleName(containerRuleName, paramRuleName).map(tm->tm.getStringToTypeCode()).orElse("entry.getText()");
+    }
+
+    /**
+     * Returns the conversion code of the specified mapping.
+     *
+     * @param containerRuleName the name of the rule that contains the parameter which shall be converted
+     * @param paramRuleName name of the lexer rule that parses the parameter (conversion is applied to the lexer rule. e.g. ANTLR token instance)
+     * @return the conversion code of the specified mapping; returns default conversion code to {@code String} if the specified mapping does not exist
+     */
+    public String conversionCodeOfMappingTypeToString(String containerRuleName, String paramRuleName) {
+        return mappingByRuleName(containerRuleName, paramRuleName).map(tm->tm.getTypeToStringCode()).orElse("entry.toString()");
     }
 
 }

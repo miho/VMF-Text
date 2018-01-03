@@ -78,11 +78,16 @@ interface UPElement extends WithText {
     boolean ebnfNonGreedy();
 
     boolean isListType();
+
+    boolean isLexerRule();
+    boolean isTerminal();
+    boolean isParserRule();
+
+    String getRuleName();
 }
 
 interface UPNamedElement extends UPElement, WithName {
-  boolean isLexerRule();
-  boolean isTerminal();
+
 }
 
 interface UPSubRuleElement extends UPElement, SubRule {

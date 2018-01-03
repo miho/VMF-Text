@@ -18,14 +18,14 @@ public class ParseTreeUtil {
 
     public static boolean isParserRule(ANTLRv4Parser.ElementContext e) {
 
-        if(e.labeledElement().atom()==null) return false;
+        if(e.labeledElement() == null || e.labeledElement().atom()==null) return false;
 
         return e.labeledElement().atom().ruleref() != null;
     }
 
     public static boolean isLexerRule(ANTLRv4Parser.ElementContext e) {
 
-        if(e.labeledElement().atom()==null) return false;
+        if(e.labeledElement() == null || e.labeledElement().atom()==null) return false;
 
         return e.labeledElement().atom().terminal() != null &&
                 e.labeledElement().atom().terminal().TOKEN_REF() != null;
@@ -33,7 +33,7 @@ public class ParseTreeUtil {
 
     public static boolean isStringLiteral(ANTLRv4Parser.ElementContext e) {
 
-        if(e.labeledElement().atom()==null) return false;
+        if(e.labeledElement() == null || e.labeledElement().atom()==null) return false;
 
         return e.labeledElement().atom().terminal() != null &&
                 e.labeledElement().atom().terminal().TOKEN_REF() == null;

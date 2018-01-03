@@ -54,11 +54,23 @@ public final class GrammarMetaInformationUtil {
             @Override
             public void enterMapping(TypeMappingParser.MappingContext ctx) {
 
-                Mapping m = Mapping.newBuilder().withRuleName(ctx.ruleName.getText()).
-                        withTypeName(ctx.typeName.getText()).withMappingCode(ctx.embeddedCode.getText().
-                        substring(1, ctx.embeddedCode.getText().length() - 1)).build();
+                if(ctx.stringToTypeCode!=null && ctx.typeToStringCode!=null) {
+                    Mapping m = Mapping.newBuilder().withRuleName(ctx.ruleName.getText()).
+                            withTypeName(ctx.typeName.getText()).
+                            withStringToTypeCode(ctx.stringToTypeCode.getText().
+                                    substring(1, ctx.stringToTypeCode.getText().length() - 1)).
+                            withTypeToStringCode(ctx.typeToStringCode.getText().
+                                    substring(1, ctx.typeToStringCode.getText().length() - 1)).build();
 
-                currentMapping.getEntries().add(m);
+                    currentMapping.getEntries().add(m);
+                } else if(ctx.stringToTypeCode!=null) {
+                    Mapping m = Mapping.newBuilder().withRuleName(ctx.ruleName.getText()).
+                            withTypeName(ctx.typeName.getText()).
+                            withStringToTypeCode(ctx.stringToTypeCode.getText().
+                                    substring(1, ctx.stringToTypeCode.getText().length() - 1)).
+                            withTypeToStringCode("entry.toString()").build();
+                    currentMapping.getEntries().add(m);
+                }
 
                 super.enterMapping(ctx);
             }

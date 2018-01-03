@@ -117,6 +117,38 @@ public class UnparserCodeGenerator {
         return rules;
     }
 
+    private static List<UPRule> computeParentsOfLabeledAlts(UnparserModel model) {
+        // convert labeled alts to rule classes
+        Map<String,List<LabeledAlternative>> labeledAlternatives = model.getRules().stream().
+                flatMap(r->r.getAlternatives().stream()).filter(a->a instanceof LabeledAlternative).
+                map(a->(LabeledAlternative)a).collect(Collectors.groupingBy(LabeledAlternative::getName));
+
+
+        // find parents of labeled alternatives
+        List<UPRule> parentsOfLabeledAlts = labeledAlternatives.values().stream().
+                flatMap(las->las.stream()).map(la->(UPRule)la.getParentRule()).distinct().
+                collect(Collectors.toList());
+
+        return parentsOfLabeledAlts;
+    }
+
+    private static List<UPRule> computeRulesThatHaveSpecifiedParent(UnparserModel model, UPRule rParent) {
+
+        // find children of specified rule
+        List<LabeledAlternative> labeledAlternatives = rParent.getAlternatives().stream().
+                filter(a->a instanceof LabeledAlternative).
+                map(a->(LabeledAlternative)a).collect(Collectors.toList());
+
+
+        // convert labeled alts to rule classes
+        List<UPRule> children = labeledAlternatives.stream().
+                 map(la->labeledAltToRule(la.getName(),
+                         new ArrayList<LabeledAlternative>(Arrays.asList(la)))).
+                collect(Collectors.toList());
+
+        return children;
+    }
+
     private static void generateUPParentUnparserCode(GrammarModel gModel, UnparserModel model,
                                                      List<UPRule> rules, Writer w) throws IOException {
 
@@ -131,10 +163,21 @@ public class UnparserCodeGenerator {
 
         w.append("// Model API imports").append('\n');
         w.append("import "+gModel.getPackageName()+"." + gModel.getGrammarName() + "Model;").append('\n').append('\n');
+        w.append("import " + gModel.getPackageName() + ".CodeElement;").append('\n');
 
         w.append("// rule imports (from model api)").append('\n');
 
         for (UPRule rImport : rules) {
+
+            String ruleImportName = StringUtil.firstToUpper(rImport.getName());
+
+            w.append("import " + gModel.getPackageName() + "." + ruleImportName + ";").append('\n');
+        }
+
+        List<UPRule> parentsOfLabeledAlts = computeParentsOfLabeledAlts(model);
+        w.append('\n');
+        w.append("// alt parents imports (from model api)").append('\n');
+        for (UPRule rImport : parentsOfLabeledAlts) {
 
             String ruleImportName = StringUtil.firstToUpper(rImport.getName());
 
@@ -189,6 +232,58 @@ public class UnparserCodeGenerator {
         w.append("  }").append('\n');
         w.append('\n');
 
+
+
+        for (UPRule r : parentsOfLabeledAlts) {
+            String ruleName = StringUtil.firstToUpper(r.getName());
+            String ruleUnparserInstanceName = StringUtil.firstToLower(r.getName())+"Unparser";
+            w.append('\n');
+            w.append("  public void unparse(" + ruleName + " rule, Writer w) throws java.io.IOException {").append('\n');
+
+            List<UPRule> parents = computeRulesThatHaveSpecifiedParent(model, r);
+
+            boolean first = true;
+            for (UPRule r1 : parents) {
+                String ruleName1 = StringUtil.firstToUpper(r1.getName());
+                if(first) {
+                    first=false;
+                    w.append("    ");
+                } else {
+                    w.append(" else ");
+                }
+                w.append("if ( rule instanceof " + ruleName1 + " ) {").append('\n');
+                w.append("      unparse( ("+ruleName1+")rule, w );").append('\n');
+                w.append("    }");
+            }
+
+            w.append('\n');
+            w.append("    w.flush();").append('\n');
+            w.append("  }").append('\n');
+
+            w.append('\n');
+            w.append('\n');
+            w.append("  public void unparse(" + ruleName + " rule, PrintWriter w) {").append('\n');
+
+            first = true;
+            for (UPRule r1 : parents) {
+                String ruleName1 = StringUtil.firstToUpper(r1.getName());
+                if(first) {
+                    first=false;
+                    w.append("    ");
+                } else {
+                    w.append(" else ");
+                }
+                w.append("if ( rule instanceof " + ruleName1 + " ) {").append('\n');
+                w.append("      unparse( ("+ruleName1+")rule, w );").append('\n');
+                w.append("    }");
+            }
+
+            w.append('\n');
+            w.append("    w.flush();").append('\n');
+            w.append("  }").append('\n');
+            w.append('\n');
+        }
+
         for (UPRule r : rules) {
             String ruleName = StringUtil.firstToUpper(r.getName());
             String ruleUnparserInstanceName = StringUtil.firstToLower(r.getName())+"Unparser";
@@ -204,35 +299,40 @@ public class UnparserCodeGenerator {
             w.append('\n');
         }
 
-        w.append("  public void unparse(Formatter.RuleInfo ruleInfo, Object o, Writer w) throws java.io.IOException {").append('\n');
-        w.append("    if(!(o instanceof eu.mihosoft.vmf.runtime.core.VObject) && o!=null) {").append('\n');
-        w.append("      PrintWriter pw = new PrintWriter(w);").append('\n');
-        w.append("      getFormatter().pre( this, ruleInfo, pw);").append('\n');
-        w.append("      w.append(o.toString()/* + \" \"*/); // TODO introduce type mapping from rule type to string").append('\n');
-        w.append("      getFormatter().post(this, ruleInfo, pw);").append('\n');
-        w.append("    } else ");
 
+        w.append("  public void unparse(CodeElement rule, Writer w) throws java.io.IOException {").append('\n');
+
+        boolean first = true;
         for (UPRule r : rules) {
             String ruleName = StringUtil.firstToUpper(r.getName());
-            w.append("if ( o instanceof " + ruleName + " ) {").append('\n');
-            w.append("      unparse( ("+ruleName+")o, w );").append('\n');
+            if(first) {
+                first=false;
+                w.append("    ");
+            } else {
+                w.append(" else ");
+            }
+            w.append("if ( rule instanceof " + ruleName + " ) {").append('\n');
+            w.append("      unparse( ("+ruleName+")rule, w );").append('\n');
             w.append("    }");
         }
+
 
         w.append('\n');
         w.append("    w.flush();").append('\n');
         w.append("  }").append('\n');
-        w.append("  public void unparse(Formatter.RuleInfo ruleInfo, Object o, PrintWriter w) {").append('\n');
-        w.append("    if(!(o instanceof eu.mihosoft.vmf.runtime.core.VObject) && o!=null) {").append('\n');
-        w.append("      getFormatter().pre( this, ruleInfo, w);").append('\n');
-        w.append("      w.print(o.toString()); // TODO introduce type mapping from rule type to string").append('\n');
-        w.append("      getFormatter().post(this, ruleInfo, w);").append('\n');
-        w.append("    } else ");
+        w.append("  public void unparse(CodeElement rule, PrintWriter w) {").append('\n');
 
+        first = true;
         for (UPRule r : rules) {
             String ruleName = StringUtil.firstToUpper(r.getName());
-            w.append("if ( o instanceof " + ruleName + " ) {").append('\n');
-            w.append("      unparse( ("+ruleName+")o, w );").append('\n');
+            if(first) {
+                first=false;
+                w.append("    ");
+            } else {
+                w.append(" else ");
+            }
+            w.append("if ( rule instanceof " + ruleName + " ) {").append('\n');
+            w.append("      unparse( ("+ruleName+")rule, w );").append('\n');
             w.append("    }");
         }
 
@@ -242,6 +342,7 @@ public class UnparserCodeGenerator {
 
         w.append("  }").append('\n');
         w.append('\n');
+
         w.append('\n');
         w.append(" static class IntValue { private int value; public void set(int v) {this.value = v;} public int get() { return this.value; } int getAndInc() {int result = this.value;this.value++; return result;} }").append('\n');
         w.append('\n');
@@ -250,7 +351,6 @@ public class UnparserCodeGenerator {
     }
 
     private static void generateUPCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules, ResourceSet resourceSet) {
-
 
         for (UPRule r : rules) {
 
@@ -520,7 +620,7 @@ public class UnparserCodeGenerator {
 
         w.append("    // end   preparing local list indices/iterators").append('\n');
 
-        generateElements(model, w, gRule, a, altName);
+        generateElements(model, gModel, w, gRule, r, a, altName);
 
         w.append('\n');
         w.append("    internalW.close();");
@@ -658,7 +758,7 @@ public class UnparserCodeGenerator {
         tEngine.mergeTemplate("model-unparser-match-alt",w);
     }
 
-    private static void generateElements(UnparserModel model, Writer w, RuleClass gRule, AlternativeBase a, String altName) throws IOException {
+    private static void generateElements(UnparserModel model, GrammarModel gModel, Writer w, RuleClass gRule, UPRule rule, AlternativeBase a, String altName) throws IOException {
         String indent = "";
 
         for(UPElement e : a.getElements()) {
@@ -669,7 +769,7 @@ public class UnparserCodeGenerator {
                 generateNamedSubRuleElementCode(w, indent, (UPNamedSubRuleElement) e);
             } else if(e instanceof UPNamedElement) {
                 UPNamedElement sre = (UPNamedElement) e;
-                generateNamedElementCode(w, indent, model, sre);
+                generateNamedElementCode(w, indent, model, sre, rule, gModel);
             } else {
                 generateUnnamedElementCode(model, w, indent, e);
             }
@@ -767,23 +867,9 @@ public class UnparserCodeGenerator {
         return eText;
     }
 
-    private static void generateNamedElementCode(Writer w, String indent, UnparserModel model, UPNamedElement sre) throws IOException {
+    private static void generateNamedElementCode(Writer w, String indent, UnparserModel model, UPNamedElement sre, UPRule rule, GrammarModel gModel) throws IOException {
 
-        String lexerRuleName = removeEBNFModifierFromElementText(sre.getText());
-        // remove name= from text
-        lexerRuleName = lexerRuleName.replaceFirst(sre.getName()+".*=", "");
-
-        final String finalLexerRuleName = lexerRuleName;
-        Optional<UPLexerRule> lexerRuleOptional =
-                model.getLexerRules().stream().
-                        filter(lr->Objects.equals(lr.getName(),finalLexerRuleName)).findFirst();
-
-        sre.setLexerRule(lexerRuleOptional.isPresent());
-
-        // TODO 01.01.2018 find a better solution
-        // this is only valid if unparer.unparse(OBJECT...) is called
-        // otherwise we are a parser rule
-        sre.setTerminal(!lexerRuleOptional.isPresent());
+        String lexerRuleName = sre.getRuleName()!=null?sre.getRuleName():"";
 
         w.append(indent+"    // handling element with name '"+sre.getName()+"'").append('\n');
         String ruleType = "/*FIXME: TYPE IS UNDEFINED!*/";
@@ -791,7 +877,6 @@ public class UnparserCodeGenerator {
             ruleType = "Formatter.RuleType.LEXER_RULE";
         } else if(sre.isTerminal()) {
             ruleType = "Formatter.RuleType.TERMINAL";
-            lexerRuleName = "";
         }
         String ruleInfoString;
 
@@ -801,31 +886,117 @@ public class UnparserCodeGenerator {
             if(sre.ebnfOne()) {
                 if(sre.ebnfOptional()) {
                     w.append(indent+"    if(" + indexName+ ".get()" +" < " +propName+ ".size() ) {").append('\n');
-                    w.append(indent+"      Object listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())").append('\n');
-                    ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj.toString() /*TODO: proper type to string conversion*/" + ")";
-                    w.append(indent+"      getUnparser().unparse( " +ruleInfoString  + ", listElemObj, internalW );").append('\n');
-                    w.append(indent+"    }").append('\n');
+                    if(sre.isParserRule()) {
+                        w.append(indent+"      " + sre.getRuleName() + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())").append('\n');
+                        w.append(indent+"      getUnparser().unparse(listElemObj, internalW );").append('\n');
+                    } else if(sre.isLexerRule()) {
+                        w.append(indent+"      {").append('\n');
+                        w.append(indent+"        " + gModel.getTypeMappings().targetTypeNameOfMapping(rule.getName(), sre.getName()) + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())").append('\n');
+                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString( listElemObj )").append('\n');
+                        w.append(indent+"        if(s!=null) {").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+                        w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"          internalW.print(s);").append('\n');
+                        w.append(indent+"          getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"        }").append('\n');
+                        w.append(indent+"      }").append('\n');
+                    } else {
+                        w.append(indent+"      String listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".getAndInc())").append('\n');
+                        w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj /*TERMINAL String conversion*/" + ")");
+                        w.append(indent+"      getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"      internalW.print(s);").append('\n');
+                        w.append(indent+"      getUnparser().getFormatter().post( unparser, ruleInfo, internalW);").append('\n');
+                    }
+                    w.append(indent + "    }").append('\n');
                 } else {
 
                     String breakOrReturn = " /*non optional case*/ return false;";
 
                     w.append(indent+"    if(" + indexName + ".get()" +" > " +propName+ ".size() -1 || " + propName + ".isEmpty()) { " +breakOrReturn + " }").append('\n');
-                    ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".get()).toString() /*TODO: proper type to string conversion*/" + ")";
-                    w.append(indent+"      getUnparser().unparse( " + ruleInfoString + ",obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
+                    if(sre.isParserRule()) {
+                        w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
+                    } else if(sre.isLexerRule()) {
+                        w.append(indent+"      {").append('\n');
+                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
+                        w.append(indent+"        if(s!=null) {").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+                        w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"          internalW.print(s);").append('\n');
+                        w.append(indent+"          getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"        }").append('\n');
+                        w.append(indent+"      }").append('\n');
+                    } else {
+                        w.append(indent+"      {").append('\n');
+                        w.append(indent+"        String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) /*TERMINAL String conversion*/;").append('\n');
+                        w.append(indent+"        if(s !=null) {").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj.toString() /*TERMINAL String conversion*/" + ")");
+                        w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"          internalW.print(s);").append('\n');
+                        w.append(indent+"          getUnparser().getFormatter().post( unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"        }").append('\n');
+                        w.append(indent+"      }").append('\n');
+                    }
+
                 }
             } else if (sre.ebnfOneMany() || sre.ebnfZeroMany()) {
 
                 if(sre.ebnfOptional()||sre.ebnfZeroMany()) {
                     w.append(indent+"    while(" + indexName+ ".get()" +" < " +propName+ ".size() ) {").append('\n');
-                    ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".get()).toString() /*TODO: proper type to string conversion*/" + ")";
-                    w.append(indent+"      getUnparser().unparse( " + ruleInfoString + ", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
-                    w.append(indent+"    }").append('\n');
+                    if(sre.isParserRule()) {
+                        w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
+                    } else if(sre.isLexerRule()) {
+                        w.append(indent+"      {").append('\n');
+                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
+                        w.append(indent+"        if(s!=null) {").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+                        w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"          internalW.print(s);").append('\n');
+                        w.append(indent+"          getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"        }").append('\n');
+                        w.append(indent+"      }").append('\n');
+                    } else {
+                        //ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".get()).toString() /*TODO: proper type to string conversion*/" + ")";
+                        //w.append(indent + "      getUnparser().unparse( " + ruleInfoString + ", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".getAndInc()), internalW );").append('\n');
+                        w.append(indent+"      {").append('\n');
+                        w.append(indent+"        String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) /*TERMINAL String conversion*/;").append('\n');
+                        w.append(indent+"        if(s!=null) {").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+                        w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"          internalW.print(s);").append('\n');
+                        w.append(indent+"          getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"        }").append('\n');
+                        w.append(indent+"      }").append('\n');
+                    }
+                    w.append(indent + "    }").append('\n');
                 } else {
                     w.append(indent+"    boolean matched"+StringUtil.firstToUpper(sre.getName()) +" = false;").append('\n');
                     w.append(indent+"    while(" + indexName+ ".get()" +" < " +propName+ ".size() || " + propName + ".isEmpty()) {").append('\n');
-                    ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".get()).toString() /*TODO: proper type to string conversion*/" + ")";
-                    w.append(indent+"      getUnparser().unparse( " + ruleInfoString + ", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
-                    w.append(indent+"      matched"+StringUtil.firstToUpper(sre.getName()) +" = true;").append('\n');
+                    if(sre.isParserRule()) {
+                        w.append(indent + "      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
+                    } else if(sre.isLexerRule()) {
+                        w.append(indent+"        {").append('\n');
+                        w.append(indent+"          String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
+                        w.append(indent+"          if(s!=null) {").append('\n');
+                        w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+                        w.append(indent+"            getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"            internalW.print(s);").append('\n');
+                        w.append(indent+"            getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"          }").append('\n');
+                        w.append(indent+"        }").append('\n');
+                    } else {
+                        //ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".get()).toString() /*TODO: proper type to string conversion*/" + ")";
+                        //w.append(indent + "      getUnparser().unparse( " + ruleInfoString + ", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".getAndInc()), internalW );").append('\n');
+                        //w.append(indent + "      matched" + StringUtil.firstToUpper(sre.getName()) + " = true;").append('\n');
+                        w.append(indent+"        {").append('\n');
+                        w.append(indent+"          String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()).toString() /*TERMINAL String conversion*/;").append('\n');
+                        w.append(indent+"          if(s!=null) {").append('\n');
+                        w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+                        w.append(indent+"            getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"            internalW.print(s);").append('\n');
+                        w.append(indent+"            getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"          }").append('\n');
+                        w.append(indent+"        }").append('\n');
+                    }
                     w.append(indent+"    }").append('\n');
                     w.append(indent+"    // we are in the non-optional case and return early if we didn't match").append('\n');
                     w.append(indent+"    if(!matched"+StringUtil.firstToUpper(sre.getName())+")").append('\n');
@@ -834,9 +1005,33 @@ public class UnparserCodeGenerator {
             }
 
         } else {
-            ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName())+"().toString() /*TODO: proper type to string conversion*/" + ")";
-            w.append(indent+"    if(obj.get" + StringUtil.firstToUpper(sre.getName()) + "() !=null) ").append('\n');
-            w.append(indent+"      getUnparser().unparse( " +ruleInfoString + ", obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), internalW );").append('\n');
+            if(sre.isParserRule()) {
+                w.append(indent+"    if(obj.get" + StringUtil.firstToUpper(sre.getName()) + "() !=null) ").append('\n');
+                w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), internalW );").append('\n');
+            } else if(sre.isLexerRule()) {
+                w.append(indent + "    {").append('\n');
+                w.append(indent + "      String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "() );").append('\n');
+                w.append(indent + "      if(s!=null) {").append('\n');
+                w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+                w.append(indent + "        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                w.append(indent + "        internalW.print(s);").append('\n');
+                w.append(indent + "        getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                w.append(indent + "      }").append('\n');
+                w.append(indent + "    }").append('\n');
+            } else {
+                //w.append(indent + "    Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().toString() /*TODO: proper type to string conversion*/" + ")";
+                //w.append(indent + "    if(obj.get" + StringUtil.firstToUpper(sre.getName()) + "() !=null) ").append('\n');
+                //w.append(indent + "      getUnparser().unparse( " + ruleInfoString + ", obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), internalW );").append('\n');
+                w.append(indent + "    {").append('\n');
+                w.append(indent + "      String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "() /*TERMINAL String conversion*/;").append('\n');
+                w.append(indent + "      if(s!=null) {").append('\n');
+                w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+                w.append(indent + "        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                w.append(indent + "        internalW.print(s);").append('\n');
+                w.append(indent + "        getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                w.append(indent + "      }").append('\n');
+                w.append(indent + "    }").append('\n');
+            }
         }
     }
 

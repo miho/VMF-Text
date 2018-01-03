@@ -9,7 +9,22 @@ typeMapping:
      ;
 
 mapping:
-    ruleName=Identifier '->' typeName=javaType 'via' embeddedCode = STRING_DOUBLE
+    ruleName=Identifier '->' typeName=javaType 'via'
+    (
+        '('
+           stringToTypeCode = STRING_DOUBLE ',' typeToStringCode = STRING_DOUBLE
+        ')'
+
+        |
+
+        '('
+           stringToTypeCode = STRING_DOUBLE
+        ')'
+
+        |
+
+        stringToTypeCode = STRING_DOUBLE
+    )
     ;
 
 

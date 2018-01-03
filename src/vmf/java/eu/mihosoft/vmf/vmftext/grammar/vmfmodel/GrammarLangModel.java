@@ -2,6 +2,7 @@ package eu.mihosoft.vmf.vmftext.grammar.vmfmodel;
 
 import eu.mihosoft.vmf.core.*;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -187,7 +188,13 @@ interface TypeMappings {
     public String targetTypeNameOfMapping(String containeRuleName, String name);
 
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
-    public String conversionCodeOfMapping(String containeRuleName, String name);
+    public String conversionCodeOfMappingStringToType(String containeRuleName, String name);
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
+    public String conversionCodeOfMappingTypeToString(String containeRuleName, String name);
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
+    public List<Mapping> mappingsByRuleName(String ruleName);
 }
 
 interface TypeMapping {
@@ -214,7 +221,9 @@ interface Mapping {
 
     String getTypeName();
 
-    String getMappingCode();
+    String getTypeToStringCode();
+
+    String getStringToTypeCode();
 }
 
 

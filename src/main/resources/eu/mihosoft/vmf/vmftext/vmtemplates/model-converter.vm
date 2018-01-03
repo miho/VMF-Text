@@ -171,7 +171,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         //   List <typeMapping.targetType> convertedElements = ... map(entry->typemapping.convert(entry)) ...
         //
            List<$model.getTypeMappings().targetTypeNameOfMapping($rcls.nameWithUpper(), $p.type.getAntlrRuleName())> convertedElements$p.nameWithUpper() =
-           ctx.${p.nameWithLower()}.stream().map(entry->${model.getTypeMappings().conversionCodeOfMapping($rcls.nameWithUpper(), $p.type.getAntlrRuleName())}).
+           ctx.${p.nameWithLower()}.stream().map(entry->${model.getTypeMappings().conversionCodeOfMappingStringToType($rcls.nameWithUpper(), $p.type.getAntlrRuleName())}).
              collect(Collectors.toList());
 
         // FALLBACK: for lexer rules without conversion rules
@@ -187,7 +187,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             // FALLBACK:
             // ${rcls.nameWithLower()}.set${p.nameWithUpper()}(ctx.${p.nameWithLower()}.getText());
             Token entry = ctx.${p.nameWithLower()};
-            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(${model.getTypeMappings().conversionCodeOfMapping($rcls.nameWithUpper(), $p.type.getAntlrRuleName())});
+            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(${model.getTypeMappings().conversionCodeOfMappingStringToType($rcls.nameWithUpper(), $p.type.getAntlrRuleName())});
         }
 #end## if array type
 #end## if rule type
