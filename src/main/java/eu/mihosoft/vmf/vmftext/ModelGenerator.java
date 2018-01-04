@@ -3,7 +3,6 @@ package eu.mihosoft.vmf.vmftext;
 
 import eu.mihosoft.vmf.core.TypeUtil;
 import eu.mihosoft.vmf.core.io.FileResourceSet;
-import eu.mihosoft.vmf.core.io.MemoryResourceSet;
 import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
 import eu.mihosoft.vmf.vmftext.grammar.*;
@@ -14,9 +13,7 @@ import org.apache.velocity.runtime.RuntimeConstants;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.Writer;
-import java.util.List;
 
 public class ModelGenerator {
 
@@ -51,7 +48,7 @@ public class ModelGenerator {
         mergeTemplate("model-parser", engine, context, out);
     }
 
-    private static void generateModelConverter(
+    private static void generateModelParser(
             Writer out, VelocityEngine engine, String modelPackageName, String packageName, GrammarModel model) throws IOException {
         VelocityContext context = new VelocityContext();
         context.put("model", model);
@@ -104,7 +101,7 @@ public class ModelGenerator {
         //
     }
 
-    public void generateModelConverter(GrammarModel model, ResourceSet fileset) {
+    public void generateModelParser(GrammarModel model, ResourceSet fileset) {
 
         if(engine==null) {
             engine = createDefaultEngine();
@@ -116,7 +113,7 @@ public class ModelGenerator {
 
              Writer w = resource.open()) {
 
-            generateModelConverter(w, engine, model.getPackageName(),
+            generateModelParser(w, engine, model.getPackageName(),
                     model.getPackageName()+".parser", model);
         } catch (IOException e) {
             e.printStackTrace();

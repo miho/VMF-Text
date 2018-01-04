@@ -78,7 +78,7 @@ public class VMFText {
             if(modelOutputDir!=null) {
                 generator.generateModel(model, modelOutputDir);
             }
-            generator.generateModelConverter(model, outputDir);
+            generator.generateModelParser(model, outputDir);
 
 
             // generate mode unparser

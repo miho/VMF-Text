@@ -115,9 +115,64 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         }
     }
 
+        
+
     public ${Util.firstToUpper($model.grammarName)}Model parse(${model.rootClass().nameWithUpper()}Context ctx) {
 
       ${Util.firstToUpper($model.grammarName)}Model model = ${Util.firstToUpper($model.grammarName)}Model.newInstance();
+
+      parse(model, ctx);
+
+      return model;
+    }
+    
+    
+    
+    public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, InputStream codeStream) throws IOException{
+      CharStream input = CharStreams.fromStream(codeStream);
+
+      ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
+
+      for(ANTLRErrorListener l : errorListeners) {
+        lexer.addErrorListener(l);
+      }
+
+      if(isConsoleOutputDisabled()) {
+          lexer.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+      }
+
+      CommonTokenStream tokens = new CommonTokenStream(lexer);
+      ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
+
+      if(errorHandler!=null) {
+          parser.setErrorHandler(errorHandler);
+      }
+
+      for(ANTLRErrorListener l : errorListeners) {
+          parser.addErrorListener(l);
+      }
+
+      if(isConsoleOutputDisabled()) {
+          parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+      }
+
+      return parse(model, parser.${model.rootClass().name}());
+  }
+
+  public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, File code) throws IOException{
+      try(FileInputStream codeStream = new FileInputStream(code)) {
+          return parse(model, codeStream);
+      }
+  }
+
+  public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, String code) throws IOException{
+      try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
+          return parse(model, codeStream);
+      }
+  }
+    
+  
+    public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, ${model.rootClass().nameWithUpper()}Context ctx) {
 
       model.setRoot(convert(ctx));
 

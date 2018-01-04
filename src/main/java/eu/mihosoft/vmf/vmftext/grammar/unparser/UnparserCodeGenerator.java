@@ -842,7 +842,7 @@ public class UnparserCodeGenerator {
             }
         }
 
-        w.append(indent+"    // handling unrecognized element  '"+eText+"'").append('\n');
+        w.append(indent+"    // handling unrecognized element  '"+eText.replace('\n', ' ')+"'").append('\n');
         w.append(indent+"    // FIXME: cannot recognize element (that's why we ignore it)").append('\n');
         w.append(indent+"    // getUnparser().getFormatter().pre( unparser, obj, \""+StringUtil.escapeJavaStyleString(eText,true)+"\", internalW);").append('\n');
         w.append(indent+"    // internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\" );").append('\n');
