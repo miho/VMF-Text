@@ -31,6 +31,20 @@ public class TypeMappingsLookup implements DelegatedBehavior<TypeMappings>{
     }
 
     /**
+     * Indicates whether the specified mapping exists.
+     * @param containerRuleName the name of the rule that contains the parameter which shall be converted
+     * @param paramRuleName name of the lexer rule that parses the parameter (conversion is applied to the lexer rule. e.g. ANTLR token instance)
+     * @return {@code true} if the specified mapping exists; {@code false} otherwise
+     */
+    public boolean mappingByRuleNameExists(String containerRuleName, String paramRuleName) {
+
+        return caller.getTypeMappings().stream().filter(tm->tm.getApplyToNames().isEmpty()
+                || tm.getApplyToNames().contains(containerRuleName)).
+                flatMap(tm->tm.getEntries().stream()).filter(mE-> Objects.equals(mE.getRuleName(), paramRuleName)).
+                findFirst().isPresent();
+    }
+
+    /**
      * Returns all mappings that are applied to the specified rule
      * @param containerRuleName the name of the rule
      * @return all mappings that are applied to the specified rule

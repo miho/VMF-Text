@@ -51,12 +51,20 @@ import org.antlr.v4.runtime.ANTLRErrorStrategy;
     }
 
     public static String convertToString(Object entry) {
-        return entry.toString();
+        if(entry!=null) {
+            return entry.toString();
+        } else {
+            return "";
+        }
     }
 
 #foreach( $mapping in $model.getTypeMappings().mappingsByRuleName($rcls.name) )
-    public static String convertToString($mapping.getTypeName() entry) {
-        return $mapping.getTypeToStringCode();
+    public static String convertToStringForRule${mapping.ruleName}($mapping.getTypeName() entry) {
+        if(entry!=null) {
+          return $mapping.getTypeToStringCode();
+        } else {
+          return "";
+        }
     }
 
 #end##end each mapping for rule

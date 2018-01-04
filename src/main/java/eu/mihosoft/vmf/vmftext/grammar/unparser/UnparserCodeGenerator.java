@@ -344,6 +344,16 @@ public class UnparserCodeGenerator {
         w.append('\n');
 
         w.append('\n');
+        w.append("  /*package private*/ void unparse(String s, Writer w) throws java.io.IOException {").append('\n');
+        w.append("    w.append(s==null?\"\":s);").append('\n');
+        w.append("  }").append('\n');
+        w.append('\n');
+        w.append("  /*package private*/ void unparse(String s, PrintWriter w) {").append('\n');
+        w.append("    w.print(s==null?\"\":s);").append('\n');
+        w.append("  }").append('\n');
+        w.append('\n');
+
+        w.append('\n');
         w.append(" static class IntValue { private int value; public void set(int v) {this.value = v;} public int get() { return this.value; } int getAndInc() {int result = this.value;this.value++; return result;} }").append('\n');
         w.append('\n');
         w.append("} // end class").append('\n');
@@ -712,18 +722,18 @@ public class UnparserCodeGenerator {
 
     private static void generateUnusedPropertiesCheck(AlternativeBase a, UPRule r, Writer w) throws IOException {
         List<String> propertyNamesUsed = getPropertiesUsedInAlternative(a);
-        Map<String,Boolean> propertyNamesInRule = getPropertyNamesOfRule(r);
+        Map<String,Boolean> propertyNamesInRuleWithListFlag = getPropertyNamesOfRule(r);
 
         List<String> propertiesNotUsedInAlt = new ArrayList<>();
-        propertiesNotUsedInAlt.addAll(propertyNamesInRule.keySet());
+        propertiesNotUsedInAlt.addAll(propertyNamesInRuleWithListFlag.keySet());
         propertiesNotUsedInAlt.removeAll(propertyNamesUsed);
 
         for(String pName : propertiesNotUsedInAlt) {
 
-            if(propertyNamesInRule.get(pName)) {
-                w.append("    if(!obj.get" + StringUtil.firstToUpper(pName) + "().isEmpty()) return false;").append('\n');
+            if(propertyNamesInRuleWithListFlag.get(pName)) {
+                w.append("    if( !obj.get" + StringUtil.firstToUpper(pName) + "().isEmpty() ) return false;").append('\n');
             } else {
-                w.append("    if(obj.get" + StringUtil.firstToUpper(pName) + "() !=null) return false;").append('\n');
+                w.append("    if( obj.get" + StringUtil.firstToUpper(pName) + "() !=null ) return false;").append('\n');
             }
         }
     }
@@ -891,8 +901,10 @@ public class UnparserCodeGenerator {
                         w.append(indent+"      getUnparser().unparse(listElemObj, internalW );").append('\n');
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"      {").append('\n');
-                        w.append(indent+"        " + gModel.getTypeMappings().targetTypeNameOfMapping(rule.getName(), sre.getName()) + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())").append('\n');
-                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString( listElemObj )").append('\n');
+                        String targetTypeOfMapping = gModel.getTypeMappings().targetTypeNameOfMapping(rule.getName(), lexerRuleName);
+                        boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
+                        w.append(indent+"        " + targetTypeOfMapping + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())").append('\n');
+                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString" + (mappingExists?"ForRule"+lexerRuleName:"") + "( listElemObj )").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -917,7 +929,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"      {").append('\n');
-                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
+                        boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
+                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -946,7 +959,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"      {").append('\n');
-                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
+                        boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
+                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -975,7 +989,8 @@ public class UnparserCodeGenerator {
                         w.append(indent + "      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"        {").append('\n');
-                        w.append(indent+"          String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
+                        boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
+                        w.append(indent+"          String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
                         w.append(indent+"          if(s!=null) {").append('\n');
                         w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                         w.append(indent+"            getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1010,7 +1025,8 @@ public class UnparserCodeGenerator {
                 w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), internalW );").append('\n');
             } else if(sre.isLexerRule()) {
                 w.append(indent + "    {").append('\n');
-                w.append(indent + "      String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString( obj.get" + StringUtil.firstToUpper(sre.getName()) + "() );").append('\n');
+                boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
+                w.append(indent + "      String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "() );").append('\n');
                 w.append(indent + "      if(s!=null) {").append('\n');
                 w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                 w.append(indent + "        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');

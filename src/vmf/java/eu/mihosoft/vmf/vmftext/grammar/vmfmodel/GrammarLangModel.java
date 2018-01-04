@@ -183,6 +183,8 @@ interface TypeMappings {
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
     public Optional<Mapping> mappingByRuleName(String containeRuleName, String name);
 
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
+    boolean mappingByRuleNameExists(String containeRuleName, String name);
 
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
     public String targetTypeNameOfMapping(String containeRuleName, String name);
