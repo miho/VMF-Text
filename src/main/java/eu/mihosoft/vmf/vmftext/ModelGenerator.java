@@ -135,15 +135,17 @@ public class ModelGenerator {
 
         VMFText.AntlrTool.setOutput(fileset);
 
+        // we assume that each grammar and its dependencies are located in a single directory
+        String libFolder=grammarFile.getAbsoluteFile().getParent();
+
         VMFText.AntlrTool.main(
                 new String[]{
                         ((FileResourceSet) fileset).getRootSrcFolder()+"/"+unparserGrammarFile,
                         grammarFile.getAbsolutePath(),
                         "-listener",
                         "-package", model.getPackageName()+".unparser.antlr4",
-//                "-lib",
-//                "srcPath",
-                        "-o", "" // packageName.replace('.','/')
+                        "-lib", libFolder==null?"":libFolder,
+                        "-o", ""
                 }
         );
 
