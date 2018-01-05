@@ -232,11 +232,27 @@ public class UnparserCodeGenerator {
         w.append("  }").append('\n');
         w.append('\n');
 
-
+        w.append('\n');
+        w.append("  public String unparse(" + gModel.getGrammarName()+"Model model) {").append('\n');
+        w.append("    ByteArrayOutputStream output = new ByteArrayOutputStream();\n" +
+                 "    PrintWriter pw = new PrintWriter(output);\n" +
+                 "    unparse(model,pw);\n" +
+                 "    pw.close();\n" +
+                 "    return output.toString();").append('\n');
+        w.append("  }").append('\n');
+        w.append('\n');
 
         for (UPRule r : parentsOfLabeledAlts) {
             String ruleName = StringUtil.firstToUpper(r.getName());
             String ruleUnparserInstanceName = StringUtil.firstToLower(r.getName())+"Unparser";
+            w.append('\n');
+            w.append("  public String unparse(" + ruleName+" rule) {").append('\n');
+            w.append("    ByteArrayOutputStream output = new ByteArrayOutputStream();\n" +
+                     "    PrintWriter pw = new PrintWriter(output);\n" +
+                     "    unparse(rule,pw);\n" +
+                     "    pw.close();\n" +
+                     "    return output.toString();\n"+
+                     "  }").append('\n');
             w.append('\n');
             w.append("  public void unparse(" + ruleName + " rule, Writer w) throws java.io.IOException {").append('\n');
 
@@ -296,6 +312,14 @@ public class UnparserCodeGenerator {
             w.append("  public void unparse(" + ruleName + " rule, PrintWriter w) {").append('\n');
             w.append("    "+ruleUnparserInstanceName+".unparse(rule, w);").append('\n');
             w.append("  }").append('\n');
+            w.append('\n');
+            w.append("  public String unparse(" + ruleName+" rule) {").append('\n');
+            w.append("    ByteArrayOutputStream output = new ByteArrayOutputStream();\n" +
+                     "    PrintWriter pw = new PrintWriter(output);\n" +
+                     "    unparse(rule,pw);\n" +
+                     "    pw.close();\n" +
+                     "    return output.toString();\n"+
+                     "  }").append('\n');
             w.append('\n');
         }
 

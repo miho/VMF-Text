@@ -109,10 +109,14 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         }
     }
 
-    public ${Util.firstToUpper($model.grammarName)}Model parse(String code) throws IOException{
+    public ${Util.firstToUpper($model.grammarName)}Model parse(String code) {
         try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
             return parse(codeStream);
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
+
+        return null;
     }
 
         
@@ -165,10 +169,14 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       }
   }
 
-  public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, String code) throws IOException{
+  public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, String code) {
       try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
           return parse(model, codeStream);
+      } catch(Exception ex) {
+          ex.printStackTrace();
       }
+
+      return null;
   }
     
   

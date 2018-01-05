@@ -47,6 +47,7 @@ interface CodeLocation {
 
 @InterfaceOnly
 interface CodeElement {
+  @IgnoreEquals
   CodeRange getCodeRange();
 }
 
