@@ -22,8 +22,6 @@
  *#
   public static boolean match${altName}(String s) {
 
-    // System.out.println("MATCH-STR-${altName}: " + s);
-
     CharStream input = CharStreams.fromString(s);
 
     ${grammarName}ModelUnparserGrammarLexer lexer = new ${grammarName}ModelUnparserGrammarLexer(input);
@@ -33,32 +31,17 @@
 
     parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
 
-    ParserRuleContext tree = parser.$Util.firstToLower(${altName})();
-    ParseTreeWalker walker = new ParseTreeWalker();
+    // we cancel immediately if errors occur
+    parser.setErrorHandler(new BailErrorStrategy());
+    try {
+      parser.$Util.firstToLower(${altName})();
+    } catch(org.antlr.v4.runtime.misc.ParseCancellationException ex) {
+      return false;
+    }
 
-    class Listener extends ${grammarName}ModelUnparserGrammarBaseListener {
+    // no errors encountered
+    return true;
 
-      public boolean matches = true;
-
-      @Override
-      public void visitErrorNode(ErrorNode node) {
-        matches = false;
-      }
-
-      @Override
-      public void enter${altName}(
-        ${grammarName}ModelUnparserGrammarParser.${altName}Context ctx) {
-        matches = true;
-        super.enter${altName}(ctx);
-      }
-    } // end listener class
-
-    Listener l = new Listener();
-    walker.walk(l, tree);
-
-    // System.out.println("MATCHES ${altName}: " + l.matches);
-
-    return l.matches;
   }
 
 

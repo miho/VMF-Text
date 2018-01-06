@@ -3,6 +3,7 @@ package eu.mihosoft.vmf.vmftext.grammar.unparser;
 import eu.mihosoft.vmf.core.TypeUtil;
 import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
+import eu.mihosoft.vmf.vmftext.ParseTreeUtil;
 import eu.mihosoft.vmf.vmftext.StringUtil;
 import eu.mihosoft.vmf.vmftext.TemplateEngine;
 import eu.mihosoft.vmf.vmftext.grammar.*;
@@ -408,6 +409,7 @@ public class UnparserCodeGenerator {
                 w.append("import java.util.ArrayDeque;").append('\n').append('\n');
 
                 w.append("// ANTLR4 imports").append('\n');
+                w.append("import org.antlr.v4.runtime.BailErrorStrategy;").append('\n');
                 w.append("import org.antlr.v4.runtime.CharStream;").append('\n');
                 w.append("import org.antlr.v4.runtime.CharStreams;").append('\n');
                 w.append("import org.antlr.v4.runtime.ParserRuleContext;").append('\n');
@@ -519,7 +521,11 @@ public class UnparserCodeGenerator {
 
                 w.append("    // try to unparse alternatives of this rule").append('\n');
 
-                for (AlternativeBase a : r.getAlternatives()) {
+                // optimize alts (check the one with most elements first)
+                List<AlternativeBase> alts = new ArrayList<>(r.getAlternatives());
+                //sortAltsMostElementsFirst(alts, rules);
+
+                for (AlternativeBase a : alts) {
 
                     String altName = ruleName + "Alt" + a.getId();
 
@@ -531,8 +537,17 @@ public class UnparserCodeGenerator {
                 w.append("    // popState();").append('\n').append('\n');
                 w.append("  }").append('\n');
 
+
+                int altIndex = 0;
                 for (AlternativeBase a : r.getAlternatives()) {
-                    generateAltCode(w, model, gModel, r, gRule, ruleName, ruleName, a);
+                    altIndex++;
+                    boolean noCheck = altIndex >= r.getAlternatives().size();
+
+                    // TODO 06.01.2018 introduce switch for enabling/disabling full validation
+                    // - remove false&& below to remove expensive checks from last alternative to speed up performance
+                    // - do this only if you KNOW that your model is VALID
+                    generateAltCode(w, model, gModel, r, gRule, ruleName, ruleName, a,
+                            false&&noCheck);
                 }
 
                 w.append("}").append('\n').append('\n');
@@ -557,7 +572,7 @@ public class UnparserCodeGenerator {
         return a;
     }
 
-    private static void generateSubRuleCode(String ruleName, String altName, String objName, SubRule sr, Writer w) throws IOException {
+    private static void generateSubRuleCode(String ruleName, String altName, String objName, SubRule sr, List<UPRule> rules, Writer w) throws IOException {
 
         w.append('\n');
         w.append("  private void unparse" + altName + "SubRule" + sr.getId() + "( " + objName + " obj, PrintWriter w ) {").append('\n');
@@ -571,8 +586,13 @@ public class UnparserCodeGenerator {
         }
 
         if(multiplierCase) {
-            generateAltCodeForSubRulesWithMultiplier(altName, sr, w);
+            generateAltCodeForSubRulesWithMultiplier(altName, sr, rules, w);
         } else {
+
+            // optimize alts (check the one with most elements first)
+            List<AlternativeBase> alts = new ArrayList<>(sr.getAlternatives());
+            //sortAltsMostElementsFirst(alts, rules);
+
             for(AlternativeBase a : sr.getAlternatives()) {
 
                 String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
@@ -584,7 +604,60 @@ public class UnparserCodeGenerator {
         w.append("  }").append('\n');
     }
 
-    private static void generateAltCodeForSubRulesWithMultiplier(String altName, SubRule sr, Writer w) throws IOException {
+    private static int getTotalNumberOfElementsInAlt(AlternativeBase a, List<UPRule> rules) {
+
+        // TODO: 06.01.2018 does not fully work (some rule references, e.g., labeled rules cannot be resolved).
+
+        int eCount = 0;
+        for(UPElement e : a.getElements()) {
+            if(e instanceof SubRule) {
+                for(AlternativeBase subAlt : ((SubRule)e).getAlternatives()) {
+                    eCount += getTotalNumberOfElementsInAlt(subAlt, rules);
+                }
+            } else if(e.isParserRule()) {
+                Optional<UPRule> ruleOpt = rules.stream().filter(
+                        r->r.getName().equals(StringUtil.firstToUpper(e.getRuleName()))).findFirst();
+
+                if(ruleOpt.isPresent()) {
+                    for(AlternativeBase ruleAlt : ruleOpt.get().getAlternatives()) {
+                        eCount += getTotalNumberOfElementsInAlt(ruleAlt, rules);
+                    }
+                } else {
+                    eCount++;
+                }
+            } else {
+                eCount++;
+            }
+        }
+
+        return eCount;
+    }
+
+
+    /**
+     * Sorts the specified alternative list according to the total number of elements matched by the alternatives. This can
+     * improve unparsing performance. BUT: it does not work if the grammar contains ambiguities (will change the result!).
+     * Currently (as of 06.01.2018) we think it is better to leave this kind of optimization to the developer of the grammar.
+     * But we will keep this functionality for future benchmarks.
+     * @param alts
+     * @param rules
+     */
+    private static void sortAltsMostElementsFirst(List<AlternativeBase> alts, List<UPRule> rules) {
+
+        System.out.println("BEFORE:");
+        alts.forEach(alternativeBase -> {
+            System.out.println("a: " + "#elements: "  + getTotalNumberOfElementsInAlt(alternativeBase, rules) + " " + alternativeBase.getText());
+        });
+
+        Collections.sort(alts, (a1, a2) -> Integer.compare(getTotalNumberOfElementsInAlt(a2, rules),getTotalNumberOfElementsInAlt(a1, rules)));
+
+        System.out.println("AFTER:");
+        alts.forEach(alternativeBase -> {
+            System.out.println("a: " + "#elements: "  + getTotalNumberOfElementsInAlt(alternativeBase, rules) + " " + alternativeBase.getText());
+        });
+    }
+
+    private static void generateAltCodeForSubRulesWithMultiplier(String altName, SubRule sr, List<UPRule> rules, Writer w) throws IOException {
         w.append('\n');
         w.append("    // begin handling sub-rule with zeroToMany or oneToMany").append('\n');
         w.append("    while(true) { ").append('\n');
@@ -592,7 +665,12 @@ public class UnparserCodeGenerator {
 
         boolean first = true;
         String elseStr = "";
-        for(AlternativeBase a : sr.getAlternatives()) {
+
+        // optimize alts (check the one with most elements first)
+        List<AlternativeBase> alts = new ArrayList<>(sr.getAlternatives());
+        //sortAltsMostElementsFirst(alts, rules);
+
+        for(AlternativeBase a : alts) {
 
             String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
 
@@ -612,7 +690,7 @@ public class UnparserCodeGenerator {
     }
 
     private static void generateAltCode(Writer w, UnparserModel model, GrammarModel gModel, UPRule r, RuleClass gRule,
-                                        String ruleName, String objName, AlternativeBase a) throws IOException {
+                                        String ruleName, String objName, AlternativeBase a, boolean noCheck) throws IOException {
         String altName = ruleName + "Alt" + a.getId();
         w.append('\n');
         w.append("  private boolean unparse"+ altName + "( " + objName + " obj, PrintWriter w ) {").append('\n');
@@ -623,7 +701,9 @@ public class UnparserCodeGenerator {
 
         w.append('\n');
 
-        w.append("    getUnparser().getFormatter().pushState();").append('\n');
+        if(!noCheck) {
+            w.append("    getUnparser().getFormatter().pushState();").append('\n');
+        }
 
         w.append("    // begin check whether unused properties are set").append('\n');
 
@@ -637,9 +717,14 @@ public class UnparserCodeGenerator {
 
         w.append('\n');
 
-        w.append("    ByteArrayOutputStream output = new ByteArrayOutputStream();").append('\n');
+        if(noCheck) {
+            w.append("    PrintWriter internalW = w;").append('\n');
+        } else {
 
-        w.append("    PrintWriter internalW = new PrintWriter(output);").append('\n');
+            w.append("    ByteArrayOutputStream output = new ByteArrayOutputStream();").append('\n');
+            w.append("    PrintWriter internalW = new PrintWriter(output);").append('\n');
+
+        }
 
         w.append('\n');
         w.append("    // begin preparing local list indices/iterators").append('\n');
@@ -649,50 +734,59 @@ public class UnparserCodeGenerator {
             if(!prop.getType().isArrayType()) {
                 continue;
             }
-            w.append("    int prevProp" + prop.nameWithUpper() + "ListIndex = prop" + prop.nameWithUpper() + "ListIndex.get();").append('\n');
+            w.append("    int prevProp" + prop.nameWithUpper() + "ListIndex = prop"
+                    + prop.nameWithUpper() + "ListIndex.get();").append('\n');
         }
 
         w.append("    // end   preparing local list indices/iterators").append('\n');
 
         generateElements(model, gModel, w, gRule, r, a, altName);
 
-        w.append('\n');
-        w.append("    internalW.close();");
-        w.append('\n');
+        if(noCheck) {
+            w.append('\n');
+            w.append("    return true;");
+            w.append("\n  }").append('\n').append('\n');
+        } else {
+            w.append('\n');
+            w.append("    internalW.close();");
+            w.append('\n');
 
-        w.append("\n    String s;").append('\n');
 
-        w.append("    try {").append('\n');
-        w.append("        s = output.toString(\"UTF-8\");").append('\n');
-        w.append("    } catch(UnsupportedEncodingException ex) {").append('\n');
-        w.append("        s = output.toString();").append("\n");
-        w.append("        ex.printStackTrace();").append('\n');
-        w.append("    }").append('\n');
+            w.append("\n    String s;").append('\n');
 
-        w.append("\n    if( match"+altName+"(s) ) {").append('\n');
-        w.append("        w.print(s /*+ \" \"*/);").append('\n');
+            w.append("    try {").append('\n');
+            w.append("        s = output.toString(\"UTF-8\");").append('\n');
+            w.append("    } catch(UnsupportedEncodingException ex) {").append('\n');
+            w.append("        s = output.toString();").append("\n");
+            w.append("        ex.printStackTrace();").append('\n');
+            w.append("    }").append('\n');
 
-        w.append('\n');
-        w.append("        getUnparser().getFormatter().acceptState();").append('\n');
-        w.append('\n');
-        w.append("        return true;").append('\n');
-        w.append("    } else {").append('\n');
-        w.append('\n');
-        w.append("        // begin update global list indices/iterators since we consumed this alt successfully").append('\n');
+            w.append("\n    if( match" + altName + "(s) ) {").append('\n');
+            w.append("        w.print(s /*+ \" \"*/);").append('\n');
 
-        for(Property prop : gRule.getProperties()) {
-            if(!prop.getType().isArrayType()) {
-                continue;
+            w.append('\n');
+            w.append("        getUnparser().getFormatter().acceptState();").append('\n');
+            w.append('\n');
+            w.append("        return true;").append('\n');
+            w.append("    } else {").append('\n');
+            w.append('\n');
+            w.append("        // begin update global list indices/iterators since we consumed this alt successfully").append('\n');
+
+            for (Property prop : gRule.getProperties()) {
+                if (!prop.getType().isArrayType()) {
+                    continue;
+                }
+                w.append("        prop" + prop.nameWithUpper() + "ListIndex.set(prevProp" + prop.nameWithUpper() + "ListIndex);").append('\n');
             }
-            w.append("        prop" + prop.nameWithUpper() + "ListIndex.set(prevProp" + prop.nameWithUpper() + "ListIndex);").append('\n');
-        }
-        w.append("        // end   update global list indices/iterators since we consumed this alt successfully").append('\n');
-        w.append('\n');
-        w.append("        getUnparser().getFormatter().rejectState();").append('\n');
-        w.append('\n');
-        w.append("        return false;").append('\n');
-        w.append("    }").append('\n');
-        w.append("\n  }").append('\n').append('\n');
+            w.append("        // end   update global list indices/iterators since we consumed this alt successfully").append('\n');
+            w.append('\n');
+            w.append("        getUnparser().getFormatter().rejectState();").append('\n');
+            w.append('\n');
+            w.append("        return false;").append('\n');
+            w.append("    }").append('\n');
+            w.append("\n  }").append('\n').append('\n');
+
+        } // end if !noCheck
 
         generateMatchAltMethod(gModel, altName, w);
 
@@ -701,14 +795,14 @@ public class UnparserCodeGenerator {
 
             for(AlternativeBase sa : sr.getAlternatives()) {
                 try {
-                    generateAltCode(w, model, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa);
+                    generateAltCode(w, model, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa, false);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
 
             try {
-                generateSubRuleCode(ruleName, altName, objName, sr, w);
+                generateSubRuleCode(ruleName, altName, objName, sr, model.getRules(), w);
             } catch (IOException e) {
                 e.printStackTrace();
             }
