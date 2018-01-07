@@ -123,7 +123,8 @@ public class ModelGenerator {
     public void generateModelUnparser(GrammarModel model, UnparserModel unparserModel, File grammarFile, ResourceSet fileset) {
 
         if (!(fileset instanceof FileResourceSet)) {
-            throw new UnsupportedOperationException("FIXME: implement support for other resource sets (currently only file-resource-sets are supported)");
+            throw new UnsupportedOperationException("FIXME: implement support for other resource sets " +
+                    "(currently only file-resource-sets are supported)");
         }
 
         FileResourceSet resourceSet = (FileResourceSet) fileset;
