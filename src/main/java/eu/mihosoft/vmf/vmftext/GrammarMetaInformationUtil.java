@@ -193,7 +193,7 @@ public final class GrammarMetaInformationUtil {
                                     map(aCtx -> PropertyAnnotation.newBuilder().withText(tokens.getText(aCtx)).build()).
                                     collect(Collectors.toList()));
 
-                    ruleClass.get().getProperties().add(newProp);
+                    ruleClass.get().getCustomProperties().add(newProp);
 
                 } else {
                     // convert annotations

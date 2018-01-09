@@ -113,6 +113,9 @@ interface RuleClass extends WithName, CodeElement {
     @Contains(opposite = "parent")
     Property[] getProperties();
 
+    @Contains(opposite = "parent")
+    Property[] getCustomProperties();
+
     @Container(opposite = "childClasses")
     RuleClass getSuperClass();
 

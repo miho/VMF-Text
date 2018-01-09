@@ -27,3 +27,12 @@
   ${p.type.asModelTypeName()} get${p.nameWithUpper()}();
 
 #end
+
+  // Custom properties
+#foreach( $p in ${ruleClass.customProperties} )
+#foreach( $ann in ${p.annotations} )
+  $ann.getText()
+#end
+  ${p.type.asModelTypeName()} get${p.nameWithUpper()}();
+
+#end
