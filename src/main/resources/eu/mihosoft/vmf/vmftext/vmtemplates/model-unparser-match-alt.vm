@@ -31,16 +31,51 @@
 
     parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
 
+    class ErrorListener implements org.antlr.v4.runtime.ANTLRErrorListener {
+      private boolean errors = false;
+
+      @Override
+      public void syntaxError(org.antlr.v4.runtime.Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, org.antlr.v4.runtime.RecognitionException e) {
+        errors = true;
+      }
+
+      @Override
+      public void reportAmbiguity(org.antlr.v4.runtime.Parser recognizer, org.antlr.v4.runtime.dfa.DFA dfa, int startIndex, int stopIndex, boolean exact, java.util.BitSet ambigAlts, org.antlr.v4.runtime.atn.ATNConfigSet configs) {
+
+      }
+
+      @Override
+      public void reportAttemptingFullContext(org.antlr.v4.runtime.Parser recognizer, org.antlr.v4.runtime.dfa.DFA dfa, int startIndex, int stopIndex, java.util.BitSet conflictingAlts, org.antlr.v4.runtime.atn.ATNConfigSet configs) {
+
+      }
+
+      @Override
+      public void reportContextSensitivity(org.antlr.v4.runtime.Parser recognizer, org.antlr.v4.runtime.dfa.DFA dfa, int startIndex, int stopIndex, int prediction, org.antlr.v4.runtime.atn.ATNConfigSet configs) {
+
+      }
+
+      public boolean hasErrors() {
+        return this.errors;
+      }
+    }
+
+    ErrorListener l = new ErrorListener();
+
+    lexer.addErrorListener(l);
+    parser.addErrorListener(l);
+
     // we cancel immediately if errors occur
     parser.setErrorHandler(new BailErrorStrategy());
     try {
       parser.$Util.firstToLower(${altName})();
     } catch(org.antlr.v4.runtime.misc.ParseCancellationException ex) {
       return false;
+    } catch(Exception ex) {
+      return false;
     }
 
     // no errors encountered
-    return true;
+    return !l.hasErrors();
 
   }
 
