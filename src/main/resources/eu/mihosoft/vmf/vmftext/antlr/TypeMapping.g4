@@ -12,18 +12,18 @@ mapping:
     ruleName=Identifier '->' typeName=javaType 'via'
     (
         '('
-           stringToTypeCode = STRING_DOUBLE ',' typeToStringCode = STRING_DOUBLE
+           stringToTypeCode = (STRING_SINGLE|STRING_DOUBLE) ',' typeToStringCode = (STRING_SINGLE|STRING_DOUBLE)
         ')'
 
         |
 
         '('
-           stringToTypeCode = STRING_DOUBLE
+           stringToTypeCode = (STRING_SINGLE|STRING_DOUBLE)
         ')'
 
         |
 
-        stringToTypeCode = STRING_DOUBLE
+        stringToTypeCode = (STRING_SINGLE|STRING_DOUBLE)
     )
     ;
 
@@ -80,6 +80,10 @@ Identifier: NameStartChar NameChar*
 
 STRING_DOUBLE
     :   '"' (~('"' | '\\' | '\r' | '\n') | '\\' ('"' | '\\'))*? '"'
+    ;
+
+STRING_SINGLE
+    :   '\'' (~('\'' | '\\' | '\r' | '\n') | '\\' ('\'' | '\\'))*? '\''
     ;
 
 
