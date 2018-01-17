@@ -3,7 +3,6 @@ package eu.mihosoft.vmf.vmftext.grammar.unparser;
 import eu.mihosoft.vmf.core.TypeUtil;
 import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
-import eu.mihosoft.vmf.vmftext.ParseTreeUtil;
 import eu.mihosoft.vmf.vmftext.StringUtil;
 import eu.mihosoft.vmf.vmftext.TemplateEngine;
 import eu.mihosoft.vmf.vmftext.grammar.*;
@@ -381,6 +380,9 @@ public class UnparserCodeGenerator {
         w.append('\n');
         w.append(" static class IntValue { private int value; public void set(int v) {this.value = v;} public int get() { return this.value; } int getAndInc() {int result = this.value;this.value++; return result;} }").append('\n');
         w.append('\n');
+        w.append('\n');
+        w.append(" static class BoolValue { private boolean value; public void set(boolean v) {this.value = v;} public boolean is() { return this.value; } boolean getAndInvert() {boolean result = this.value;this.value=!this.value; return result;} }").append('\n');
+        w.append('\n');
         w.append("} // end class").append('\n');
         w.append('\n');
     }
@@ -427,6 +429,7 @@ public class UnparserCodeGenerator {
 
                 w.append('\n');
                 w.append("import " + gModel.getPackageName()+ ".unparser." +gModel.getGrammarName()+ "ModelUnparser.IntValue;").append('\n');
+                w.append("import " + gModel.getPackageName()+ ".unparser." +gModel.getGrammarName()+ "ModelUnparser.BoolValue;").append('\n');
                 w.append('\n');
                 w.append('\n');
 
@@ -463,6 +466,22 @@ public class UnparserCodeGenerator {
                 w.append("  // end   declare list property indices/iterators").append('\n');
 
                 w.append('\n');
+                w.append('\n');
+                w.append("  // begin declare property usage flags").append('\n');
+
+                for (Property prop : gRule.getProperties()) {
+
+                    if (prop.getType().isArrayType()) {
+                        continue;
+                    }
+
+                    w.append("  BoolValue prop" + prop.nameWithUpper() + "Used = new BoolValue();").append('\n');
+                    w.append("  final Deque<BoolValue> prop"+ prop.nameWithUpper() + "State = new ArrayDeque<>();").append('\n');
+                }
+
+                w.append("  // end   declare property usage flags").append('\n');
+
+                w.append('\n');
 
                 w.append("  private final " + gModel.getGrammarName() + "ModelUnparser unparser;").append('\n');
 
@@ -478,6 +497,17 @@ public class UnparserCodeGenerator {
                     w.append("    prop"+ prop.nameWithUpper() + "State.push( prop" + prop.nameWithUpper() + "ListIndex );").append('\n');
 
                 }
+
+                for (Property prop : gRule.getProperties()) {
+
+                    if (prop.getType().isArrayType()) {
+                        continue;
+                    }
+
+                    w.append("    prop"+ prop.nameWithUpper() + "State.push( prop" + prop.nameWithUpper() + "Used );").append('\n');
+
+                }
+
                 w.append("  }").append('\n');
 
                 w.append("  private void popState() {").append('\n');
@@ -488,6 +518,14 @@ public class UnparserCodeGenerator {
                     }
 
                     w.append("    prop" + prop.nameWithUpper() + "ListIndex = prop"+ prop.nameWithUpper() + "State.pop();").append('\n');
+                }
+                for (Property prop : gRule.getProperties()) {
+
+                    if (prop.getType().isArrayType()) {
+                        continue;
+                    }
+
+                    w.append("    prop" + prop.nameWithUpper() + "Used = prop"+ prop.nameWithUpper() + "State.pop();").append('\n');
                 }
                 w.append("  }").append('\n');
 
@@ -516,7 +554,16 @@ public class UnparserCodeGenerator {
                     }
                 }
                 w.append("    // end   reset list property indices/iterators").append('\n');
+                w.append('\n');
 
+                w.append("    // begin reset property usage flags").append('\n');
+                for (Property prop : gRule.getProperties()) {
+
+                    if (!prop.getType().isArrayType()) {
+                        w.append("    prop" + prop.nameWithUpper() + "Used = new BoolValue();").append('\n');
+                    }
+                }
+                w.append("    // end   reset property usage flags").append('\n');
                 w.append('\n');
 
                 w.append("    // try to unparse alternatives of this rule").append('\n');
@@ -572,7 +619,7 @@ public class UnparserCodeGenerator {
         return a;
     }
 
-    private static void generateSubRuleCode(String ruleName, String altName, String objName, SubRule sr, List<UPRule> rules, Writer w) throws IOException {
+    private static void generateSubRuleCode(String ruleName, String altName, String objName, SubRule sr, List<UPRule> rules, RuleClass gRule, Writer w) throws IOException {
 
         w.append('\n');
         w.append("  private void unparse" + altName + "SubRule" + sr.getId() + "( " + objName + " obj, PrintWriter w ) {").append('\n');
@@ -586,7 +633,7 @@ public class UnparserCodeGenerator {
         }
 
         if(multiplierCase) {
-            generateAltCodeForSubRulesWithMultiplier(altName, sr, rules, w);
+            generateAltCodeForSubRulesWithMultiplier(altName, sr, rules, gRule, w);
         } else {
 
             // optimize alts (check the one with most elements first)
@@ -657,7 +704,15 @@ public class UnparserCodeGenerator {
         });
     }
 
-    private static void generateAltCodeForSubRulesWithMultiplier(String altName, SubRule sr, List<UPRule> rules, Writer w) throws IOException {
+    private static void generateAltCodeForSubRulesWithMultiplier(String altName, SubRule sr, List<UPRule> rules, RuleClass gRule, Writer w) throws IOException {
+        w.append('\n');
+        w.append("    // begin declaring can-consume variables").append('\n');
+        for(AlternativeBase a : sr.getAlternatives()) {
+            String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
+            String canConsumeVarName = StringUtil.firstToLower(altNameSub + "CanConsume");
+            w.append("    boolean " + canConsumeVarName + " = true;").append('\n');
+        }
+        w.append("    // end declaring can-consume variables").append('\n');
         w.append('\n');
         w.append("    // begin handling sub-rule with zeroToMany or oneToMany").append('\n');
         w.append("    while(true) { ").append('\n');
@@ -674,13 +729,51 @@ public class UnparserCodeGenerator {
 
             String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
 
+            String canConsumeVarName = StringUtil.firstToLower(altNameSub + "CanConsume");
+
             if(!first) {
                 elseStr = " else";
             } else {
                 first=false;
             }
 
-            w.append("     " + elseStr + " if( unparse" + altNameSub + "( obj, w ) ) { matchedAnyAlt = true; }").append('\n');
+            w.append("     " + elseStr + " if( "
+                    + canConsumeVarName + " && unparse" + altNameSub + "( obj, w ) ) { ").append('\n').append('\n');
+            w.append("        // We matched this alternative").append('\n');
+            w.append("        matchedAnyAlt = true;").append('\n').append('\n');
+
+            w.append("        // We unparsed this alt once. For unparsing multiple times there has to be something").append('\n');
+            w.append("        // to be consumed/unparsed. See below...").append('\n');
+            w.append("        " + canConsumeVarName + " = false;").append('\n').append('\n');
+
+            List<Property> propertiesInAlt = getPropertiesUsedInAlt(gRule,a);
+
+            if(propertiesInAlt.isEmpty()) {
+                w.append("        // We don't unparse this alt again since there is nothing to consume (no properties).").append('\n').append('\n');
+            } else {
+                w.append("        // We check whether at least one of the rule properties/elements of list properties can").append('\n');
+                w.append("        // be consumed/unparsed. If one of the checks below is positive we unparse again.").append('\n').append('\n');
+            }
+
+            // array properties
+            for(Property p : propertiesInAlt) {
+                if(p.getType().isArrayType()) {
+                    w.append("        // check whether elements from list property '"+ p.nameWithLower() + "' can be consumed").append('\n');
+                    w.append("        " +canConsumeVarName + " = " + canConsumeVarName + "\n" +
+                             "          || prop" + p.nameWithUpper()+ "ListIndex.get() < obj.get" + p.nameWithUpper() +"().size();").append('\n');
+                }
+            }
+
+            // non-array properties
+            for(Property p : propertiesInAlt) {
+                if(!p.getType().isArrayType()) {
+                    w.append("        // check whether non-list property '"+ p.nameWithLower() + "' can be consumed").append('\n');
+                    w.append("        " +canConsumeVarName + " = " + canConsumeVarName + "\n" +
+                             "          || ( obj.get" + p.nameWithUpper() + "()!=null && !prop" + p.nameWithUpper()+ "Used.is());").append('\n');
+                }
+            }
+
+            w.append("      }").append('\n');
 
         }
 
@@ -697,8 +790,6 @@ public class UnparserCodeGenerator {
 
         w.append('\n');
         w.append("    if(obj==null) return false;").append('\n');
-        w.append('\n');
-
         w.append('\n');
 
         if(!noCheck) {
@@ -729,7 +820,6 @@ public class UnparserCodeGenerator {
         w.append('\n');
         w.append("    // begin preparing local list indices/iterators").append('\n');
 
-
         for(Property prop : gRule.getProperties()) {
             if(!prop.getType().isArrayType()) {
                 continue;
@@ -739,6 +829,19 @@ public class UnparserCodeGenerator {
         }
 
         w.append("    // end   preparing local list indices/iterators").append('\n');
+
+        w.append('\n');
+        w.append("    // begin preparing local property usage flags").append('\n');
+
+        for(Property prop : gRule.getProperties()) {
+            if(prop.getType().isArrayType()) {
+                continue;
+            }
+            w.append("    boolean prevProp" + prop.nameWithUpper() + "Used = prop"
+                    + prop.nameWithUpper() + "Used.is();").append('\n');
+        }
+
+        w.append("    // end   preparing local property usage flags").append('\n');
 
         generateElements(model, gModel, w, gRule, r, a, altName);
 
@@ -770,7 +873,7 @@ public class UnparserCodeGenerator {
             w.append("        return true;").append('\n');
             w.append("    } else {").append('\n');
             w.append('\n');
-            w.append("        // begin update global list indices/iterators since we consumed this alt successfully").append('\n');
+            w.append("        // begin revert global list indices/iterators since we didn't consume this alt").append('\n');
 
             for (Property prop : gRule.getProperties()) {
                 if (!prop.getType().isArrayType()) {
@@ -778,7 +881,18 @@ public class UnparserCodeGenerator {
                 }
                 w.append("        prop" + prop.nameWithUpper() + "ListIndex.set(prevProp" + prop.nameWithUpper() + "ListIndex);").append('\n');
             }
-            w.append("        // end   update global list indices/iterators since we consumed this alt successfully").append('\n');
+            w.append("        // end   revert global list indices/iterators since we didn't consume this alt").append('\n');
+            w.append('\n');
+            w.append('\n');
+            w.append("        // begin revert global property usage flags since we didn't consume this alt").append('\n');
+
+            for (Property prop : gRule.getProperties()) {
+                if (prop.getType().isArrayType()) {
+                    continue;
+                }
+                w.append("        prop" + prop.nameWithUpper() + "Used.set(prevProp" + prop.nameWithUpper() + "Used);").append('\n');
+            }
+            w.append("        // end   update global property usage flags since we consume this alt").append('\n');
             w.append('\n');
             w.append("        getUnparser().getFormatter().rejectState();").append('\n');
             w.append('\n');
@@ -802,14 +916,14 @@ public class UnparserCodeGenerator {
             }
 
             try {
-                generateSubRuleCode(ruleName, altName, objName, sr, model.getRules(), w);
+                generateSubRuleCode(ruleName, altName, objName, sr, model.getRules(), gRule, w);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
     }
 
-    private static void _getPropertiesUsedInAlternative(AlternativeBase a, List<String> propertyNames, Map<String, Boolean> listTypeMap) {
+    private static void _getNamesOfPropertiesUsedInAlternative(AlternativeBase a, List<String> propertyNames, Map<String, Boolean> listTypeMap) {
         for(UPElement e : a.getElements()) {
             if(e instanceof WithName) {
                 String pName = ((WithName)e).getName();
@@ -822,24 +936,44 @@ public class UnparserCodeGenerator {
             if(e instanceof SubRule) {
                 SubRule sr = (SubRule) e;
                 for(AlternativeBase subA : sr.getAlternatives()) {
-                    _getPropertiesUsedInAlternative(subA,propertyNames, listTypeMap);
+                    _getNamesOfPropertiesUsedInAlternative(subA,propertyNames, listTypeMap);
                 }
             }
         }
-
     }
 
-    private static List<String> getPropertiesUsedInAlternative(AlternativeBase a) {
+    private static List<String> getNamesOfPropertiesUsedInAlternative(AlternativeBase a) {
 
         List<String> propertyNames = new ArrayList<>();
 
-        _getPropertiesUsedInAlternative(a, propertyNames, null);
+        _getNamesOfPropertiesUsedInAlternative(a, propertyNames, null);
 
         return propertyNames;
     }
 
+    private static List<Property> getPropertiesUsedInSubRule(RuleClass parent, SubRule sr) {
+        List<String> propNames = new ArrayList<>();
+
+        for(AlternativeBase subA : sr.getAlternatives()) {
+            propNames.addAll(getNamesOfPropertiesUsedInAlternative(subA));
+        }
+
+        return parent.getProperties().stream().filter(
+                p->propNames.contains(p.nameWithLower())).collect(Collectors.toList());
+    }
+
+    private static List<Property> getPropertiesUsedInAlt(RuleClass parent, AlternativeBase a) {
+        List<String> propNames = new ArrayList<>();
+
+        propNames.addAll(getNamesOfPropertiesUsedInAlternative(a));
+
+        return parent.getProperties().stream().filter(
+                p->propNames.contains(p.nameWithLower())).collect(Collectors.toList());
+    }
+
+
     private static void generateUnusedPropertiesCheck(AlternativeBase a, UPRule r, Writer w) throws IOException {
-        List<String> propertyNamesUsed = getPropertiesUsedInAlternative(a);
+        List<String> propertyNamesUsed = getNamesOfPropertiesUsedInAlternative(a);
         Map<String,Boolean> propertyNamesInRuleWithListFlag = getPropertyNamesOfRule(r);
 
         List<String> propertiesNotUsedInAlt = new ArrayList<>();
@@ -861,7 +995,7 @@ public class UnparserCodeGenerator {
         Map<String,Boolean> listType = new HashMap<>();
 
         for(AlternativeBase a : r.getAlternatives()) {
-            _getPropertiesUsedInAlternative(a, propertyNames, listType);
+            _getNamesOfPropertiesUsedInAlternative(a, propertyNames, listType);
         }
 
         return listType;
@@ -936,8 +1070,6 @@ public class UnparserCodeGenerator {
 
 
             boolean lexerRuleToTerminalPossible = lexerRuleOptional.isPresent();
-
-
 
             if(lexerRuleToTerminalPossible) {
                 UPLexerRule lexerRule = lexerRuleOptional.get();
@@ -1139,10 +1271,13 @@ public class UnparserCodeGenerator {
 
         } else {
             if(sre.isParserRule()) {
-                w.append(indent+"    if(obj.get" + StringUtil.firstToUpper(sre.getName()) + "() !=null) ").append('\n');
-                w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), internalW );").append('\n');
+                w.append(indent+"    if(obj.get" + StringUtil.firstToUpper(sre.getName()) + "() !=null) {").append('\n');
+                w.append(indent+"        getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), internalW );").append('\n');
+                w.append(indent+"    }").append('\n');
             } else if(sre.isLexerRule()) {
+                w.append(indent + "    if(!prop" + StringUtil.firstToUpper(sre.getName()) + "Used.is())").append('\n');
                 w.append(indent + "    {").append('\n');
+                w.append(indent + "      prop" + StringUtil.firstToUpper(sre.getName()) + "Used.set(true);").append('\n');
                 boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
                 w.append(indent + "      String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "() );").append('\n');
                 w.append(indent + "      if(s!=null) {").append('\n');
@@ -1156,7 +1291,11 @@ public class UnparserCodeGenerator {
                 //w.append(indent + "    Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().toString() /*TODO: proper type to string conversion*/" + ")";
                 //w.append(indent + "    if(obj.get" + StringUtil.firstToUpper(sre.getName()) + "() !=null) ").append('\n');
                 //w.append(indent + "      getUnparser().unparse( " + ruleInfoString + ", obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), internalW );").append('\n');
+
+
+                w.append(indent + "    if(!prop" + StringUtil.firstToUpper(sre.getName()) + "Used.is())").append('\n');
                 w.append(indent + "    {").append('\n');
+                w.append(indent + "      prop" + StringUtil.firstToUpper(sre.getName()) + "Used.set(true);").append('\n');
                 w.append(indent + "      String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "() /*TERMINAL String conversion*/;").append('\n');
                 w.append(indent + "      if(s!=null) {").append('\n');
                 w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
