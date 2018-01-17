@@ -222,6 +222,20 @@ public class UnparserCodeGenerator {
 
         String rootClassUnparserName = rootClassNameLowerCase + "Unparser";
 
+/*
+        w.append('\n');
+        w.append("  public void unparse(java.util.List<String> stringList, Writer w) {").append('\n');
+        w.append("    unparse(stringList, new PrintWriter(w));").append('\n');
+        w.append("  }").append('\n');
+        w.append('\n');
+
+        w.append('\n');
+        w.append("  public void unparse(java.util.List<String> stringList, PrintWriter w) {").append('\n');
+        w.append("    stringList.forEach(s->w.append(s));").append('\n');
+        w.append("  }").append('\n');
+        w.append('\n');
+*/
+
         w.append('\n');
         w.append("  public void unparse(" + gModel.getGrammarName()+"Model model, Writer w) {").append('\n');
         w.append("    "+rootClassUnparserName+".unparse(model.getRoot(), new PrintWriter(w));").append('\n');
@@ -680,6 +694,8 @@ public class UnparserCodeGenerator {
                 first=false;
             }
 
+            w.append("     // TODO if only unnamed rules, match only once").append('\n');
+            w.append("     // TODO if only unnamed rules, match only once").append('\n');
             w.append("     " + elseStr + " if( unparse" + altNameSub + "( obj, w ) ) { matchedAnyAlt = true; }").append('\n');
 
         }
@@ -694,7 +710,6 @@ public class UnparserCodeGenerator {
         String altName = ruleName + "Alt" + a.getId();
         w.append('\n');
         w.append("  private boolean unparse"+ altName + "( " + objName + " obj, PrintWriter w ) {").append('\n');
-
         w.append('\n');
         w.append("    if(obj==null) return false;").append('\n');
         w.append('\n');
@@ -894,7 +909,7 @@ public class UnparserCodeGenerator {
             if(e instanceof UPSubRuleElement) {
                 generateSubRuleElementCode(w, altName, indent, (UPSubRuleElement) e);
             } else if(e instanceof UPNamedSubRuleElement) {
-                generateNamedSubRuleElementCode(w, indent, (UPNamedSubRuleElement) e);
+                generateNamedSubRuleElementCode(w, indent, gRule, (UPNamedSubRuleElement) e);
             } else if(e instanceof UPNamedElement) {
                 UPNamedElement sre = (UPNamedElement) e;
                 generateNamedElementCode(w, indent, model, sre, rule, gModel);
@@ -1169,9 +1184,15 @@ public class UnparserCodeGenerator {
         }
     }
 
-    private static void generateNamedSubRuleElementCode(Writer w, String indent, UPNamedSubRuleElement e) throws IOException {
+    private static void generateNamedSubRuleElementCode(Writer w, String indent, RuleClass ruleClass, UPNamedSubRuleElement e) throws IOException {
         UPNamedSubRuleElement sre = e;
         w.append(indent+"    // handling sub-rule " + sre.getId() + " with name '"+sre.getName()+"'").append('\n');
+
+
+        w.append(indent+"    // TODO If array then USE index in case it is no rule class else do the unparse as before ").append('\n');
+
+        w.append(indent+"    // " + ruleClass.getModel().propertyByName(ruleClass.nameWithUpper(), sre.getName()).get().getType().isRuleType()).append('\n');
+
         w.append(indent+"    getUnparser().unparse( obj.get"+ StringUtil.firstToUpper(sre.getName())+"(), internalW);").append('\n');
     }
 
