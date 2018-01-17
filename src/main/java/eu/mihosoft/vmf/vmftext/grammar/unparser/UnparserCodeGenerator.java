@@ -367,6 +367,8 @@ public class UnparserCodeGenerator {
         w.append("  }").append('\n');
         w.append('\n');
 
+        // Unparse methods for Strings
+
         w.append('\n');
         w.append("  /*package private*/ void unparse(String s, Writer w) throws java.io.IOException {").append('\n');
         w.append("    w.append(s==null?\"\":s);").append('\n');
@@ -376,6 +378,8 @@ public class UnparserCodeGenerator {
         w.append("    w.print(s==null?\"\":s);").append('\n');
         w.append("  }").append('\n');
         w.append('\n');
+
+        // State object classes
 
         w.append('\n');
         w.append(" static class IntValue { private int value; public void set(int v) {this.value = v;} public int get() { return this.value; } int getAndInc() {int result = this.value;this.value++; return result;} }").append('\n');
@@ -1028,7 +1032,7 @@ public class UnparserCodeGenerator {
             if(e instanceof UPSubRuleElement) {
                 generateSubRuleElementCode(w, altName, indent, (UPSubRuleElement) e);
             } else if(e instanceof UPNamedSubRuleElement) {
-                generateNamedSubRuleElementCode(w, indent, (UPNamedSubRuleElement) e);
+                generateNamedSubRuleElementCode(w, indent, (UPNamedSubRuleElement) e, gRule);
             } else if(e instanceof UPNamedElement) {
                 UPNamedElement sre = (UPNamedElement) e;
                 generateNamedElementCode(w, indent, model, sre, rule, gModel);
@@ -1219,8 +1223,6 @@ public class UnparserCodeGenerator {
                         w.append(indent+"        }").append('\n');
                         w.append(indent+"      }").append('\n');
                     } else {
-                        //ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".get()).toString() /*TODO: proper type to string conversion*/" + ")";
-                        //w.append(indent + "      getUnparser().unparse( " + ruleInfoString + ", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".getAndInc()), internalW );").append('\n');
                         w.append(indent+"      {").append('\n');
                         w.append(indent+"        String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) /*TERMINAL String conversion*/;").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
@@ -1249,9 +1251,6 @@ public class UnparserCodeGenerator {
                         w.append(indent+"          }").append('\n');
                         w.append(indent+"        }").append('\n');
                     } else {
-                        //ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".get()).toString() /*TODO: proper type to string conversion*/" + ")";
-                        //w.append(indent + "      getUnparser().unparse( " + ruleInfoString + ", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".getAndInc()), internalW );").append('\n');
-                        //w.append(indent + "      matched" + StringUtil.firstToUpper(sre.getName()) + " = true;").append('\n');
                         w.append(indent+"        {").append('\n');
                         w.append(indent+"          String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()).toString() /*TERMINAL String conversion*/;").append('\n');
                         w.append(indent+"          if(s!=null) {").append('\n');
@@ -1288,10 +1287,6 @@ public class UnparserCodeGenerator {
                 w.append(indent + "      }").append('\n');
                 w.append(indent + "    }").append('\n');
             } else {
-                //w.append(indent + "    Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", obj.get" + StringUtil.firstToUpper(sre.getName()) + "().toString() /*TODO: proper type to string conversion*/" + ")";
-                //w.append(indent + "    if(obj.get" + StringUtil.firstToUpper(sre.getName()) + "() !=null) ").append('\n');
-                //w.append(indent + "      getUnparser().unparse( " + ruleInfoString + ", obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), internalW );").append('\n');
-
 
                 w.append(indent + "    if(!prop" + StringUtil.firstToUpper(sre.getName()) + "Used.is())").append('\n');
                 w.append(indent + "    {").append('\n');
@@ -1308,10 +1303,41 @@ public class UnparserCodeGenerator {
         }
     }
 
-    private static void generateNamedSubRuleElementCode(Writer w, String indent, UPNamedSubRuleElement e) throws IOException {
-        UPNamedSubRuleElement sre = e;
+    private static void generateNamedSubRuleElementCode(Writer w, String indent, UPNamedSubRuleElement sre, RuleClass gRule) throws IOException {
+
         w.append(indent+"    // handling sub-rule " + sre.getId() + " with name '"+sre.getName()+"'").append('\n');
-        w.append(indent+"    getUnparser().unparse( obj.get"+ StringUtil.firstToUpper(sre.getName())+"(), internalW);").append('\n');
+
+        // if the sub-rule is a string or a string list, we need to manually consume the property.
+        Type subRuleType = gRule.getModel().propertyByName(gRule.nameWithUpper(), sre.getName()).get().getType();
+        String propName = "obj.get" + StringUtil.firstToUpper(sre.getName()) + "()";
+        if("String".equals(subRuleType.getName())) {
+            w.append(indent + "    // we consume this sub-rule-property manually since it is a string or string list").append('\n');
+            String ruleType = "Formatter.RuleType.TERMINAL";
+            if(subRuleType.isArrayType()) {
+                String indexName = "prop" + StringUtil.firstToUpper(sre.getName()) + "ListIndex";
+                w.append(indent+"    // list type: we set the current element index to it's maximum value so there won't be any consumable elements left").append('\n');
+                w.append(indent+"    if(" + indexName+ ".get()" +" < " +propName+ ".size() ) {").append('\n');
+                w.append(indent+"      String s = " + propName + ".get(" + indexName +".getAndInc()) /*TERMINAL String conversion*/;").append('\n');
+                w.append(indent+"      if(s!=null) {").append('\n');
+                w.append(indent+"        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", s);").append('\n');
+                w.append(indent+"        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                w.append(indent+"        internalW.print(s);").append('\n');
+                w.append(indent+"        getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                w.append(indent+"      }").append('\n');
+                w.append(indent+"    }").append('\n');
+            } else {
+                w.append(indent+"    // string type: we define the property as used/consumed").append('\n');
+                w.append(indent+"    Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ");").append('\n');
+                w.append(indent+"    getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                w.append(indent+"    internalW.print(" + propName + ");").append('\n');
+                w.append(indent+"    getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                String propStateName = "prop" + StringUtil.firstToUpper(sre.getName()) + "Used";
+                w.append(indent + "    " + propStateName+".set(true);").append('\n');
+            }
+        } else {
+            // this is a normal sub-rule
+            w.append(indent+"    getUnparser().unparse( " + propName +", internalW);").append('\n');
+        }
     }
 
     private static void generateSubRuleElementCode(Writer w, String altName, String indent, UPSubRuleElement sre) throws IOException {
