@@ -1083,7 +1083,9 @@ public class UnparserCodeGenerator {
                 if(lexerRuleString.startsWith("'")) {
                     // terminal element
                     // remove '
+                    // TODO 18.01.2018 improve terminal extraction from lexer rule
                     lexerRuleString = lexerRuleString.substring(1, lexerRuleString.length() - 1);
+                    lexerRuleString = lexerRuleString.replaceAll("'\\s*'","");
 
                     w.append(indent + "    // handling unnamed lexer rule ref '" + eText + "'").append('\n');
                     w.append(indent + "    // we could successfully find terminal text of the rule").append('\n');
@@ -1151,13 +1153,13 @@ public class UnparserCodeGenerator {
                 if(sre.ebnfOptional()) {
                     w.append(indent+"    if(" + indexName+ ".get()" +" < " +propName+ ".size() ) {").append('\n');
                     if(sre.isParserRule()) {
-                        w.append(indent+"      " + sre.getRuleName() + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())").append('\n');
+                        w.append(indent+"      " + sre.getRuleName() + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc());").append('\n');
                         w.append(indent+"      getUnparser().unparse(listElemObj, internalW );").append('\n');
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"      {").append('\n');
                         String targetTypeOfMapping = gModel.getTypeMappings().targetTypeNameOfMapping(rule.getName(), lexerRuleName);
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
-                        w.append(indent+"        " + targetTypeOfMapping + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())").append('\n');
+                        w.append(indent+"        " + targetTypeOfMapping + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc());").append('\n');
                         w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString" + (mappingExists?"ForRule"+lexerRuleName:"") + "( listElemObj )").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
@@ -1167,7 +1169,7 @@ public class UnparserCodeGenerator {
                         w.append(indent+"        }").append('\n');
                         w.append(indent+"      }").append('\n');
                     } else {
-                        w.append(indent+"      String listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".getAndInc())").append('\n');
+                        w.append(indent+"      String listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".getAndInc());").append('\n');
                         w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj /*TERMINAL String conversion*/" + ")");
                         w.append(indent+"      getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"      internalW.print(s);").append('\n');
@@ -1236,8 +1238,9 @@ public class UnparserCodeGenerator {
                     w.append(indent + "    }").append('\n');
                 } else {
                     w.append(indent+"    boolean matched"+StringUtil.firstToUpper(sre.getName()) +" = false;").append('\n');
-                    w.append(indent+"    while(" + indexName+ ".get()" +" < " +propName+ ".size() || " + propName + ".isEmpty()) {").append('\n');
+                    w.append(indent+"    while(" + indexName+ ".get()" +" < " +propName+ ".size() && !" + propName + ".isEmpty()) {").append('\n');
                     if(sre.isParserRule()) {
+                        w.append(indent + "      matched"+StringUtil.firstToUpper(sre.getName()) +" = true;").append('\n');
                         w.append(indent + "      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"        {").append('\n');
