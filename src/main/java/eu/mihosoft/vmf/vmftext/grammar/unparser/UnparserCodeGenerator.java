@@ -883,30 +883,9 @@ public class UnparserCodeGenerator {
             w.append("        return true;").append('\n');
             w.append("    } else {").append('\n');
             w.append('\n');
-            w.append("        // begin revert global list indices/iterators since we didn't consume this alt").append('\n');
-
-            for (Property prop : gRule.getProperties()) {
-                if (!prop.getType().isArrayType()) {
-                    continue;
-                }
-                w.append("        prop" + prop.nameWithUpper() + "ListIndex.set(prevProp" + prop.nameWithUpper() + "ListIndex);").append('\n');
-            }
-            w.append("        // end   revert global list indices/iterators since we didn't consume this alt").append('\n');
+            generateRejectStateCode("    ",gRule, altName, w);
             w.append('\n');
-            w.append('\n');
-            w.append("        // begin revert global property usage flags since we didn't consume this alt").append('\n');
-
-            for (Property prop : gRule.getProperties()) {
-                if (prop.getType().isArrayType()) {
-                    continue;
-                }
-                w.append("        prop" + prop.nameWithUpper() + "Used.set(prevProp" + prop.nameWithUpper() + "Used);").append('\n');
-            }
-            w.append("        // end   update global property usage flags since we consume this alt").append('\n');
-            w.append('\n');
-            w.append("        getUnparser().getFormatter().rejectState();").append('\n');
-            w.append('\n');
-            w.append("        return false;").append('\n');
+            w.append("      return false;").append('\n');
             w.append("    }").append('\n');
             w.append("\n  }").append('\n').append('\n');
 
@@ -931,6 +910,31 @@ public class UnparserCodeGenerator {
                 e.printStackTrace();
             }
         });
+    }
+
+    private static void generateRejectStateCode(String indent, RuleClass gRule, String altName, Writer w) throws IOException {
+        w.append(indent + "// begin revert global list indices/iterators since we didn't consume this alt").append('\n');
+
+        for (Property prop : gRule.getProperties()) {
+            if (!prop.getType().isArrayType()) {
+                continue;
+            }
+            w.append(indent + "prop" + prop.nameWithUpper() + "ListIndex.set(prevProp" + prop.nameWithUpper() + "ListIndex);").append('\n');
+        }
+        w.append(indent + "// end   revert global list indices/iterators since we didn't consume this alt").append('\n');
+        w.append('\n');
+        w.append('\n');
+        w.append(indent + "// begin revert global property usage flags since we didn't consume this alt").append('\n');
+
+        for (Property prop : gRule.getProperties()) {
+            if (prop.getType().isArrayType()) {
+                continue;
+            }
+            w.append(indent + "prop" + prop.nameWithUpper() + "Used.set(prevProp" + prop.nameWithUpper() + "Used);").append('\n');
+        }
+        w.append(indent + "// end   update global property usage flags since we consume this alt").append('\n');
+        w.append('\n');
+        w.append(indent + "getUnparser().getFormatter().rejectState();").append('\n');
     }
 
     private static void _getNamesOfPropertiesUsedInAlternative(AlternativeBase a, List<String> propertyNames, Map<String, Boolean> listTypeMap) {
@@ -1038,10 +1042,10 @@ public class UnparserCodeGenerator {
             if(e instanceof UPSubRuleElement) {
                 generateSubRuleElementCode(w, altName, indent, (UPSubRuleElement) e);
             } else if(e instanceof UPNamedSubRuleElement) {
-                generateNamedSubRuleElementCode(w, indent, (UPNamedSubRuleElement) e, gRule);
+                generateNamedSubRuleElementCode(w, indent, (UPNamedSubRuleElement) e, gRule, altName);
             } else if(e instanceof UPNamedElement) {
                 UPNamedElement sre = (UPNamedElement) e;
-                generateNamedElementCode(w, indent, model, sre, rule, gModel);
+                generateNamedElementCode(w, indent, model, sre, rule, gRule, gModel, altName);
             } else {
                 generateUnnamedElementCode(model, w, indent, e);
             }
@@ -1139,7 +1143,7 @@ public class UnparserCodeGenerator {
         return eText;
     }
 
-    private static void generateNamedElementCode(Writer w, String indent, UnparserModel model, UPNamedElement sre, UPRule rule, GrammarModel gModel) throws IOException {
+    private static void generateNamedElementCode(Writer w, String indent, UnparserModel model, UPNamedElement sre, UPRule rule, RuleClass gRule, GrammarModel gModel, String altName) throws IOException {
 
         String lexerRuleName = sre.getRuleName()!=null?sre.getRuleName():"";
 
@@ -1186,7 +1190,10 @@ public class UnparserCodeGenerator {
 
                     String breakOrReturn = " /*non optional case*/ return false;";
 
-                    w.append(indent+"    if(" + indexName + ".get()" +" > " +propName+ ".size() -1 || " + propName + ".isEmpty()) { " +breakOrReturn + " }").append('\n');
+                    w.append(indent+"    if(" + indexName + ".get()" +" > " +propName+ ".size() -1 || " + propName + ".isEmpty()) {").append('\n');
+                    generateRejectStateCode(indent+"      ",gRule, altName, w);
+                    w.append(indent+"      " +breakOrReturn).append('\n');
+                    w.append(indent+"    }").append('\n');
                     if(sre.isParserRule()) {
                         w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
                     } else if(sre.isLexerRule()) {
@@ -1272,8 +1279,10 @@ public class UnparserCodeGenerator {
                     }
                     w.append(indent+"    }").append('\n');
                     w.append(indent+"    // we are in the non-optional case and return early if we didn't match").append('\n');
-                    w.append(indent+"    if(!matched"+StringUtil.firstToUpper(sre.getName())+")").append('\n');
+                    w.append(indent+"    if(!matched"+StringUtil.firstToUpper(sre.getName())+") { ").append('\n');
+                    generateRejectStateCode("    ",gRule, altName, w);
                     w.append(indent+"      return false;").append('\n');
+                    w.append(indent+"    }").append('\n');
                 }
             }
 
@@ -1312,7 +1321,7 @@ public class UnparserCodeGenerator {
         }
     }
 
-    private static void generateNamedSubRuleElementCode(Writer w, String indent, UPNamedSubRuleElement sre, RuleClass gRule) throws IOException {
+    private static void generateNamedSubRuleElementCode(Writer w, String indent, UPNamedSubRuleElement sre, RuleClass gRule, String altName) throws IOException {
 
         w.append(indent+"    // handling sub-rule " + sre.getId() + " with name '"+sre.getName()+"'").append('\n');
 
@@ -1343,7 +1352,15 @@ public class UnparserCodeGenerator {
                 w.append(indent+"      getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent+"      // string type: we define the property as used/consumed").append('\n');
                 w.append(indent+"      " + propStateName+".set(true);").append('\n');
-                w.append(indent+"    }").append('\n');
+
+                if(!sre.ebnfOptional()) {
+                    w.append(indent+"    } else { // non-optional case, we return early").append('\n');
+                    generateRejectStateCode("    ",gRule, altName, w);
+                    w.append(indent+"      return false;").append('\n');
+                    w.append(indent+"    } ").append('\n');
+                } else {
+                    w.append(indent+"    } // optional case, we do not return early").append('\n');
+                }
             }
         } else {
             // this is a normal sub-rule
