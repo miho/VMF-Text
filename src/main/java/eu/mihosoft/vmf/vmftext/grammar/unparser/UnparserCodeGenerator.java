@@ -1329,13 +1329,15 @@ public class UnparserCodeGenerator {
                 w.append(indent+"      }").append('\n');
                 w.append(indent+"    }").append('\n');
             } else {
-                w.append(indent+"    // string type: we define the property as used/consumed").append('\n');
-                w.append(indent+"    Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ");").append('\n');
-                w.append(indent+"    getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
-                w.append(indent+"    internalW.print(" + propName + ");").append('\n');
-                w.append(indent+"    getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                 String propStateName = "prop" + StringUtil.firstToUpper(sre.getName()) + "Used";
-                w.append(indent + "    " + propStateName+".set(true);").append('\n');
+                w.append(indent+"    if(!" + propStateName + ".is()) { ").append('\n');
+                w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ");").append('\n');
+                w.append(indent+"      getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
+                w.append(indent+"      internalW.print(" + propName + ");").append('\n');
+                w.append(indent+"      getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                w.append(indent+"      // string type: we define the property as used/consumed").append('\n');
+                w.append(indent+"      " + propStateName+".set(true);").append('\n');
+                w.append(indent+"    }").append('\n');
             }
         } else {
             // this is a normal sub-rule
