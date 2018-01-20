@@ -167,12 +167,15 @@ public class UnparserCodeGenerator {
 
         w.append("// rule imports (from model api)").append('\n');
 
-        for (UPRule rImport : rules) {
+        w.append("import " + gModel.getPackageName() + ".*;").append('\n');
 
-            String ruleImportName = StringUtil.firstToUpper(rImport.getName());
-
-            w.append("import " + gModel.getPackageName() + "." + ruleImportName + ";").append('\n');
-        }
+        // We use star-import instead of importing each rule individually
+//        for (UPRule rImport : rules) {
+//
+//            String ruleImportName = StringUtil.firstToUpper(rImport.getName());
+//
+//            w.append("import " + gModel.getPackageName() + "." + ruleImportName + ";").append('\n');
+//        }
 
         List<UPRule> parentsOfLabeledAlts = computeParentsOfLabeledAlts(model);
         w.append('\n');
@@ -439,12 +442,15 @@ public class UnparserCodeGenerator {
 
                 w.append("// rule imports (from model api)").append('\n');
 
-                for (UPRule rImport : rules) {
+                w.append("import " + gModel.getPackageName() + ".*;").append('\n');
 
-                    String ruleImportName = StringUtil.firstToUpper(rImport.getName());
 
-                    w.append("import " + gModel.getPackageName() + "." + ruleImportName + ";").append('\n');
-                }
+//                for (UPRule rImport : rules) {
+//
+//                    String ruleImportName = StringUtil.firstToUpper(rImport.getName());
+//
+//                    w.append("import " + gModel.getPackageName() + "." + ruleImportName + ";").append('\n');
+//                }
 
                 w.append('\n');
 
