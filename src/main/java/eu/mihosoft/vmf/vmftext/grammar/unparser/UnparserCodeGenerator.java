@@ -802,14 +802,10 @@ public class UnparserCodeGenerator {
         w.append("    if(obj==null) return false;").append('\n');
         w.append('\n');
 
-        if(!noCheck) {
-            w.append("    getUnparser().getFormatter().pushState();").append('\n');
-        }
-
         w.append("    // begin check whether unused properties are set").append('\n');
 
         // alternatives of grammar rules need to check whether they use all properties that are set and do
-        // not use any unset property
+        // not use any unset property (only they do, no sub-rules, hence the if statement)
         if(a.getParentRule() == r) {
             generateUnusedPropertiesCheck(a, r, w);
         }
@@ -817,6 +813,16 @@ public class UnparserCodeGenerator {
         w.append("    // end   check whether unused properties are set").append('\n');
 
         w.append('\n');
+
+        w.append("    // begin check whether non-optional properties are available (not used/consumed)").append('\n');
+        // TODO 21.01.2018 enable if we want to avoid unneccessary matchAlt... calls but still do validation
+        generateConsumedPropertiesCheck(a, altName, r, gRule, w);
+        w.append("    // end   check whether non-optional properties are available (not used/consumed)").append('\n');
+        w.append('\n');
+
+        if(!noCheck) {
+            w.append("    getUnparser().getFormatter().pushState();").append('\n');
+        }
 
         if(noCheck) {
             w.append("    PrintWriter internalW = w;").append('\n');
@@ -965,6 +971,31 @@ public class UnparserCodeGenerator {
         return propertyNames;
     }
 
+
+    private static void _getPropertiesElementsUsedInAlternative(AlternativeBase a, List<UPElement> elements) {
+        for(UPElement e : a.getElements()) {
+            if(e instanceof WithName) {
+                elements.add(e);
+            }
+
+            if(e instanceof SubRule) {
+                SubRule sr = (SubRule) e;
+                for(AlternativeBase subA : sr.getAlternatives()) {
+                    _getPropertiesElementsUsedInAlternative(subA,elements);
+                }
+            }
+        }
+    }
+
+    private static List<UPElement> getPropertiesElementsUsedInAlternative(AlternativeBase a) {
+
+        List<UPElement> elements = new ArrayList<>();
+
+        _getPropertiesElementsUsedInAlternative(a, elements);
+
+        return elements;
+    }
+
     private static List<Property> getPropertiesUsedInSubRule(RuleClass parent, SubRule sr) {
         List<String> propNames = new ArrayList<>();
 
@@ -1001,6 +1032,56 @@ public class UnparserCodeGenerator {
             } else {
                 w.append("    if( obj.get" + StringUtil.firstToUpper(pName) + "() !=null ) return false;").append('\n');
             }
+        }
+    }
+
+    private static void generateConsumedPropertiesCheck(AlternativeBase a, String aName, UPRule r, RuleClass gRule, Writer w) throws IOException {
+        //List<Property> propertiesInAlt = getPropertiesUsedInAlt(gRule, a);
+
+        List<UPElement> propertyElements = getPropertiesElementsUsedInAlternative(a);
+
+        String canConsumeVarName = StringUtil.firstToLower(aName + "CanConsume");
+
+        boolean hasArrayPropertiesThatNeedToBeChecked = propertyElements.stream().
+                filter(p->p.isListType() && !(p.ebnfOptional() || p.ebnfZeroMany())).count() > 0;
+
+        boolean hasNonArrayPropertiesThatNeedToBeChecked = propertyElements.stream().
+                filter(p->!p.isListType() && !p.ebnfOptional()).count() > 0;
+
+        boolean hasToCheck = hasArrayPropertiesThatNeedToBeChecked || hasNonArrayPropertiesThatNeedToBeChecked;
+
+        if(hasToCheck) {
+            w.append("        boolean " + canConsumeVarName + " = false;").append('\n');
+        } else {
+            w.append("        // no non-optional properties to check").append('\n');
+        }
+
+        // array properties
+        for(UPElement p : propertyElements) {
+            if(p.isListType() && !(p.ebnfOptional() || p.ebnfZeroMany())) {
+                String pName = StringUtil.firstToLower(((WithName)p).getName());
+                String pNameUpper = StringUtil.firstToUpper(((WithName)p).getName());
+
+                w.append("        // check whether elements from list property '"+ pName + "' can be consumed").append('\n');
+                w.append("        " +canConsumeVarName + " = " + canConsumeVarName + "\n" +
+                        "          || prop" + pNameUpper+ "ListIndex.get() < obj.get" + pNameUpper +"().size();").append('\n');
+            }
+        }
+
+        // non-array properties
+        for(UPElement p : propertyElements) {
+            if(!p.isListType() && !p.ebnfOptional()) {
+                String pName = StringUtil.firstToLower(((WithName)p).getName());
+                String pNameUpper = StringUtil.firstToUpper(((WithName)p).getName());
+
+                w.append("        // check whether non-list property '"+ pName + "' can be consumed").append('\n');
+                w.append("        " +canConsumeVarName + " = " + canConsumeVarName + "\n" +
+                        "          || ( obj.get" + pNameUpper + "()!=null /*&& !prop" + pNameUpper+ "Used.is()*/);").append('\n');
+            }
+        }
+
+        if(hasToCheck) {
+            w.append("        if(!" + canConsumeVarName + ") return false;").append('\n');
         }
     }
 
