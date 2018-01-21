@@ -38,7 +38,6 @@ public class UnparserCodeGenerator {
 
         generateUPCode(gModel, model,rules, resourceSet);
 
-
         try (Resource resource =
                      resourceSet.open(unparserGrammarPath);
              Writer w = resource.open()) {
@@ -1297,7 +1296,6 @@ public class UnparserCodeGenerator {
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          internalW.print(s);").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().post( unparser, ruleInfo, internalW);").append('\n');
-                        w.append(indent+"        }").append('\n');
                         w.append(indent+"      }").append('\n');
                     }
 
@@ -1397,7 +1395,15 @@ public class UnparserCodeGenerator {
                 w.append(indent + "        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent + "        internalW.print(s);").append('\n');
                 w.append(indent + "        getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
+                if(sre.ebnfOptional()) {
                 w.append(indent + "      }").append('\n');
+                } else {
+                    w.append(indent + "      } else {").append('\n');
+                    w.append(indent + "        // non optional case, we return early since the property object is null").append('\n');
+                    generateRejectStateCode(indent+ "      ", gRule,altName,w);
+                    w.append(indent + "        return false;").append('\n');
+                    w.append(indent + "      }").append('\n');
+                }
                 w.append(indent + "    }").append('\n');
             }
         }
