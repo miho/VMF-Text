@@ -632,7 +632,7 @@ public class UnparserCodeGenerator {
     private static void generateSubRuleCode(String ruleName, String altName, String objName, SubRule sr, List<UPRule> rules, RuleClass gRule, Writer w) throws IOException {
 
         w.append('\n');
-        w.append("  private void unparse" + altName + "SubRule" + sr.getId() + "( " + objName + " obj, PrintWriter w ) {").append('\n');
+        w.append("  private boolean unparse" + altName + "SubRule" + sr.getId() + "( " + objName + " obj, PrintWriter w ) { boolean valid = false;").append('\n');
 
         boolean multiplierCase = false;
         if(sr instanceof UPElement) {
@@ -654,11 +654,11 @@ public class UnparserCodeGenerator {
 
                 String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
 
-                w.append("    if( unparse" + altNameSub + "( obj, w ) ) { return; }").append('\n');
+                w.append("    if( unparse" + altNameSub + "( obj, w ) ) { return true; }").append('\n');
             }
         }
 
-        w.append("  }").append('\n');
+        w.append("  return valid;}").append('\n');
     }
 
     private static int getTotalNumberOfElementsInAlt(AlternativeBase a, List<UPRule> rules) {
@@ -748,7 +748,7 @@ public class UnparserCodeGenerator {
             }
 
             w.append("     " + elseStr + " if( "
-                    + canConsumeVarName + " && unparse" + altNameSub + "( obj, w ) ) { ").append('\n').append('\n');
+                    + canConsumeVarName + " && unparse" + altNameSub + "( obj, w ) ) { valid = true;").append('\n').append('\n');
             w.append("        // We matched this alternative").append('\n');
             w.append("        matchedAnyAlt = true;").append('\n').append('\n');
 
@@ -1115,13 +1115,14 @@ public class UnparserCodeGenerator {
         tEngine.mergeTemplate("model-unparser-match-alt",w);
     }
 
-    private static void generateElements(UnparserModel model, GrammarModel gModel, Writer w, RuleClass gRule, UPRule rule, AlternativeBase a, String altName) throws IOException {
+    private static void generateElements(UnparserModel model, GrammarModel gModel, Writer w, RuleClass gRule,
+                                         UPRule rule, AlternativeBase a, String altName) throws IOException {
         String indent = "";
 
         for(UPElement e : a.getElements()) {
             w.append('\n');
             if(e instanceof UPSubRuleElement) {
-                generateSubRuleElementCode(w, altName, indent, (UPSubRuleElement) e);
+                generateSubRuleElementCode(w, altName, indent, (UPSubRuleElement) e, gRule);
             } else if(e instanceof UPNamedSubRuleElement) {
                 generateNamedSubRuleElementCode(w, indent, (UPNamedSubRuleElement) e, gRule, altName);
             } else if(e instanceof UPNamedElement) {
@@ -1449,9 +1450,18 @@ public class UnparserCodeGenerator {
         }
     }
 
-    private static void generateSubRuleElementCode(Writer w, String altName, String indent, UPSubRuleElement sre) throws IOException {
+    private static void generateSubRuleElementCode(Writer w, String altName, String indent, UPSubRuleElement sre, RuleClass gRule) throws IOException {
         w.append(indent+"    // handling sub-rule " + sre.getId()).append('\n');
-        w.append(indent+"    unparse" + altName + "SubRule" + sre.getId() + "( obj, internalW );").append('\n');
+        if(!sre.ebnfOptional()&&!sre.ebnfZeroMany()) {
+            w.append(indent+"    // this rule is not optional. we skip the rest of this alt if we can't match it.").append('\n');
+            w.append(indent+"    if(!unparse" + altName + "SubRule" + sre.getId() + "( obj, internalW )) {").append('\n');
+            generateRejectStateCode(indent + "      ", gRule, altName, w);
+            w.append(indent+"      return false;").append('\n');
+            w.append(indent+"    }").append('\n');
+        } else {
+            w.append(indent+"    // this rule is optional. we continue with the rest of this alt even if we can't match it.").append('\n');
+            w.append(indent + "  unparse" + altName + "SubRule" + sre.getId() + "( obj, internalW );").append('\n');
+        }
     }
 }
 
