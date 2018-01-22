@@ -602,8 +602,13 @@ public class UnparserCodeGenerator {
                     // TODO 06.01.2018 introduce switch for enabling/disabling full validation
                     // - remove false&& below to remove expensive checks from last alternative to speed up performance
                     // - do this only if you KNOW that your model is VALID
+                    // generateAltCode(w, model, gModel, r, gRule, ruleName, ruleName, a,
+                    //        false&&noCheck);
+                    //
+                    // [UPDATE:] 22.06.2018 we can go even further and skip match... calls in almost all cases
+                    // (only cases where properties are used in multiple alts need to be resolved via match...)
                     generateAltCode(w, model, gModel, r, gRule, ruleName, ruleName, a,
-                            false&&noCheck);
+                            true, r.getAlternatives().size());
                 }
 
                 w.append("}").append('\n').append('\n');
@@ -792,7 +797,21 @@ public class UnparserCodeGenerator {
     }
 
     private static void generateAltCode(Writer w, UnparserModel model, GrammarModel gModel, UPRule r, RuleClass gRule,
-                                        String ruleName, String objName, AlternativeBase a, boolean noCheck) throws IOException {
+                                        String ruleName, String objName, AlternativeBase a, boolean noCheck, int numAltsPerRule) throws IOException {
+
+
+        // we do need to check cases where properties are used in multiple alts of the current rule to ensure we
+        // do a valid unparse
+        if(noCheck == true) {
+            if(a.getId() == numAltsPerRule-1) {
+                // if we are the last rule we never need a check
+            } else {
+                // if not, it depends...
+                noCheck = !propertiesUsedInMultipleRuleAlts(a, r, gRule);
+            }
+        }
+
+
         String altName = ruleName + "Alt" + a.getId();
         w.append('\n');
         w.append("  private boolean unparse"+ altName + "( " + objName + " obj, PrintWriter w ) {").append('\n');
@@ -898,12 +917,13 @@ public class UnparserCodeGenerator {
 
         generateMatchAltMethod(gModel, altName, w);
 
+        final boolean nocheckFinal = noCheck;
         a.getElements().stream().filter(el->el instanceof SubRule).filter(el->!(el instanceof UPNamedSubRuleElement)).
                 map(el->(SubRule)el).forEach(sr-> {
 
             for(AlternativeBase sa : sr.getAlternatives()) {
                 try {
-                    generateAltCode(w, model, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa, false);
+                    generateAltCode(w, model, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa, /*we check based on parent alts preferences*/nocheckFinal,sr.getAlternatives().size());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -971,26 +991,26 @@ public class UnparserCodeGenerator {
     }
 
 
-    private static void _getPropertiesElementsUsedInAlternative(AlternativeBase a, List<UPElement> elements) {
+    private static void _getPropertiesElementsUsedInAlternative(AlternativeBase a, List<UPElement> elements, boolean includeSubRules) {
         for(UPElement e : a.getElements()) {
             if(e instanceof WithName) {
                 elements.add(e);
             }
 
-            if(e instanceof SubRule) {
+            if(includeSubRules && e instanceof SubRule) {
                 SubRule sr = (SubRule) e;
                 for(AlternativeBase subA : sr.getAlternatives()) {
-                    _getPropertiesElementsUsedInAlternative(subA,elements);
+                    _getPropertiesElementsUsedInAlternative(subA,elements, includeSubRules);
                 }
             }
         }
     }
 
-    private static List<UPElement> getPropertiesElementsUsedInAlternative(AlternativeBase a) {
+    private static List<UPElement> getPropertiesElementsUsedInAlternative(AlternativeBase a, boolean includeSubRules) {
 
         List<UPElement> elements = new ArrayList<>();
 
-        _getPropertiesElementsUsedInAlternative(a, elements);
+        _getPropertiesElementsUsedInAlternative(a, elements, includeSubRules);
 
         return elements;
     }
@@ -1037,7 +1057,7 @@ public class UnparserCodeGenerator {
     private static void generateConsumedPropertiesCheck(AlternativeBase a, String aName, UPRule r, RuleClass gRule, Writer w) throws IOException {
         //List<Property> propertiesInAlt = getPropertiesUsedInAlt(gRule, a);
 
-        List<UPElement> propertyElements = getPropertiesElementsUsedInAlternative(a);
+        List<UPElement> propertyElements = getPropertiesElementsUsedInAlternative(a, false);
 
         String canConsumeVarName = StringUtil.firstToLower(aName + "CanConsume");
 
@@ -1069,7 +1089,7 @@ public class UnparserCodeGenerator {
 
         // non-array properties
         for(UPElement p : propertyElements) {
-            if(!p.isListType() && !p.ebnfOptional()) {
+            if(!p.isListType() && !(p.ebnfOptional() || p.ebnfZeroMany())) {
                 String pName = StringUtil.firstToLower(((WithName)p).getName());
                 String pNameUpper = StringUtil.firstToUpper(((WithName)p).getName());
 
@@ -1082,6 +1102,63 @@ public class UnparserCodeGenerator {
         if(hasToCheck) {
             w.append("        if(!" + canConsumeVarName + ") return false;").append('\n');
         }
+    }
+
+    private static boolean propertiesUsedInMultipleRuleAlts(AlternativeBase a, UPRule r, RuleClass gRule) {
+        // find overlapping properties, i.e., properties that are used in multiple alternatives of the same rule
+        List<UPElement> rulePropertyElements = new ArrayList<>();
+        for(AlternativeBase ruleAlt: r.getAlternatives()) {
+            List<UPElement> propertyElemsUsedInAlt = getPropertiesElementsUsedInAlternative(ruleAlt, true).
+                    stream().distinct().filter(e->e.isLexerRule() || e.isTerminal()).collect(Collectors.toList());
+
+            // for each element we check whether to add the element to the list of property elements to count
+            for(UPElement upElement : propertyElemsUsedInAlt) {
+                String name = "";
+                String referencedRuleName;
+
+                if(upElement.isTerminal()) {
+                    referencedRuleName = upElement.getText();
+                } else {
+                    referencedRuleName = upElement.getRuleName();
+                }
+
+                // add the element (if not already added)
+                if(!rulePropertyElements.contains(upElement)) {
+                    rulePropertyElements.add(upElement);
+                }
+
+                // filter all elements from the list that have the same name, reference a lexer rule or terminal
+                // which is different from the current element (upElement).
+                // we don't count parser-rule-elements. They have their own unparser class and do their checks there
+                // and the same property cannot be of two different parser rule types
+                List<UPElement> elementsToAdd = rulePropertyElements.stream().filter(e -> e instanceof WithName).
+                        filter(n -> Objects.equals(((WithName)n).getName(), name)).
+                        filter(n->!Objects.equals(n.isTerminal()?n.getText():n.getRuleName(),referencedRuleName)).
+                        collect(Collectors.toList());
+
+                // finally add the elements
+                rulePropertyElements.addAll(elementsToAdd);
+            }
+        }
+
+        // this map contains the properties and the number of occurrences
+        Map<String, Integer> numberOfOccurrences = new HashMap<>();
+
+        // do the counting
+        for(Property p : gRule.getProperties()) {
+            String pName = p.nameWithLower();
+
+            int numOcc = (int)rulePropertyElements.stream().filter(e->e instanceof WithName).map(e->(WithName)e).
+                    filter(n-> Objects.equals(pName,n.getName())).count();
+
+            numberOfOccurrences.put(pName, numOcc);
+        }
+
+        // check whether for at least one property we have multiple occurrences (as explained above, we only check
+        // lexer rule properties for now)
+        boolean overlappingProperties = numberOfOccurrences.values().stream().filter(v->v > 1).count() > 0;
+
+        return overlappingProperties;
     }
 
     private static Map<String,Boolean> getPropertyNamesOfRule(UPRule r) {
