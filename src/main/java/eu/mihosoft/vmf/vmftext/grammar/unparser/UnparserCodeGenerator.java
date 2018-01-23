@@ -833,7 +833,7 @@ public class UnparserCodeGenerator {
         w.append('\n');
 
         w.append("    // begin check whether non-optional properties are available (not used/consumed)").append('\n');
-        // TODO 21.01.2018 enable if we want to avoid unneccessary matchAlt... calls but still do validation
+        // TODO 21.01.2018 enable if we want to avoid unnecessary matchAlt... calls but still do validation
         generateConsumedPropertiesCheck(a, altName, r, gRule, w);
         w.append("    // end   check whether non-optional properties are available (not used/consumed)").append('\n');
         w.append('\n');
