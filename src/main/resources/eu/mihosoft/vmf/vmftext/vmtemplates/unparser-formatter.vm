@@ -58,6 +58,9 @@ public interface Formatter {
     private final String ruleName;
     private final String ruleText;
 
+    // consumed
+    private boolean consumed;
+
     private RuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText) {
       this.parentObject = parentObject;
       this.ruleType = ruleType;
@@ -95,6 +98,18 @@ public interface Formatter {
         }, RuleType.NONE, "","");
     }
 
+   /**
+    * Calling this method consumes the current rule. This method only has an effect if called inside
+    * the {@code Formatter.pre()} method.
+    */
+    public void consume() {
+      this.consumed = true;
+    }
+
+    boolean isConsumed() {
+      return this.consumed;
+    }
+
     /*package private*/ static RuleInfo newRuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText) {
       return new RuleInfo(parentObject, ruleType, ruleName, ruleText);
     }
@@ -115,7 +130,6 @@ public interface Formatter {
       return this.ruleText;
     }
   }
-
 }
 
 class DefaultFormatter implements Formatter {
