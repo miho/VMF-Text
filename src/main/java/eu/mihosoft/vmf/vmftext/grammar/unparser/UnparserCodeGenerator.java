@@ -816,36 +816,46 @@ public class UnparserCodeGenerator {
         }
         w.append('\n');
         w.append("  // ").append('\n');
-        w.append("  // FLAGS:").append('\n');
+        w.append("  //  --------------------------------------------------------------------------------").append('\n');
+        w.append("  //  -- FLAGS:").append('\n');
+        w.append("  //  --------------------------------------------------------------------------------").append('\n');
         w.append("  // ").append('\n');
-        w.append("  //  -> rule-alt-text:         ").append(a.getText().replace('\n',' ')).append('\n');
-        w.append("  //  -> no-check:              " + userNoCheck).append('\n');
-        w.append("  //  -- properties which determin whether we can unparse without matchAlt-calls:" + userNoCheck).append('\n');
-        w.append("  //  -> no-operator:           " + negationOperatorUsedInAlt).append('\n');
-        w.append("  //  -> used-in-multiple-alts: " + propertiesUsedInMultipleAlts).append('\n');
-        w.append("  //  -> last-rule-alt:         " + lastRuleAlt).append('\n');
+        w.append("  //    ------------------------------------------------------------------------------").append('\n');
+        w.append("  //    -- rule and noCheck info").append('\n');
+        w.append("  //    ------------------------------------------------------------------------------").append('\n');
+        w.append("  //      -> rule-alt-text:         ").append(a.getText().replace('\n',' ').
+                                                                            replace('\r',' ')).append('\n');
+        w.append("  //      -> no-check:              " + userNoCheck).append('\n');
+        w.append("  //    ------------------------------------------------------------------------------").append('\n');
+        w.append("  //    -- properties which determine whether we can unparse without matchAlt-calls:").append('\n');
+        w.append("  //    ------------------------------------------------------------------------------").append('\n');
+        w.append("  //      -> no-operator:           " + negationOperatorUsedInAlt).append('\n');
+        w.append("  //      -> used-in-multiple-alts: " + propertiesUsedInMultipleAlts).append('\n');
+        w.append("  //      -> last-rule-alt:         " + lastRuleAlt).append('\n');
         w.append("  //").append('\n');
-        w.append("  // EVALUATION:").append('\n');
+        w.append("  //  --------------------------------------------------------------------------------").append('\n');
+        w.append("  //  -- EVALUATION:").append('\n');
+        w.append("  //  --------------------------------------------------------------------------------").append('\n');
         w.append("  // ").append('\n');
         if(userNoCheck==false) {
-            w.append("  // noCheck is disabled which forces us to do all checks.").append('\n');
-            w.append("  // FIXME: TODO: consider disabling checks and do full validation prior to unparsing.").append('\n');
-            w.append("  // FIXME: TODO: this code will run up to ~70 times slower than with noCheck=true").append('\n');
+            w.append("  //    noCheck is disabled which forces us to do all checks.").append('\n');
+            w.append("  //    FIXME: TODO: consider disabling checks and do full validation prior to unparsing.").append('\n');
+            w.append("  //    FIXME: TODO: this code will run up to ~70 times slower than with noCheck=true").append('\n');
         } else if(lastRuleAlt) {
-            w.append("  // We are the last rule and don't do any checks (matchAlt-calls)").append('\n');
-            w.append("  // since checking was not enforced.").append('\n');
+            w.append("  //    We are the last rule and don't do any checks (matchAlt-calls)").append('\n');
+            w.append("  //    since checking was not enforced.").append('\n');
         } else if(negationOperatorUsedInAlt) {
-            w.append("  // Negation operator '~' is used in this alt.").append('\n');
-            w.append("  // That's why we do checks (matchAlt-calls). Otherwise we can't make a valid decision.").append('\n');
-            w.append("  // FIXME: TODO: using the not-operator in parser-rule properties has a negative performance impact.").append('\n');
+            w.append("  //    Negation operator '~' is used in this alt.").append('\n');
+            w.append("  //    That's why we do checks (matchAlt-calls). Otherwise we can't make a valid decision.").append('\n');
+            w.append("  //    FIXME: TODO: using the not-operator in parser-rule properties has a negative performance impact.").append('\n');
         } else if(propertiesUsedInMultipleAlts) {
-            w.append("  // Properties used in this alt are used in other alts (with different terminals/lexer rules).").append('\n');
-            w.append("  // That's why we do checks (matchAlt-calls). Otherwise we can't make a valid decision.").append('\n');
-            w.append("  // FIXME: TODO: using properties with different lexer rules in multiple alts has a negative performance impact.").append('\n');
+            w.append("  //    Properties used in this alt are used in other alts (with different terminals/lexer rules).").append('\n');
+            w.append("  //    That's why we do checks (matchAlt-calls). Otherwise we can't make a valid decision.").append('\n');
+            w.append("  //    FIXME: TODO: using properties with different lexer rules in multiple alts has a negative performance impact.").append('\n');
         } else {
-            w.append("  // Nothing prevents us from skipping checks (matchAlt-calls). We can decide by checking").append('\n');
-            w.append("  // whether properties in this alt are consumable and/or if properties used in other alts").append('\n');
-            w.append("  // are defined etc.").append('\n');
+            w.append("  //    Nothing prevents us from skipping checks (matchAlt-calls). We can decide by checking").append('\n');
+            w.append("  //    whether properties in this alt are consumable and/or if properties used in other alts").append('\n');
+            w.append("  //    are defined etc.").append('\n');
         }
         w.append("  // ");
         String altName = ruleName + "Alt" + a.getId();
