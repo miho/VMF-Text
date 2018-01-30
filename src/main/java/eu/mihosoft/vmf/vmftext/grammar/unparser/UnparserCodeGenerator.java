@@ -842,7 +842,7 @@ public class UnparserCodeGenerator {
             w.append("  //    FIXME: TODO: consider disabling checks and do full validation prior to unparsing.").append('\n');
             w.append("  //    FIXME: TODO: this code will run up to ~70 times slower than with noCheck=true").append('\n');
         } else if(lastRuleAlt) {
-            w.append("  //    We are the last rule and don't do any checks (matchAlt-calls)").append('\n');
+            w.append("  //    We are the last alt in this rule and don't do any checks (matchAlt-calls)").append('\n');
             w.append("  //    since checking was not enforced.").append('\n');
         } else if(negationOperatorUsedInAlt) {
             w.append("  //    Negation operator '~' is used in this alt.").append('\n');
