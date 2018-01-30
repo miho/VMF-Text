@@ -25,24 +25,10 @@ public class ParseTreeUtil {
 
     public static boolean isLexerRule(ANTLRv4Parser.ElementContext e) {
 
-        if(e.getText().contains("~")) {
-            System.out.println("e: " + e.getText());
-            System.out.println(" -> e.atom: " + e.atom());
-            if(e.atom()!=null) {
-                System.out.println("   -> text: " + e.atom().getText());
-            }
-            System.out.println(" -> e.lbe : " + e.labeledElement());
-            if(e.labeledElement()!=null) {
-                System.out.println("   -> text: " + e.labeledElement().getText());
-
-                // System.out.println("   -> text: " +  e.labeledElement().atom().getText());
-
-            }
-        }
-
         if(e.labeledElement()!=null && e.labeledElement().atom()!=null) {
             String atomText = e.labeledElement().atom().getText();
 
+            // detect lexer rules with not operator
             if(atomText.length()> 1
                     && atomText.startsWith("~")
                     && Character.isUpperCase(atomText.codePointAt(1)))
@@ -62,6 +48,7 @@ public class ParseTreeUtil {
         if(e.labeledElement()!=null && e.labeledElement().atom()!=null) {
             String atomText = e.labeledElement().atom().getText();
 
+            // detect literals with not operator
             if(atomText.startsWith("~'")) return true;
         }
 
@@ -72,13 +59,40 @@ public class ParseTreeUtil {
                 e.labeledElement().atom().terminal().TOKEN_REF() == null;
     }
 
+    public static boolean isNegated(ANTLRv4Parser.ElementContext e) {
+
+        if(isParserRule(e)) {
+            // parser rules can't be negated
+            return false;
+        } else if(e.atom()!=null) {
+            return e.atom().notSet()!=null;
+        } else if(e.labeledElement()!=null && e.labeledElement().atom()!=null) {
+            return e.labeledElement().atom().notSet()!=null;
+        }
+
+        return false;
+    }
+
     public static String getElementText(ANTLRv4Parser.ElementContext e) {
         if(isParserRule(e)) {
             return e.labeledElement().atom().ruleref().getText();
         } else if(isLexerRule(e)) {
-            return e.labeledElement().atom().terminal().TOKEN_REF().getText();
+
+            // if we use not operator we need to access text differently
+            if(e.labeledElement().atom()!=null) {
+                return e.labeledElement().atom().getText();
+            } else {
+                // default case
+                return e.labeledElement().atom().terminal().TOKEN_REF().getText();
+            }
         } else if(isStringLiteral(e)) {
-            return e.labeledElement().atom().terminal().STRING_LITERAL().getText();
+            // if we use not operator we need to access text differently
+            if(e.labeledElement().atom()!=null) {
+                return e.labeledElement().atom().getText();
+            } else {
+                // default case
+                return e.labeledElement().atom().terminal().STRING_LITERAL().getText();
+            }
         }
 
         return null;

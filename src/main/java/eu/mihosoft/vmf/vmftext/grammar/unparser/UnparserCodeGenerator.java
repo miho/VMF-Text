@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class UnparserCodeGenerator {
 
@@ -30,7 +31,6 @@ public class UnparserCodeGenerator {
              Writer w = resource.open()) {
 
             generateUPParentUnparserCode(gModel, model,rules, w);
-
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -799,19 +799,55 @@ public class UnparserCodeGenerator {
     private static void generateAltCode(Writer w, UnparserModel model, GrammarModel gModel, UPRule r, RuleClass gRule,
                                         String ruleName, String objName, AlternativeBase a, boolean noCheck, int numAltsPerRule) throws IOException {
 
+        boolean userNoCheck = noCheck;
+        boolean lastRuleAlt = a.getId() == numAltsPerRule-1;
+        boolean negationOperatorUsedInAlt = propertiesOfAltUseNegateOperator(a, r, gRule);
+        boolean propertiesUsedInMultipleAlts = propertiesUsedInMultipleRuleAlts(a, r, gRule);
 
         // we do need to check cases where properties are used in multiple alts of the current rule to ensure we
         // do a valid unparse
         if(noCheck == true) {
-            if(a.getId() == numAltsPerRule-1) {
+            if(lastRuleAlt) {
                 // if we are the last rule we never need a check
             } else {
                 // if not, it depends...
-                noCheck = !propertiesUsedInMultipleRuleAlts(a, r, gRule);
+                noCheck = !propertiesUsedInMultipleAlts && !negationOperatorUsedInAlt;
             }
         }
-
-
+        w.append('\n');
+        w.append("  // ").append('\n');
+        w.append("  // FLAGS:").append('\n');
+        w.append("  // ").append('\n');
+        w.append("  //  -> rule-alt-text:         ").append(a.getText().replace('\n',' ')).append('\n');
+        w.append("  //  -> no-check:              " + userNoCheck).append('\n');
+        w.append("  //  -- properties which determin whether we can unparse without matchAlt-calls:" + userNoCheck).append('\n');
+        w.append("  //  -> no-operator:           " + negationOperatorUsedInAlt).append('\n');
+        w.append("  //  -> used-in-multiple-alts: " + propertiesUsedInMultipleAlts).append('\n');
+        w.append("  //  -> last-rule-alt:         " + lastRuleAlt).append('\n');
+        w.append("  //").append('\n');
+        w.append("  // EVALUATION:").append('\n');
+        w.append("  // ").append('\n');
+        if(userNoCheck==false) {
+            w.append("  // noCheck is disabled which forces us to do all checks.").append('\n');
+            w.append("  // FIXME: TODO: consider disabling checks and do full validation prior to unparsing.").append('\n');
+            w.append("  // FIXME: TODO: this code will run up to ~70 times slower than with noCheck=true").append('\n');
+        } else if(lastRuleAlt) {
+            w.append("  // We are the last rule and don't do any checks (matchAlt-calls)").append('\n');
+            w.append("  // since checking was not enforced.").append('\n');
+        } else if(negationOperatorUsedInAlt) {
+            w.append("  // Negation operator '~' is used in this alt.").append('\n');
+            w.append("  // That's why we do checks (matchAlt-calls). Otherwise we can't make a valid decision.").append('\n');
+            w.append("  // FIXME: TODO: using the not-operator in parser-rule properties has a negative performance impact.").append('\n');
+        } else if(propertiesUsedInMultipleAlts) {
+            w.append("  // Properties used in this alt are used in other alts (with different terminals/lexer rules).").append('\n');
+            w.append("  // That's why we do checks (matchAlt-calls). Otherwise we can't make a valid decision.").append('\n');
+            w.append("  // FIXME: TODO: using properties with different lexer rules in multiple alts has a negative performance impact.").append('\n');
+        } else {
+            w.append("  // Nothing prevents us from skipping checks (matchAlt-calls). We can decide by checking").append('\n');
+            w.append("  // whether properties in this alt are consumable and/or if properties used in other alts").append('\n');
+            w.append("  // are defined etc.").append('\n');
+        }
+        w.append("  // ");
         String altName = ruleName + "Alt" + a.getId();
         w.append('\n');
         w.append("  private boolean unparse"+ altName + "( " + objName + " obj, PrintWriter w ) {").append('\n');
@@ -1103,6 +1139,16 @@ public class UnparserCodeGenerator {
         if(hasToCheck) {
             w.append("        if(!" + canConsumeVarName + ") return false;").append('\n');
         }
+    }
+
+    private static boolean propertiesOfAltUseNegateOperator(AlternativeBase a, UPRule r, RuleClass gRule) {
+
+        // negation can only occur in lexer rules and terminal rules
+        Stream<UPElement> propertyElemsUsedInAlt = getPropertiesElementsUsedInAlternative(a, true).
+                stream().distinct();
+
+        // check whether we find a rule that is negated
+        return propertyElemsUsedInAlt.filter(e->e.isNegated()).count() > 0;
     }
 
     private static boolean propertiesUsedInMultipleRuleAlts(AlternativeBase a, UPRule r, RuleClass gRule) {

@@ -170,6 +170,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                         withParserRule(ParseTreeUtil.isParserRule(ctx)).
                         withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
                         withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
+                        withNegated(ParseTreeUtil.isNegated(ctx)).
                         build();
 
                 if(subRule.isParserRule()||subRule.isLexerRule()) {
@@ -194,6 +195,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                         withParserRule(ParseTreeUtil.isParserRule(ctx)).
                         withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
                         withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
+                        withNegated(ParseTreeUtil.isNegated(ctx)).
                         build();
 
                 if(namedElement.isParserRule()||namedElement.isLexerRule()) {
@@ -216,6 +218,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                         withParserRule(ParseTreeUtil.isParserRule(ctx)).
                         withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
                         withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
+                        withNegated(ParseTreeUtil.isNegated(ctx)).
                         build();
 
                 if(subRule.isParserRule()||subRule.isLexerRule()) {
@@ -243,6 +246,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                             withParserRule(ParseTreeUtil.isParserRule(ctx)).
                             withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
                             withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
+                            withNegated(ParseTreeUtil.isNegated(ctx)).
                             build();
 
                     if(subRule.isParserRule()||subRule.isLexerRule()) {
@@ -264,6 +268,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                                 withParserRule(ParseTreeUtil.isParserRule(ctx)).
                                 withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
                                 withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
+                                withNegated(ParseTreeUtil.isNegated(ctx)).
                                 build();
 
                     if(currentElement.isParserRule()||currentElement.isLexerRule()) {

@@ -83,6 +83,8 @@ interface UPElement extends WithText {
     boolean isTerminal();
     boolean isParserRule();
 
+    boolean isNegated();
+
     String getRuleName();
 }
 
