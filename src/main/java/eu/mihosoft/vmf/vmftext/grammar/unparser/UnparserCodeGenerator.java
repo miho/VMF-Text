@@ -821,7 +821,7 @@ public class UnparserCodeGenerator {
         w.append("  //  --------------------------------------------------------------------------------").append('\n');
         w.append("  // ").append('\n');
         w.append("  //    ------------------------------------------------------------------------------").append('\n');
-        w.append("  //    -- rule and noCheck info").append('\n');
+        w.append("  //    -- rule and noCheck info:").append('\n');
         w.append("  //    ------------------------------------------------------------------------------").append('\n');
         w.append("  //      -> rule-alt-text:         ").append(a.getText().replace('\n',' ').
                                                                             replace('\r',' ')).append('\n');
