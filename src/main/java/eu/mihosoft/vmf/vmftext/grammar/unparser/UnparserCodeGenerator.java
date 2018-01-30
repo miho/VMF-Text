@@ -1309,7 +1309,7 @@ public class UnparserCodeGenerator {
         String lexerRuleName = sre.getRuleName()!=null?sre.getRuleName():"";
 
         w.append(indent+"    // handling element with name '"+sre.getName()+"'").append('\n');
-        String ruleType = "/*FIXME: TYPE IS UNDEFINED!*/";
+        String ruleType = "/*FIXME: TYPE IS UNDEFINED! ruleText='" + sre.getText() + "' */";
         if(sre.isLexerRule()) {
             ruleType = "Formatter.RuleType.LEXER_RULE";
         } else if(sre.isTerminal()) {

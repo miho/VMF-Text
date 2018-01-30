@@ -25,6 +25,32 @@ public class ParseTreeUtil {
 
     public static boolean isLexerRule(ANTLRv4Parser.ElementContext e) {
 
+        if(e.getText().contains("~")) {
+            System.out.println("e: " + e.getText());
+            System.out.println(" -> e.atom: " + e.atom());
+            if(e.atom()!=null) {
+                System.out.println("   -> text: " + e.atom().getText());
+            }
+            System.out.println(" -> e.lbe : " + e.labeledElement());
+            if(e.labeledElement()!=null) {
+                System.out.println("   -> text: " + e.labeledElement().getText());
+
+                // System.out.println("   -> text: " +  e.labeledElement().atom().getText());
+
+            }
+        }
+
+        if(e.labeledElement()!=null && e.labeledElement().atom()!=null) {
+            String atomText = e.labeledElement().atom().getText();
+
+            if(atomText.length()> 1
+                    && atomText.startsWith("~")
+                    && Character.isUpperCase(atomText.codePointAt(1)))
+                return true;
+        }
+
+
+
         if(e.labeledElement() == null || e.labeledElement().atom()==null) return false;
 
         return e.labeledElement().atom().terminal() != null &&
@@ -32,6 +58,13 @@ public class ParseTreeUtil {
     }
 
     public static boolean isStringLiteral(ANTLRv4Parser.ElementContext e) {
+
+        if(e.labeledElement()!=null && e.labeledElement().atom()!=null) {
+            String atomText = e.labeledElement().atom().getText();
+
+            if(atomText.startsWith("~'")) return true;
+        }
+
 
         if(e.labeledElement() == null || e.labeledElement().atom()==null) return false;
 
