@@ -54,7 +54,8 @@ import org.antlr.v4.runtime.ANTLRErrorStrategy;
         if(entry!=null) {
             return entry.toString();
         } else {
-            return "";
+            return null;
+            // return ""; decide whether we use null for detecting unset properties or if we implement default values for VMF models
         }
     }
 

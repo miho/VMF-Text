@@ -1117,7 +1117,7 @@ public class UnparserCodeGenerator {
         boolean hasToCheck = hasArrayPropertiesThatNeedToBeChecked || hasNonArrayPropertiesThatNeedToBeChecked;
 
         if(hasToCheck) {
-            w.append("        boolean " + canConsumeVarName + " = false;").append('\n');
+            w.append("        boolean " + canConsumeVarName + " = true;").append('\n');
         } else {
             w.append("        // no non-optional properties to check").append('\n');
         }
@@ -1130,7 +1130,7 @@ public class UnparserCodeGenerator {
 
                 w.append("        // check whether elements from list property '"+ pName + "' can be consumed").append('\n');
                 w.append("        " +canConsumeVarName + " = " + canConsumeVarName + "\n" +
-                        "          || prop" + pNameUpper+ "ListIndex.get() < obj.get" + pNameUpper +"().size();").append('\n');
+                        "          && prop" + pNameUpper+ "ListIndex.get() < obj.get" + pNameUpper +"().size();").append('\n');
             }
         }
 
@@ -1142,7 +1142,7 @@ public class UnparserCodeGenerator {
 
                 w.append("        // check whether non-list property '"+ pName + "' can be consumed").append('\n');
                 w.append("        " +canConsumeVarName + " = " + canConsumeVarName + "\n" +
-                        "          || ( obj.get" + pNameUpper + "()!=null /*&& !prop" + pNameUpper+ "Used.is()*/);").append('\n');
+                        "          && ( obj.get" + pNameUpper + "()!=null /*&& !prop" + pNameUpper+ "Used.is()*/);").append('\n');
             }
         }
 
