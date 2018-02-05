@@ -9,21 +9,21 @@ typeMapping:
      ;
 
 mapping:
-    ruleName=Identifier '->' typeName=javaType 'via'
+    '('? ('rule:')? ruleName=Identifier '->' ('type:')? typeName=javaType ')'? ('via'|'=')
     (
-        '('
-           stringToTypeCode = (STRING_SINGLE|STRING_DOUBLE) ',' typeToStringCode = (STRING_SINGLE|STRING_DOUBLE)
-        ')'
+        ('('|'{')
+        ('toType' ':')?  stringToTypeCode = STRING_SINGLE ',' ('toString' ':')? typeToStringCode = STRING_SINGLE
+        (')'|'}')
 
         |
 
-        '('
-           stringToTypeCode = (STRING_SINGLE|STRING_DOUBLE)
-        ')'
+        ('('|'{')
+           stringToTypeCode = STRING_SINGLE
+        (')'|'}')
 
         |
 
-        stringToTypeCode = (STRING_SINGLE|STRING_DOUBLE)
+        ('toType' ':')? stringToTypeCode = STRING_SINGLE
     )
     ;
 
@@ -78,14 +78,15 @@ JavaIdentifier : Identifier ('.' Identifier)+
 Identifier: NameStartChar NameChar*
     ;
 
-STRING_DOUBLE
-    :   '"' (~('"' | '\\' | '\r' | '\n') | '\\' ('"' | '\\'))*? '"'
-    ;
 
-STRING_SINGLE
-    :   '\'' (~('\'' | '\\' | '\r' | '\n') | '\\' ('\'' | '\\'))*? '\''
-    ;
+STRING_DOUBLE: '"'  (~["\\\r\n] | ESCAPE_SEQUENCE)* '"';
 
+STRING_SINGLE: '\'' (~['\\\r\n] | ESCAPE_SEQUENCE)* '\'';
+
+
+fragment ESCAPE_SEQUENCE
+: '\\' [btnfr"\\]
+;
 
 fragment
 NameChar
