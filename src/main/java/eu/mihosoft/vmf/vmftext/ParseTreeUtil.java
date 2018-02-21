@@ -108,15 +108,24 @@ public class ParseTreeUtil {
                 withCharPosInLine(t.getCharPositionInLine()).withLine(t.getLine()).build();
     }
 
-    public static CodeLocation tokenToCodeLocationStop(Token t) {
+    public static CodeLocation tokenToCodeLocationStop(Token t, ParserRuleContext ctx) {
+        int startIndex = t.getStartIndex();
+        int stopIndex = t.getStopIndex();
+        int diff = stopIndex - startIndex;
+
         return CodeLocation.newBuilder().
-                withIndex(t.getStopIndex()).
-                withCharPosInLine(t.getCharPositionInLine()).withLine(t.getLine()).build();
+                withIndex(stopIndex).
+                withCharPosInLine(t.getCharPositionInLine()+diff).
+                withLine(/*TODO 14.02.2018 does not work for multi-line-tokens*/t.getLine()).build();
     }
 
     public static CodeRange ctxToCodeRange(ParserRuleContext ctx) {
-        return CodeRange.newBuilder().withStart(tokenToCodeLocationStart(ctx.start)).
-                withStop(tokenToCodeLocationStop(ctx.stop)).build();
+        // consider for stop line: https://stackoverflow.com/a/17487805
+        CodeLocation start = tokenToCodeLocationStart(ctx.start);
+        CodeLocation stop = tokenToCodeLocationStart(ctx.stop);
+        return CodeRange.newBuilder().withStart(start).
+                withStop(tokenToCodeLocationStop(ctx.stop,ctx))
+                .withLength(stop.getIndex()-start.getIndex()+1/*+1 because of inclusive vs. exclusive*/).build();
     }
 
     public static boolean isLabeledBlockElement(ANTLRv4Parser.ElementContext e) {

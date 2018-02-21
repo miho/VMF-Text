@@ -246,7 +246,8 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         private final List<ANTLRv4Parser.ElementContext> elements;
         private final TypeMappings typeMappings;
 
-        public InitRulePropertiesTask(Map<String, RuleClass> rules, RuleClass cls, TypeMappings typeMappings, List<ANTLRv4Parser.ElementContext> elements) {
+        public InitRulePropertiesTask(Map<String, RuleClass> rules, RuleClass cls, TypeMappings typeMappings,
+                                      List<ANTLRv4Parser.ElementContext> elements) {
             this.rules = rules;
             this.cls = cls;
             this.elements = elements;

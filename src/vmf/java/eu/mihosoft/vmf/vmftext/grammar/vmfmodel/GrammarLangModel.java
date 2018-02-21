@@ -43,6 +43,7 @@ interface CustomRule extends WithText {
 interface CodeRange {
     CodeLocation getStart();
     CodeLocation getStop();
+    int getLength();
 }
 
 @Immutable

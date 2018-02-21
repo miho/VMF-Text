@@ -297,23 +297,33 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
           withCharPosInLine(t.getCharPositionInLine()).withLine(t.getLine()).build();
     }
 
-    public static CodeLocation tokenToCodeLocationStop(Token t) {
-      return CodeLocation.newBuilder().
-        withIndex(t.getStopIndex()).
-          withCharPosInLine(t.getCharPositionInLine()).withLine(t.getLine()).build();
+    public static CodeLocation tokenToCodeLocationStop(Token t, ParserRuleContext ctx) {
+        int startIndex = t.getStartIndex();
+        int stopIndex = t.getStopIndex();
+        int length = stopIndex - startIndex;
+
+        return CodeLocation.newBuilder().
+            withIndex(stopIndex).
+            withCharPosInLine(t.getCharPositionInLine()+length).
+            withLine(/*TODO 14.02.2018 does not work for multiple-line-tokens*/t.getLine()).build();
     }
 
     public static CodeRange ctxToCodeRange(ParserRuleContext ctx) {
+      // consider for stop line: https://stackoverflow.com/a/17487805
       CodeRange.Builder builder = CodeRange.newBuilder().withStart(tokenToCodeLocationStart(ctx.start));
+       CodeLocation start = tokenToCodeLocationStart(ctx.start);
+       CodeLocation stop;
 
       if(ctx.stop==null) {
         // if no stop is present use start token
-        builder.withStop(tokenToCodeLocationStart(ctx.start));
+        stop = tokenToCodeLocationStop(ctx.start,ctx);
+        builder.withStop(stop);
       } else {
-        builder.withStop(tokenToCodeLocationStop(ctx.stop));
+        stop = tokenToCodeLocationStop(ctx.stop,ctx);
+        builder.withStop(stop);
       }
 
-      return builder.build();
+      return builder.withLength(stop.getIndex()-start.getIndex()+1/*+1 because of inclusive vs. exclusive*/).build();
     }
 
 // TODO remove this class if compile time conversion works
