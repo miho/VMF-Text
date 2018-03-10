@@ -80,8 +80,7 @@ public class VMFText {
             }
             generator.generateModelParser(model, outputDir);
 
-
-            // generate mode unparser
+            // generate model unparser
             UnparserModel unparserModel = conversionResult.unparserModel;
             generator.generateModelUnparser(model, unparserModel, grammar, outputDir);
 
