@@ -187,7 +187,7 @@ public class UnparserCodeGenerator {
         }
 
         w.append('\n');
-        w.append("import " + gModel.getPackageName()+ ".unparser." +gModel.getGrammarName()+ "ModelUnparser.IntValue;").append('\n');
+        w.append("import " + gModel.getPackageName()+ ".unparser." +gModel.getGrammarName()+ "ModelUnparser.__VMF__IntValue;").append('\n');
         w.append('\n');
         w.append('\n');
 
@@ -384,10 +384,10 @@ public class UnparserCodeGenerator {
         // State object classes
 
         w.append('\n');
-        w.append(" static class IntValue { private int value; public void set(int v) {this.value = v;} public int get() { return this.value; } int getAndInc() {int result = this.value;this.value++; return result;} }").append('\n');
+        w.append(" static class __VMF__IntValue { private int value; public void set(int v) {this.value = v;} public int get() { return this.value; } int getAndInc() {int result = this.value;this.value++; return result;} }").append('\n');
         w.append('\n');
         w.append('\n');
-        w.append(" static class BoolValue { private boolean value; public void set(boolean v) {this.value = v;} public boolean is() { return this.value; } boolean getAndInvert() {boolean result = this.value;this.value=!this.value; return result;} }").append('\n');
+        w.append(" static class __VMF__BoolValue { private boolean value; public void set(boolean v) {this.value = v;} public boolean is() { return this.value; } boolean getAndInvert() {boolean result = this.value;this.value=!this.value; return result;} }").append('\n');
         w.append('\n');
         w.append("} // end class").append('\n');
         w.append('\n');
@@ -434,8 +434,8 @@ public class UnparserCodeGenerator {
                 w.append("import "+gModel.getPackageName()+"." + gModel.getGrammarName() + "Model;").append('\n').append('\n');
 
                 w.append('\n');
-                w.append("import " + gModel.getPackageName()+ ".unparser." +gModel.getGrammarName()+ "ModelUnparser.IntValue;").append('\n');
-                w.append("import " + gModel.getPackageName()+ ".unparser." +gModel.getGrammarName()+ "ModelUnparser.BoolValue;").append('\n');
+                w.append("import " + gModel.getPackageName()+ ".unparser." +gModel.getGrammarName()+ "ModelUnparser.__VMF__IntValue;").append('\n');
+                w.append("import " + gModel.getPackageName()+ ".unparser." +gModel.getGrammarName()+ "ModelUnparser.__VMF__BoolValue;").append('\n');
                 w.append('\n');
                 w.append('\n');
 
@@ -468,8 +468,8 @@ public class UnparserCodeGenerator {
                         continue;
                     }
 
-                    w.append("  IntValue prop" + prop.nameWithUpper() + "ListIndex = new IntValue();").append('\n');
-                    w.append("  final Deque<IntValue> prop"+ prop.nameWithUpper() + "State = new ArrayDeque<>();").append('\n');
+                    w.append("  __VMF__IntValue prop" + prop.nameWithUpper() + "ListIndex = new __VMF__IntValue();").append('\n');
+                    w.append("  final Deque<__VMF__IntValue> prop"+ prop.nameWithUpper() + "State = new ArrayDeque<>();").append('\n');
                 }
 
                 w.append("  // end   declare list property indices/iterators").append('\n');
@@ -484,8 +484,8 @@ public class UnparserCodeGenerator {
                         continue;
                     }
 
-                    w.append("  BoolValue prop" + prop.nameWithUpper() + "Used = new BoolValue();").append('\n');
-                    w.append("  final Deque<BoolValue> prop"+ prop.nameWithUpper() + "State = new ArrayDeque<>();").append('\n');
+                    w.append("  __VMF__BoolValue prop" + prop.nameWithUpper() + "Used = new __VMF__BoolValue();").append('\n');
+                    w.append("  final Deque<__VMF__BoolValue> prop"+ prop.nameWithUpper() + "State = new ArrayDeque<>();").append('\n');
                 }
 
                 w.append("  // end   declare property usage flags").append('\n');
@@ -559,7 +559,7 @@ public class UnparserCodeGenerator {
                 for (Property prop : gRule.getProperties()) {
 
                     if (prop.getType().isArrayType()) {
-                        w.append("    prop" + prop.nameWithUpper() + "ListIndex = new IntValue();").append('\n');
+                        w.append("    prop" + prop.nameWithUpper() + "ListIndex = new __VMF__IntValue();").append('\n');
                     }
                 }
                 w.append("    // end   reset list property indices/iterators").append('\n');
@@ -569,7 +569,7 @@ public class UnparserCodeGenerator {
                 for (Property prop : gRule.getProperties()) {
 
                     if (!prop.getType().isArrayType()) {
-                        w.append("    prop" + prop.nameWithUpper() + "Used = new BoolValue();").append('\n');
+                        w.append("    prop" + prop.nameWithUpper() + "Used = new __VMF__BoolValue();").append('\n');
                     }
                 }
                 w.append("    // end   reset property usage flags").append('\n');
