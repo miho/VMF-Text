@@ -182,9 +182,7 @@ public class ModelGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
-
 
     private static void generateUnparserFormatter(
             Writer out, VelocityEngine engine, String modelPackageName, GrammarModel model) throws IOException {

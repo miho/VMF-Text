@@ -19,6 +19,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
     private final List<InitRulePropertiesTask> initPropertyTasks
             = new ArrayList<>();
+
     private RuleClass superClassRule;
 
     private final TypeMappings typeMappings;
@@ -142,8 +143,8 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
                 withRuleType(true).
                 withArrayType(isListType).
                 withPackageName("").
-                withName(ruleClass.getName())
-                .build();
+                withName(ruleClass.getName()).
+                build();
     }
 
     @Override
@@ -164,6 +165,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         } else {
             currentRule = RuleClass.newBuilder().withName(ruleName).build();
         }
+
         // first rule is root
         currentRule.setRoot(model.getRuleClasses().isEmpty());
         currentRule.setCodeRange(ParseTreeUtil.ctxToCodeRange(ctx));
@@ -258,7 +260,8 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
             cls.getProperties().addAll(
                     elements.stream().filter(e -> e.labeledElement() != null).
                             filter(e -> e.labeledElement().identifier() != null).
-                            map(e -> GrammarToModelListener.elementToProperty(rules, cls.nameWithUpper(), typeMappings, e)).
+                            map(e -> GrammarToModelListener.elementToProperty(
+                                    rules, cls.nameWithUpper(), typeMappings, e)).
                             collect(Collectors.toList())
             );
         }
