@@ -262,7 +262,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 #end## foreach property in rule class
 
         return ${rcls.nameWithLower()};
-
+    }
 #else## if rcls has no child classes
     private ${rcls.nameWithUpper()} convert(${rcls.nameWithUpper()}Context ctx) {
         // ----------------------------------------
@@ -287,8 +287,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         // TODO: 10.11.2017    enforce validation/testing for this specific case
         System.err.println("VMF[WARNING]: rule-class '${r.nameWithUpper()}' must delegate to child classes.");
         return null;
-#end## if rcls has no child classes
     }
+#end## if rcls has no child classes
 
 
 #end## foreach rule class
