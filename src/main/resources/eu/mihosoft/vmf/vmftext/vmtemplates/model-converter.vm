@@ -189,16 +189,21 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
 #foreach( $rcls in ${model.ruleClasses} )
 
-    private ${rcls.nameWithUpper()} convert(${rcls.nameWithUpper()}Context ctx) {
 
-#if($rcls.getChildClasses().isEmpty())
+#if($rcls.getChildClasses().isEmpty())## if rcls has no child classes
+
+    private ${rcls.nameWithUpper()} convert(${rcls.nameWithUpper()}Context ctx) {
+        return convert(ctx, ${rcls.nameWithUpper()}.newInstance());
+    }
+
+    private ${rcls.nameWithUpper()} convert(${rcls.nameWithUpper()}Context ctx, ${rcls.nameWithUpper()} ${rcls.nameWithLower()}) {
 
         // ----------------------------------------
         // Initializing Rule Instance
         // ----------------------------------------
 
         // create model instance
-        ${rcls.nameWithUpper()} ${rcls.nameWithLower()} = ${rcls.nameWithUpper()}.newInstance();
+        // ${rcls.nameWithUpper()} ${rcls.nameWithLower()} = ${rcls.nameWithUpper()}.newInstance();
 
         // set code range (converted from antlr start and stop tokens)
         ${rcls.nameWithLower()}.setCodeRange(ctxToCodeRange(ctx));
@@ -258,7 +263,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
         return ${rcls.nameWithLower()};
 
-#else## ?
+#else## if rcls has no child classes
+    private ${rcls.nameWithUpper()} convert(${rcls.nameWithUpper()}Context ctx) {
         // ----------------------------------------
         // Delegating to labeled alternatives:
         //
@@ -281,7 +287,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         // TODO: 10.11.2017    enforce validation/testing for this specific case
         System.err.println("VMF[WARNING]: rule-class '${r.nameWithUpper()}' must delegate to child classes.");
         return null;
-#end## ?
+#end## if rcls has no child classes
     }
 
 
