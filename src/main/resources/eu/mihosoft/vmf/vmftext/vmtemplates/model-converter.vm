@@ -187,6 +187,142 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       return model;
     }
 
+#foreach( $rcls in ${model.ruleClasses} )##foreach rule class
+// ---- ${rcls.nameWithUpper()} CLASS PARSING BEGIN ----
+
+#if(${rcls.getChildClasses().isEmpty()})## if rcls has no classes (we are no rule with labeled rule alts)
+
+    public ${rcls.nameWithUpper()} parse${rcls.nameWithUpper()}(InputStream codeStream) throws IOException {
+        return parse(${rcls.nameWithUpper()}.newInstance(), codeStream); 
+    }
+
+    public ${rcls.nameWithUpper()} parse${rcls.nameWithUpper()}(File code) throws IOException {
+        return parse(${rcls.nameWithUpper()}.newInstance(), code); 
+    }
+
+    public ${rcls.nameWithUpper()} parse${rcls.nameWithUpper()}(String code) {
+        return parse(${rcls.nameWithUpper()}.newInstance(), code); 
+    }
+#else
+
+    public ${rcls.nameWithUpper()} parse${rcls.nameWithUpper()}(InputStream codeStream) throws IOException {
+      CharStream input = CharStreams.fromStream(codeStream);
+
+      ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
+
+      for(ANTLRErrorListener l : errorListeners) {
+          lexer.addErrorListener(l);
+      }
+
+      if(isConsoleOutputDisabled()) {
+          lexer.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+      }
+
+      CommonTokenStream tokens = new CommonTokenStream(lexer);
+      ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
+
+      if(errorHandler!=null) {
+          parser.setErrorHandler(errorHandler);
+      }
+
+      for(ANTLRErrorListener l : errorListeners) {
+          parser.addErrorListener(l);
+      }
+
+      if(isConsoleOutputDisabled()) {
+          parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+      }
+
+#if(!${rcls.getChildClasses().isEmpty()})## if rcls has child classes    
+      // we use a delegating convert
+      return convert(parser.${rcls.nameWithLower()}());
+#elseif(!${rcls.getSuperClass()})## if rcls has super-class 
+      // we use a non-delegating convert ${rcls.getSuperClass().nameWithLower()}
+      return convert(parser.${rcls.nameWithLower()}());  
+#else
+      // we use a delegating convert (we are the labeled alt)  
+      return (${rcls.nameWithUpper()}) convert(parser.${rcls.getSuperClass().nameWithLower()}());
+#end##  if rcls has child classes    
+  }
+
+    public ${rcls.nameWithUpper()} parse${rcls.nameWithUpper()}(File code) throws IOException {
+      try(FileInputStream codeStream = new FileInputStream(code)) {
+          return parse${rcls.nameWithUpper()}(codeStream);
+      }
+    }
+
+    public ${rcls.nameWithUpper()} parse${rcls.nameWithUpper()}(String code) {
+      try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
+          return parse${rcls.nameWithUpper()}(codeStream);
+      } catch(Exception ex) {
+          ex.printStackTrace();
+      }
+
+      return null;
+    }   
+   
+#end## if rcls has no classes (we are no rule with labeled rule alts)
+    
+    public ${rcls.nameWithUpper()} parse(${rcls.nameWithUpper()} ${rcls.nameWithLower()}, InputStream codeStream) throws IOException {
+      CharStream input = CharStreams.fromStream(codeStream);
+
+      ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
+
+      for(ANTLRErrorListener l : errorListeners) {
+          lexer.addErrorListener(l);
+      }
+
+      if(isConsoleOutputDisabled()) {
+          lexer.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+      }
+
+      CommonTokenStream tokens = new CommonTokenStream(lexer);
+      ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
+
+      if(errorHandler!=null) {
+          parser.setErrorHandler(errorHandler);
+      }
+
+      for(ANTLRErrorListener l : errorListeners) {
+          parser.addErrorListener(l);
+      }
+
+      if(isConsoleOutputDisabled()) {
+          parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+      }
+
+#if(!${rcls.getChildClasses().isEmpty()})## if rcls has child classes    
+      // we use a delegating convert
+      return convert(parser.${rcls.nameWithLower()}(), ${rcls.nameWithLower()});
+#elseif(!${rcls.getSuperClass()})## if rcls has super-class 
+      // we use a non-delegating convert ${rcls.getSuperClass().nameWithLower()}
+      return convert(parser.${rcls.nameWithLower()}(), ${rcls.nameWithLower()});  
+#else
+      // we use a delegating convert (we are the labeled alt)  
+      return (${rcls.nameWithUpper()}) convert(parser.${rcls.getSuperClass().nameWithLower()}(), ${rcls.nameWithLower()});
+#end##  if rcls has child classes    
+  }
+
+  public ${rcls.nameWithUpper()} parse(${rcls.nameWithUpper()} ${rcls.nameWithLower()}, File code) throws IOException{
+      try(FileInputStream codeStream = new FileInputStream(code)) {
+          return parse(${rcls.nameWithLower()}, codeStream);
+      }
+  }
+
+  public ${rcls.nameWithUpper()} parse(${rcls.nameWithUpper()} ${rcls.nameWithLower()}, String code) {
+      try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
+          return parse(${rcls.nameWithLower()}, codeStream);
+      } catch(Exception ex) {
+          ex.printStackTrace();
+      }
+
+      return null;
+  }
+
+
+// ---- ${rcls.nameWithUpper()} CLASS PARSING END ----
+#end##foreach rule class    
+
 #foreach( $rcls in ${model.ruleClasses} )
 
 
@@ -277,6 +413,31 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 #foreach( $r in $rcls.childClasses )
         if(ctx instanceof ${r.nameWithUpper()}Context) {
             return convert((${r.nameWithUpper()}Context)ctx);
+        }
+#end## for-each child rule
+        // -- END:   delegation
+
+        // WARNING: 10.11.2017 This should not happen:
+        //                     The current design does not use rules with alt labeled directly but
+        //                     only sub classes
+        // TODO: 10.11.2017    enforce validation/testing for this specific case
+        System.err.println("VMF[WARNING]: rule-class '${r.nameWithUpper()}' must delegate to child classes.");
+        return null;
+    }
+
+    private ${rcls.nameWithUpper()} convert(${rcls.nameWithUpper()}Context ctx, ${rcls.nameWithUpper()} ${rcls.nameWithLower()}) {
+        // ----------------------------------------
+        // Delegating to labeled alternatives:
+        //
+        // -> rules with alt-labels are never used
+        //    directly but always delegate to child
+        //    rules which inherit from the rule
+        // ----------------------------------------
+
+        // -- BEGIN: delegation
+#foreach( $r in $rcls.childClasses )
+        if(ctx instanceof ${r.nameWithUpper()}Context) {
+            return convert((${r.nameWithUpper()}Context)ctx, (${r.nameWithUpper()}) ${rcls.nameWithLower()});
         }
 #end## for-each child rule
         // -- END:   delegation
