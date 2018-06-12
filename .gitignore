@@ -4,4 +4,8 @@
 /.nb-gradle/
 /out/
 VMF-Text.iml
+/bin/
+/.classpath
+/.project
+/.settings
 

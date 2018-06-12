@@ -112,11 +112,9 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     public ${Util.firstToUpper($model.grammarName)}Model parse(String code) {
         try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
             return parse(codeStream);
-        } catch (IOException ex) {
-            ex.printStackTrace();
+        } catch(Exception ex) {
+            throw new RuntimeException(ex);
         }
-
-        return null;
     }
 
         
@@ -173,10 +171,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
           return parse(model, codeStream);
       } catch(Exception ex) {
-          ex.printStackTrace();
+        throw new RuntimeException(ex);
       }
-
-      return null;
   }
     
   
@@ -255,10 +251,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
           return parse${rcls.nameWithUpper()}(codeStream);
       } catch(Exception ex) {
-          ex.printStackTrace();
+        throw new RuntimeException(ex);
       }
-
-      return null;
     }   
    
 #end## if rcls has no classes (we are no rule with labeled rule alts)
@@ -291,15 +285,39 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
           parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
       }
 
-#if(!${rcls.getChildClasses().isEmpty()})## if rcls has child classes    
+#if(!${rcls.getChildClasses().isEmpty()})## if rcls has child classes
+
+      ParserRuleContext parsedCtx = parser.${rcls.nameWithLower()}();
+
+      // check whether parser result matches expected rule type
+      if(!(parsedCtx instanceof ${rcls.nameWithUpper()}Context)) {
+          throw new ClassCastException("Parser found a '"+parsedCtx.getClass().getSimpleName()+"' instead of the requested '${rcls.nameWithUpper()}Context'.");
+      }
+
       // we use a delegating convert
-      return convert(parser.${rcls.nameWithLower()}(), ${rcls.nameWithLower()});
+      return convert((${rcls.nameWithUpper()}Context)parsedCtx, ${rcls.nameWithLower()});
 #elseif(!${rcls.getSuperClass()})## if rcls has super-class 
-      // we use a non-delegating convert ${rcls.getSuperClass().nameWithLower()}
-      return convert(parser.${rcls.nameWithLower()}(), ${rcls.nameWithLower()});  
+
+      ParserRuleContext parsedCtx = parser.${rcls.nameWithLower()}();
+
+      // check whether parser result matches expected rule type
+      if(!(parsedCtx instanceof ${rcls.nameWithUpper()}Context)) {
+          throw new ClassCastException("Parser found a '"+parsedCtx.getClass().getSimpleName()+"' instead of the requested '${rcls.nameWithUpper()}Context'.");
+      }
+
+      // we use a non-delegating convert
+      return convert((${rcls.nameWithUpper()}Context)parsedCtx, ${rcls.nameWithLower()});
 #else
+
+      ParserRuleContext parsedCtx = parser.${rcls.getSuperClass().nameWithLower()}();
+
+      // check whether parser result matches expected rule type
+      if(!(parsedCtx instanceof ${rcls.nameWithUpper()}Context)) {
+          throw new ClassCastException("Parser found a '"+parsedCtx.getClass().getSimpleName()+"' instead of the requested '${rcls.nameWithUpper()}Context'.");
+      }
+
       // we use a delegating convert (we are the labeled alt)  
-      return (${rcls.nameWithUpper()}) convert(parser.${rcls.getSuperClass().nameWithLower()}(), ${rcls.nameWithLower()});
+      return (${rcls.nameWithUpper()}) convert((${rcls.getSuperClass().nameWithUpper()}Context)parsedCtx, ${rcls.nameWithLower()});
 #end##  if rcls has child classes    
   }
 
@@ -313,10 +331,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
           return parse(${rcls.nameWithLower()}, codeStream);
       } catch(Exception ex) {
-          ex.printStackTrace();
+        throw new RuntimeException(ex);
       }
-
-      return null;
   }
 
 
