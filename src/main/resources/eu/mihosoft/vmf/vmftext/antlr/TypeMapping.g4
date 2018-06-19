@@ -12,7 +12,7 @@ mapping:
     '('? ('rule:')? ruleName=Identifier '->' ('type:')? typeName=javaType ')'? ('via'|'=')
     (
         ('('|'{')
-        ('toType' ':')?  stringToTypeCode = STRING_SINGLE ',' ('toString' ':')? typeToStringCode = STRING_SINGLE
+        ('toType' ':')?  stringToTypeCode = STRING_SINGLE ',' ('toString' ':')? typeToStringCode = STRING_SINGLE (',' + ('default' ':')? defaultCode = STRING_SINGLE)?
         (')'|'}')
 
         |

@@ -88,4 +88,15 @@ public class TypeMappingsLookup implements DelegatedBehavior<TypeMappings>{
         return mappingByRuleName(containerRuleName, paramRuleName).map(tm->tm.getTypeToStringCode()).orElse("entry.toString()");
     }
 
+    /**
+     * Returns the default value code of the specified mapping.
+     *
+     * @param containerRuleName the name of the rule that contains the parameter which shall be converted
+     * @param paramRuleName name of the lexer rule that parses the parameter (conversion is applied to the lexer rule. e.g. ANTLR token instance)
+     * @return the conversion code of the specified mapping; returns default conversion code to {@code String} if the specified mapping does not exist
+     */
+    public String defaultValueCode(String containerRuleName, String paramRuleName) {
+        return mappingByRuleName(containerRuleName, paramRuleName).map(tm->tm.getDefaultValueCode()).orElse("null");
+    }
+
 }

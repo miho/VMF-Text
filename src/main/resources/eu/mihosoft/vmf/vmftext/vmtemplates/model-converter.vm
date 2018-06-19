@@ -49,7 +49,7 @@ import static ${packageName}.${Util.firstToUpper($model.grammarName)}Parser.*;
 public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
     public ${Util.firstToUpper($model.grammarName)}ModelParser() {
-      //
+        //
     }
 
     private final List<ANTLRErrorListener> errorListeners = new ArrayList<>();
@@ -78,7 +78,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
 
         for(ANTLRErrorListener l : errorListeners) {
-          lexer.addErrorListener(l);
+            lexer.addErrorListener(l);
         }
 
         if(isConsoleOutputDisabled()) {
@@ -136,7 +136,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
 
       for(ANTLRErrorListener l : errorListeners) {
-        lexer.addErrorListener(l);
+          lexer.addErrorListener(l);
       }
 
       if(isConsoleOutputDisabled()) {
@@ -171,17 +171,17 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
           return parse(model, codeStream);
       } catch(Exception ex) {
-        throw new RuntimeException(ex);
+          throw new RuntimeException(ex);
       }
   }
     
-  
-    public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, ${model.rootClass().nameWithUpper()}Context ctx) {
+
+  public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, ${model.rootClass().nameWithUpper()}Context ctx) {
 
       model.setRoot(convert(ctx));
 
       return model;
-    }
+  }
 
 #foreach( $rcls in ${model.ruleClasses} )##foreach rule class
 // ---- ${rcls.nameWithUpper()} CLASS PARSING BEGIN ----
@@ -251,7 +251,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
           return parse${rcls.nameWithUpper()}(codeStream);
       } catch(Exception ex) {
-        throw new RuntimeException(ex);
+          throw new RuntimeException(ex);
       }
     }   
    
@@ -331,7 +331,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
           return parse(${rcls.nameWithLower()}, codeStream);
       } catch(Exception ex) {
-        throw new RuntimeException(ex);
+          throw new RuntimeException(ex);
       }
   }
 
@@ -494,8 +494,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     public static CodeRange ctxToCodeRange(ParserRuleContext ctx) {
       // consider for stop line: https://stackoverflow.com/a/17487805
       CodeRange.Builder builder = CodeRange.newBuilder().withStart(tokenToCodeLocationStart(ctx.start));
-       CodeLocation start = tokenToCodeLocationStart(ctx.start);
-       CodeLocation stop;
+      CodeLocation start = tokenToCodeLocationStart(ctx.start);
+      CodeLocation stop;
 
       if(ctx.stop==null) {
         // if no stop is present use start token
@@ -547,7 +547,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
             TypeConverter tC = converters.get(propertyRuleName);
 
-             return tC.convert(obj);
+            return tC.convert(obj);
         }
 
         System.out.println(" -> looking for global converter for property type '"+propertyRuleName+"'.");

@@ -100,6 +100,13 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
                             withName(shortTypeName).
                             withAntlrRuleName(lexerRuleName).
                             build());
+
+
+                    String defaultValueString = tm.get().getDefaultValueCode();
+
+                    property.getAnnotations().add(PropertyAnnotation.newBuilder().
+                            withText("@eu.mihosoft.vmf.core.DefaultValue(\"" + defaultValueString + "\")").build());
+
                 } else {
 
                     System.out.println("   -> no replacement found for rule '"

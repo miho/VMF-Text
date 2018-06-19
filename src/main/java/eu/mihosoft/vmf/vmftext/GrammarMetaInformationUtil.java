@@ -62,6 +62,11 @@ public final class GrammarMetaInformationUtil {
                             withTypeToStringCode(ctx.typeToStringCode.getText().
                                     substring(1, ctx.typeToStringCode.getText().length() - 1)).build();
 
+                    if(ctx.defaultCode!=null) {
+                        m.setDefaultValueCode(ctx.defaultCode.getText().
+                                substring(1, ctx.defaultCode.getText().length() - 1));
+                    }
+
                     currentMapping.getEntries().add(m);
                 } else if(ctx.stringToTypeCode!=null) {
                     Mapping m = Mapping.newBuilder().withRuleName(ctx.ruleName.getText()).

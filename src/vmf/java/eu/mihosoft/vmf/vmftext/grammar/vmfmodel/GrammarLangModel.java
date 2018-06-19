@@ -200,6 +200,9 @@ interface TypeMappings {
     public String conversionCodeOfMappingTypeToString(String containeRuleName, String name);
 
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
+    public String defaultValueCode(String containerRuleName, String paramRuleName);
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.TypeMappingsLookup")
     public List<Mapping> mappingsByRuleName(String ruleName);
 }
 
@@ -230,6 +233,8 @@ interface Mapping {
     String getTypeToStringCode();
 
     String getStringToTypeCode();
+
+    String getDefaultValueCode();
 }
 
 
