@@ -3,23 +3,23 @@
 // -----------------------------------------------------------------------------
 ext.publishing.artifactId =  project.name.toLowerCase()
 ext.publishing.groupId    =  'eu.mihosoft.vmf'
-ext.publishing.versionId  =  '0.1-SNAPSHOT'
+ext.publishing.versionId  =  '0.1'
 
 ext.publishing.developerName         = 'Michael Hoffer'
 ext.publishing.developerAlias        = 'miho'
 ext.publishing.developerEmail        = 'info@michaelhoffer.de'
-ext.publishing.inceptionYear         = '2017'
+ext.publishing.inceptionYear         = '2018'
 
 ext.publishing.bintray.repo          = 'VMF'
 ext.publishing.bintray.userOrg       = 'miho'
 ext.publishing.bintray.name          = project.name
 
-ext.publishing.desc                  = 'VMF-Text is a lightweight framework for creating models, dsls and even fully functional languages ( based on VMF, the VRL Modeling Framework)'
-ext.publishing.license               = 'UNDEFINED'
-ext.publishing.licenseUrl            = 'UNDEFINED'
-ext.publishing.labels                = ['vmf-text', 'dsl', 'compiler', 'vmf', 'modeling', 'data model', 'vrl', 'modeling framework']
-ext.publishing.websiteUrl            = 'UNDEFINED'
-ext.publishing.issueTrackerUrl       = 'UNDEFINED'
-ext.publishing.vcsUrl                = 'UNDEFINED'
+ext.publishing.desc                  = 'VMF-Text '
+ext.publishing.license               = 'Apache-2.0'
+ext.publishing.licenseUrl            = 'https://github.com/miho/VMF-Text/blob/master/LICENSE'
+ext.publishing.labels                = ['vmf', 'modeling', 'data model', 'vrl', 'modeling framework']
+ext.publishing.websiteUrl            = 'https://github.com/miho/VMF-Text'
+ext.publishing.issueTrackerUrl       = 'https://github.com/miho/VMF-Text/issues'
+ext.publishing.vcsUrl                = 'https://github.com/miho/VMF-Text.git'
 
 ext.publishing.pomName               =  ext.publishing.artifactId
