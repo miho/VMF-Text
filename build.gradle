@@ -11,11 +11,12 @@ buildscript {
 
     dependencies {
         classpath (group: 'org.antlr', name: 'antlr4', version: '4.7')
-        classpath group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
+//        classpath group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
     }
 }
 
 plugins {
+    id 'eu.mihosoft.vmf' version '0.1.1'
     id 'com.github.hierynomus.license' version '0.14.0'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.4.0'
@@ -59,20 +60,13 @@ if (!hasProperty('mainClass')) {
 // VMF Model Gen Config
 // -------------------------------
 
-configurations{
-    vmf {
-        extendsFrom compile
-    }
-}
+vmf.version = "0.1"
 
 sourceSets {
     main {
         java {
-            srcDirs = ['build/vmf-src-gen', 'build/antlr4-src-gen', 'src/main/java']
+            srcDir 'build/antlr4-src-gen'
         }
-    }
-    vmf {
-        // vmf model sources
     }
 }
 
@@ -91,8 +85,7 @@ dependencies {
 
     compile group: 'org.apache.velocity', name: 'velocity', version: '1.7'
 
-    vmfCompile group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1'
-    compile group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1'
+    compile group: 'eu.mihosoft.vmf', name: 'vmf', version: vmf.version
     compile group: 'eu.mihosoft.vmf', name: 'vmf-runtime', version: '0.1'
 
     compile group: 'org.mdkt.compiler', name: 'InMemoryJavaCompiler', version: '1.3.0'
@@ -139,7 +132,9 @@ task cleanAntlr {
     }
 }
 
-task antlr4(dependsOn: ['cleanAntlr','vmfGenModelSources']) {
+clean.dependsOn('cleanAntlr')
+
+task antlr4 {
     doLast() {
         def baseDir = projectDir.absolutePath
         def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
@@ -243,43 +238,11 @@ task antlr4test() {
     }
 }
 
-
-// -------------------------------
-// VMF Model Gen Config
-// -------------------------------
-
-task cleanVmf {
-    doLast {
-        new File("$buildDir/vmf-src-gen/").listFiles().each {
-            f -> f.delete()
-        }
-    }
+// before we compile we need to run the antlr4 code generator
+project.tasks.withType(JavaCompile) {
+    compileTask -> compileTask.dependsOn('antlr4')
 }
 
-task vmfGenModelSources(dependsOn: [cleanVmf, vmfClasses]) {
-
-    // execute the task
-    doLast {
-        def urls = []
-        // add model dependencies
-        for(File clsDir : sourceSets.vmf.output.classesDirs) {
-            urls.add(new File(clsDir.toString())
-                    .toURI().toURL())
-        }
-
-        eu.mihosoft.vmf.VMF.generate(new File("$buildDir/vmf-src-gen"),
-                new URLClassLoader(urls as URL[],
-                        eu.mihosoft.vmf.VMF.class.getClassLoader()),
-                "eu.mihosoft.vmf.vmftext.grammar.vmfmodel")
-    }
-}
-
-tasks.withType(JavaCompile) {
-    compileTask ->
-        if(!compileTask.name.startsWith("compileVmf")) {
-            compileTask.dependsOn(['vmfGenModelSources', 'antlr4'])
-        }
-}
 
 // -------------------------------
 
