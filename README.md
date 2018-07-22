@@ -6,6 +6,53 @@ VMF-Text is a novel framework for grammar-based language modeling: give it a lab
 
 <img src="resources/img/vmf-text-01.jpg">
 
+## Using VMF-Text
+
+Checkout the tutorial projects: https://github.com/miho/VMF-Text-Tutorials
+
+VMF-Text comes with excellent Gradle support. Just add the plugin like so:
+
+```gradle
+plugins {
+  id "eu.mihosoft.vmftext" version "0.1.1" // use latest version
+}
+```
+(optionally) configure VMF-Text:
+
+```gradle
+vmfText {
+    version      = '0.1.1' // use desired VMF version
+    vmfVersion   = '0.1'   //
+    antlrVersion = '4.7.1  //
+}
+```
+Now just add the annotated ANTLR4 grammar file to the VMF-Text source folder, e.g., `src/main/java/mypackage/ArrayLang.g4`.
+
+
+```antlr
+grammar ArrayLang;
+
+array:  '(' values+=INT (',' values+=INT)* ')' EOF;
+
+INT: SIGN? DIGIT+
+   ;
+
+fragment SIGN :'-' ;
+fragment DIGIT : [0-9];
+
+WS
+    : [ \t\r\n]+ -> channel(HIDDEN)
+    ;
+
+/*<!vmf-text!>
+TypeMap() {
+  (INT    -> java.lang.Integer) = 'java.lang.Integer.parseInt(entry.getText())'
+}
+*/
+```
+
+and call the `vmfTextGenCode` task to generate the implementation.
+
 ## Building VMF-Text
 
 ### Requirements
