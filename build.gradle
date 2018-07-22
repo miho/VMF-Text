@@ -81,12 +81,11 @@ repositories {
 dependencies {
    
     compile (group: 'org.antlr', name: 'antlr4', version: '4.7')
-    compile (group: 'org.antlr', name: 'antlr4', version: '4.7', classifier: 'sources')
 
     compile group: 'org.apache.velocity', name: 'velocity', version: '1.7'
 
     compile group: 'eu.mihosoft.vmf', name: 'vmf', version: vmf.version
-    compile group: 'eu.mihosoft.vmf', name: 'vmf-runtime', version: '0.1'
+    compile group: 'eu.mihosoft.vmf', name: 'vmf-runtime', version: vmf.version
 
     compile group: 'org.mdkt.compiler', name: 'InMemoryJavaCompiler', version: '1.3.0'
     compile group: 'org.codehaus.groovy', name: 'groovy', version: '2.4.12'

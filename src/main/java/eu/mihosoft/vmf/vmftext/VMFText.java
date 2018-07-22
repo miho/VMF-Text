@@ -53,13 +53,28 @@ public class VMFText {
     }
 
 
-    //    public static void generate(String grammars, ResourceSet outputDir) {
-//
-//    }
-
     private static class GrammarAndUnparser {
         UnparserModel unparserModel;
         GrammarModel model;
+    }
+
+    // the classloader used for compiling the generated model code.
+    private static ClassLoader compileClassLoader;
+
+    /**
+     * Defines the classloader used for compiling the generated model code.
+     * @param l classloader to set
+     */
+    public static void setCompileClassLoader(ClassLoader l) {
+        compileClassLoader = l;
+    }
+
+    /**
+     * Returns the classloader used for compiling the generated model code.
+     * @return the classloader used for compiling the generated model code
+     */
+    public static ClassLoader getCompileClassLoader() {
+        return compileClassLoader;
     }
 
     public static void generate(File grammar, String packageName, File outputDir) {
@@ -125,7 +140,13 @@ public class VMFText {
     private static void generateModelCode(ResourceSet outputDir, MemoryResourceSet modelGenCode) throws Exception {
         List<String> classNames = new ArrayList<>();
 
-        GroovyClassLoader gcl = new GroovyClassLoader();
+        GroovyClassLoader gcl;
+
+        if(getCompileClassLoader()==null) {
+            gcl = new GroovyClassLoader();
+        } else {
+            gcl = new GroovyClassLoader(getCompileClassLoader());
+        }
 
         String modelDefCode = "";
 
