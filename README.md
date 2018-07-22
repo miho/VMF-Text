@@ -80,4 +80,4 @@ Navigate to the [Gradle](http://www.gradle.org/) project (e.g., `path/to/VMF-Tex
 
 ## Testing VMF-Text
 
-Use the test suite TODO
+Use the test suite [VMF-Text-Tests](https://github.com/miho/VMF-Text-Tests)  TODO
