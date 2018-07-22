@@ -1,4 +1,4 @@
-# VMF-Text
+# VMF-Text [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=VMF-Text:%20The%20new%20framework%20for%20grammar-based%20language modeling!&url=https://github.com/miho/VMF-Text&via=mihosoft&hashtags=vmf-text,vmf,antlr4,java,mdd,developers)
 
 [ ![Download](https://api.bintray.com/packages/miho/VMF/VMF-Text/images/download.svg) ](https://bintray.com/miho/VMF/VMF-Text/_latestVersion)[![Join the chat at https://gitter.im/VMF_/Lobby](https://badges.gitter.im/VMF_/Lobby.svg)](https://gitter.im/VMF_/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
