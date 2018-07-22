@@ -2,7 +2,7 @@
 
 [ ![Download](https://api.bintray.com/packages/miho/VMF/VMF-Text/images/download.svg) ](https://bintray.com/miho/VMF/VMF-Text/_latestVersion)[![Join the chat at https://gitter.im/VMF_/Lobby](https://badges.gitter.im/VMF_/Lobby.svg)](https://gitter.im/VMF_/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-VMF-Text is a novel framework for grammar-based language modeling: give it a labeled ANTLR4 grammar and it will generate a rich and clean API (based on [VMF](https://github.com/miho/VMF)) for (un)parsing and transforming custom textual languages. The complete API is **derived from just a single ANTLR4 grammar file!**
+VMF-Text is a novel framework for grammar-based language modeling: give it a labeled [ANTLR4](https://github.com/antlr/antlr4) grammar and it will generate a rich and clean API (using on [VMF](https://github.com/miho/VMF)) for (un)parsing and transforming custom textual languages. The complete API is **derived from just a single ANTLR4 grammar file!**
 
 <img src="resources/img/vmf-text-01.jpg">
 
@@ -26,7 +26,7 @@ vmfText {
     antlrVersion = '4.7.1  //
 }
 ```
-Now just add the annotated ANTLR4 grammar file to the VMF-Text source folder, e.g., `src/main/java/mypackage/ArrayLang.g4`.
+Now just add the annotated [ANTLR4](https://github.com/antlr/antlr4) grammar file to the VMF-Text source folder, e.g., `src/main/java/mypackage/ArrayLang.g4`.
 
 
 ```antlr
