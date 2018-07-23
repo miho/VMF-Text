@@ -26,8 +26,13 @@ vmfText {
     antlrVersion = '4.7.1  //
 }
 ```
-Now just add the annotated [ANTLR4](https://github.com/antlr/antlr4) grammar file to the VMF-Text source folder, e.g., `src/main/vmf-text/my/pkg/ArrayLang.g4` (the default package is not allowed).
+Now just add the annotated [ANTLR4](https://github.com/antlr/antlr4) grammar file to the VMF-Text source folder, e.g.: 
 
+```
+src/main/vmf-text/my/pkg/ArrayLang.g4
+```
+
+Sample grammar for parsing strings of the form `(1,2,3)`:
 
 ```antlr
 grammar ArrayLang;
