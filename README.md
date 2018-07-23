@@ -21,11 +21,11 @@ plugins {
 
 ```gradle
 vmfText {
-    version      = '0.1.1' // use desired VMF version
-    vmfVersion   = '0.1'   //
-    antlrVersion = '4.7.1  //
+    vmfVersion   = '0.1'   // (runtime version)
+    antlrVersion = '4.7.1  // (runtime version)
 }
 ```
+
 Now just add the annotated [ANTLR4](https://github.com/antlr/antlr4) grammar file to the VMF-Text source folder, e.g.: 
 
 ```
