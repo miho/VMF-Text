@@ -26,7 +26,7 @@ vmfText {
 }
 ```
 
-Now just add the annotated [ANTLR4](https://github.com/antlr/antlr4) grammar file to the VMF-Text source folder, e.g.: 
+Now just add the labeled [ANTLR4](https://github.com/antlr/antlr4) grammar file to the VMF-Text source folder, e.g.: 
 
 ```
 src/main/vmf-text/my/pkg/ArrayLang.g4
