@@ -56,7 +56,7 @@ TypeMap() {
 */
 ```
 
-finally call the `vmfTextGenCode` task to generate the implementation.
+Finally, call the `vmfTextGenCode` task to generate the implementation.
 
 ## Building VMF-Text
 
