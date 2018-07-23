@@ -14,7 +14,7 @@ VMF-Text comes with excellent Gradle support. Just add the plugin like so:
 
 ```gradle
 plugins {
-  id "eu.mihosoft.vmftext" version "0.1.1" // use latest version
+  id "eu.mihosoft.vmftext" version "0.1.2.5" // use latest version
 }
 ```
 (optionally) configure VMF-Text:
@@ -22,7 +22,7 @@ plugins {
 ```gradle
 vmfText {
     vmfVersion   = '0.1'   // (runtime version)
-    antlrVersion = '4.7.1  // (runtime version)
+    antlrVersion = '4.7.1' // (runtime version)
 }
 ```
 
