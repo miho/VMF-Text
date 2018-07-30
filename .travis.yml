@@ -1,5 +1,8 @@
 sudo: false
 
+env:
+  - TERM=dumb
+  
 matrix:
     include:
     - os: linux
@@ -22,10 +25,10 @@ matrix:
          language: java
          jdk:  openjdk-ea
 
-cache:
-  ccache: true
-  directories:
-   - /Users/travis/build/miho/
+#cache:
+#  ccache: true
+#  directories:
+#  - /Users/travis/build/miho/
 
 # before_script:
 # - echo 'before script'
