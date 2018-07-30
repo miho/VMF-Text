@@ -1,0 +1,19 @@
+class MyFirstClass {
+  method m1() {
+    m1()
+    for() {
+        m1()
+    }
+  }
+
+  class Nested1 {
+    method nestedM(){
+        m1()
+    }
+  }
+}
+
+class MySecondClass {
+  method m2() {
+  }
+}

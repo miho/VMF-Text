@@ -1,0 +1,15 @@
+/build/
+/.gradle/
+/.idea/
+/.nb-gradle/
+/out/
+VMF-Text-Tests.iml
+/bin/
+/.classpath
+/.project
+
+.settings/
+
+/.vscode/
+
+.antlr/

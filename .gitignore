@@ -1,12 +1,12 @@
-/build/
-/.gradle/
-/.idea/
-/.nb-gradle/
-/out/
-VMF-Text.iml
-/bin/
-/.classpath
-/.project
-/.settings
-/.vscode/
+/**/build/
+/**/.gradle/
+/**/.idea/
+/**/.nb-gradle/
+/**/out/
+/**/*.iml
+/**/bin/
+/**/.classpath
+/**/.project
+/**/.settings
+/**/.vscode/
 

@@ -1,0 +1,54 @@
+plugins {
+    id "com.gradle.plugin-publish" version "0.9.10"
+    id 'eu.mihosoft.vmf' version '0.1.3'
+    id 'com.github.hierynomus.license' version '0.14.0'
+    id 'maven-publish'
+    id 'net.nemerosa.versioning' version '2.4.0'
+    id 'com.jfrog.bintray' version '1.8.1'
+    id 'com.github.ben-manes.versions' version '0.13.0'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.8'
+    distributionUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-all.zip"
+}
+
+apply plugin: 'groovy'
+apply from: 'gradle/publishing.gradle'
+
+repositories {
+    jcenter()
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    compile gradleApi()
+    compile localGroovy()
+
+    compile group: 'eu.mihosoft.vmf', name: 'vmf-text', version: '0.2-SNAPSHOT'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile gradleTestKit()
+}
+
+// The configuration example below shows the minimum required properties
+// configured to publish your plugin to the plugin portal
+pluginBundle {
+    group = ext.publishing.groupId
+    version = ext.publishing.versionId
+    website = 'https://github.com/miho/VMF-Text-Gradle-Plugin'
+    vcsUrl = 'https://github.com/miho/VMF-Text-Gradle-Plugin'
+    description = 'Gradle VMF-Text plugin'
+    tags = ['vmf-text', 'language modeling framework']
+
+    plugins {
+        vmfTextPlugin {
+            id = 'eu.mihosoft.vmftext'
+            displayName = 'Gradle VMF-Text plugin'
+        }
+    }
+}
+
+
+

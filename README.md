@@ -14,14 +14,14 @@ VMF-Text comes with excellent Gradle support. Just add the plugin like so (click
 
 ```gradle
 plugins {
-  id "eu.mihosoft.vmftext" version "0.1.2.6" // use latest version
+  id "eu.mihosoft.vmftext" version "0.1.2.7" // use latest version
 }
 ```
 (optionally) configure VMF-Text:
 
 ```gradle
 vmfText {
-    vmfVersion   = '0.1'   // (runtime version)
+    vmfVersion   = '0.1.1'   // (runtime version)
     antlrVersion = '4.7.1' // (runtime version)
 }
 ```
@@ -58,7 +58,7 @@ TypeMap() {
 
 Finally, call the `vmfTextGenCode` task to generate the implementation.
 
-## Building VMF-Text
+## Building VMF-Text (Core)
 
 ### Requirements
 
@@ -68,12 +68,12 @@ Finally, call the `vmfTextGenCode` task to generate the implementation.
 
 ### IDE
 
-Open the `VMF-Text` [Gradle](http://www.gradle.org/) project in your favourite IDE (tested with NetBeans 8.2 and IntelliJ 2018) and build it
+Open the `VMF-Text/core` [Gradle](http://www.gradle.org/) project in your favourite IDE (tested with NetBeans 8.2 and IntelliJ 2018) and build it
 by calling the `publishToMavenLocal` task.
 
 ### Command Line
 
-Navigate to the [Gradle](http://www.gradle.org/) project (e.g., `path/to/VMF-Text`) and enter the following command
+Navigate to the [Gradle](http://www.gradle.org/) project (i.e., `path/to/VMF-Text/core`) and enter the following command
 
 #### Bash (Linux/macOS/Cygwin/other Unix shell)
 
@@ -83,6 +83,41 @@ Navigate to the [Gradle](http://www.gradle.org/) project (e.g., `path/to/VMF-Tex
 
     gradlew publishToMavenLocal
 
-## Testing VMF-Text
+## Building VMF-Text (Plugin)
 
-Use the test suite [VMF-Text-Tests](https://github.com/miho/VMF-Text-Tests)
+### Requirements
+
+- Java >= 1.8
+- Internet connection (dependencies are downloaded automatically)
+- IDE: [Gradle](http://www.gradle.org/) Plugin (not necessary for command line usage)
+
+### IDE
+
+Open the `VMF-Text/gradle-plugin` [Gradle](http://www.gradle.org/) project in your favourite IDE (tested with NetBeans 8.2 and IntelliJ 2018) and build it
+by calling the `publishToMavenLocal` task.
+
+### Command Line
+
+Navigate to the [Gradle](http://www.gradle.org/) project (i.e., `path/to/VMF-Text/gradle-plugin`) and enter the following command
+
+#### Bash (Linux/macOS/Cygwin/other Unix shell)
+
+    bash gradlew publishToMavenLocal
+    
+#### Windows (CMD)
+
+    gradlew publishToMavenLocal 
+
+## Testing VMF-Text (Core & Plugin)
+
+To execute the test suite, navigate to the test project (i.e., `path/to/VMF-Text/test-suite`) and enter the following command
+
+#### Bash (Linux/macOS/Cygwin/other Unix shell)
+
+    bash gradlew test
+    
+#### Windows (CMD)
+
+    gradlew test
+
+This will use the latest snapshot vmf-text and gradle-plugin to execute the tests defined in the test-suite project.

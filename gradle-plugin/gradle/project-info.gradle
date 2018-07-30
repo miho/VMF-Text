@@ -1,0 +1,25 @@
+// -----------------------------------------------------------------------------
+// publishing information
+// -----------------------------------------------------------------------------
+ext.publishing.artifactId =  'vmf-text-gradle-plugin'
+ext.publishing.groupId    =  'eu.mihosoft.vmf'
+ext.publishing.versionId  =  '0.2-SNAPSHOT'
+
+ext.publishing.developerName         = 'Michael Hoffer'
+ext.publishing.developerAlias        = 'miho'
+ext.publishing.developerEmail        = 'info@michaelhoffer.de'
+ext.publishing.inceptionYear         = '2018'
+
+ext.publishing.bintray.repo          = 'VMF'
+ext.publishing.bintray.userOrg       = 'miho'
+ext.publishing.bintray.name          = 'VMF-Text-Gradle-Plugin'
+
+ext.publishing.desc                  = 'VMF-Text Gradle Plugin'
+ext.publishing.license               = 'Apache-2.0'
+ext.publishing.licenseUrl            = 'https://github.com/miho/VMF-Text/blob/master/LICENSE'
+ext.publishing.labels                = ['vmf', 'modeling', 'language model', 'antlr', 'parser', 'unparser', 'vrl', 'modeling framework']
+ext.publishing.websiteUrl            = 'https://github.com/miho/VMF-Text'
+ext.publishing.issueTrackerUrl       = 'https://github.com/miho/VMF-Text/issues'
+ext.publishing.vcsUrl                = 'https://github.com/miho/VMF-Text.git'
+
+ext.publishing.pomName               =  ext.publishing.artifactId
