@@ -21,9 +21,6 @@ matrix:
        - os: linux
          language: java
          jdk:  openjdk-ea
-       - os: linux
-         language: java
-         jdk:  openjdk11
 
 cache:
   ccache: true
