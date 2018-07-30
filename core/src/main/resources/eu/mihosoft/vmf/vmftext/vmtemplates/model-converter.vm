@@ -74,7 +74,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     }
 
     public ${Util.firstToUpper($model.grammarName)}Model parse(InputStream codeStream) throws IOException {
-        abc def
+
         CharStream input = CharStreams.fromStream(codeStream);
 
         ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
