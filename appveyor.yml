@@ -5,6 +5,7 @@ image: Visual Studio 2017
 init:
   - date /T & time /T
   - git config --global core.autocrlf input
+  - java -version
 
 #branches:
 #  only:
@@ -34,9 +35,9 @@ cache:
 build_script:
   - cd %APPVEYOR_BUILD_FOLDER%
   - cd core
-  - gradlew.bat clean publishToMavenLocal
+  - gradlew.bat clean publishToMavenLocal --stacktrace
   - cd %APPVEYOR_BUILD_FOLDER%
   - cd gradle-plugin
-  - gradlew.bat clean publishToMavenLocal
+  - gradlew.bat clean publishToMavenLocal --stacktrace
   - cd test-suite
   - gradlew.bat clean test
