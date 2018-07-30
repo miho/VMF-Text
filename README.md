@@ -121,3 +121,7 @@ To execute the test suite, navigate to the test project (i.e., `path/to/VMF-Text
     gradlew test
 
 This will use the latest snapshot vmf-text and gradle-plugin to execute the tests defined in the test-suite project.
+
+### Viewing the Report
+
+An HTML version of the test report is located in the build folder `test-suite/build/reports/tests/test/index.html`.
