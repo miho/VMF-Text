@@ -86,7 +86,7 @@ Navigate to the [Gradle](http://www.gradle.org/) project (i.e., `path/to/VMF-Tex
 
     gradlew publishToMavenLocal
 
-## Building VMF-Text (Plugin)
+## Building VMF-Text (Gradle Plugin)
 
 ### Requirements
 
