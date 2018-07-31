@@ -1,8 +1,8 @@
 # VMF-Text-Gradle-Plugin
 
-Get this plugin from here: https://plugins.gradle.org/plugin/eu.mihosoft.vmftext
+[ ![Download](https://api.bintray.com/packages/miho/VMF/VMF-Text-Gradle-Plugin/images/download.svg) ](https://bintray.com/miho/VMF/VMF-Text-Gradle-Plugin/_latestVersion)
 
-Just add the plugin id to use this plugin:
+Just add the plugin id to use this plugin (get this plugin from [here](https://plugins.gradle.org/plugin/eu.mihosoft.vmftext)):
 
 ```gradle
 plugins {
