@@ -59,8 +59,7 @@ if (!hasProperty('mainClass')) {
 // -------------------------------
 // VMF Model Gen Config
 // -------------------------------
-
-vmf.version = "0.1.1"
+// vmf.version = "0.1.1"
 
 sourceSets {
     main {
