@@ -14,7 +14,7 @@ and (optionally) configure VMF-Text:
 
 ```gradle
 vmfText {
-    vmfVersion   = '0.1'   // runtime version
+    vmfVersion   = '0.1.1'   // runtime version
     antlrVersion = '4.7.1' // runtime version
 }
 ```
