@@ -1,6 +1,9 @@
 # VMF-Text [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=VMF-Text:%20The%20new%20framework%20for%20grammar-based%20language%20modeling!&url=https://github.com/miho/VMF-Text&via=mihosoft&hashtags=vmftext,vmf,antlr4,java,mdd,developers)
 
-[ ![Download](https://api.bintray.com/packages/miho/VMF/VMF-Text/images/download.svg) ](https://bintray.com/miho/VMF/VMF-Text/_latestVersion)[![Join the chat at https://gitter.im/VMF_/Lobby](https://badges.gitter.im/VMF_/Lobby.svg)](https://gitter.im/VMF_/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[ ![Download](https://api.bintray.com/packages/miho/VMF/VMF-Text/images/download.svg) ](https://bintray.com/miho/VMF/VMF-Text/_latestVersion)
+[![Build Status](https://travis-ci.org/miho/VMF-Text.svg?branch=master)](https://travis-ci.org/miho/VMF-Text)
+[![Build status](https://ci.appveyor.com/api/projects/status/vh9eu5fmhhgqo21b?svg=true)](https://ci.appveyor.com/project/miho/vmf-text)
+[![Join the chat at https://gitter.im/VMF_/Lobby](https://badges.gitter.im/VMF_/Lobby.svg)](https://gitter.im/VMF_/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 VMF-Text is a novel framework for grammar-based language modeling: give it a labeled [ANTLR4](https://github.com/antlr/antlr4) grammar and it will generate a rich and clean API (using on [VMF](https://github.com/miho/VMF)) for (un)parsing and transforming custom textual languages. The complete API is **derived from just a single ANTLR4 grammar file!**
 
@@ -121,3 +124,7 @@ To execute the test suite, navigate to the test project (i.e., `path/to/VMF-Text
     gradlew test
 
 This will use the latest snapshot vmf-text and gradle-plugin to execute the tests defined in the test-suite project.
+
+### Viewing the Report
+
+An HTML version of the test report is located in the build folder `test-suite/build/reports/tests/test/index.html`.

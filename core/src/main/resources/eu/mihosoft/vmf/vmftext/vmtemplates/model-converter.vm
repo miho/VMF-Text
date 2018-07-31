@@ -73,7 +73,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         this.errorHandler = errorHandler;
     }
 
-    public ${Util.firstToUpper($model.grammarName)}Model parse(InputStream codeStream) throws IOException{
+    public ${Util.firstToUpper($model.grammarName)}Model parse(InputStream codeStream) throws IOException {
+
         CharStream input = CharStreams.fromStream(codeStream);
 
         ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
