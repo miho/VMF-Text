@@ -242,6 +242,13 @@ project.tasks.withType(JavaCompile) {
 }
 
 
+jar {
+    manifest {
+        attributes('Automatic-Module-Name': 'eu.mihosoft.vmf.vmftext')
+    }
+}
+
+
 // -------------------------------
 
 license {
