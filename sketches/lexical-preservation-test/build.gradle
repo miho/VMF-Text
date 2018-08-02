@@ -1,0 +1,15 @@
+apply plugin: 'java'
+apply plugin: 'antlr'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    antlr "org.antlr:antlr4:4.7.1" // use ANTLR version 4
+}
+
+generateGrammarSource {
+    maxHeapSize = "64m"
+    arguments += ["-visitor","-listener", "-long-messages"]
+}

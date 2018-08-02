@@ -206,6 +206,12 @@ public class VMFText {
             GrammarMetaInformationUtil.getTypeMapping(typeMappings, s);
         }
 
+        System.out.println("\n------------------------------------------------------");
+        System.out.println("Custom-Model-Definitions:");
+        System.out.println("------------------------------------------------------");
+
+        System.out.println("> converting ANTLR grammar spec to grammar model");
+
         GrammarToModelListener grammarToModelListener =
                 new GrammarToModelListener(typeMappings);
 
@@ -213,9 +219,7 @@ public class VMFText {
 
         GrammarModel model = grammarToModelListener.getModel();
 
-        System.out.println("\n------------------------------------------------------");
-        System.out.println("Custom-Model-Definitions:");
-        System.out.println("------------------------------------------------------");
+        System.out.println("> definitions:");
 
         for(String s : comments) {
             GrammarMetaInformationUtil.getCustomAnnotations(s, model);
