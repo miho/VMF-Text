@@ -94,7 +94,7 @@ public class UnparserCodeGenerator {
             String aText = a.getElements().stream().filter(e->!e.getText().
                     startsWith("#")).map(e->e.getText() + " ").collect(Collectors.joining());
 
-            w.append(aName+": ").append(aText + " EOF ;\n");
+            w.append(aName+": ").append(aText + " " + (aText.endsWith("EOF")?"":"EOF")+" ;\n");
 
             generateElementGrammarCode(gModel,model,rules,a,aName,w);
         }
