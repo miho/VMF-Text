@@ -33,6 +33,15 @@ interface ${Util.firstToUpper($model.grammarName)}Model {
 #end
 }
 
+interface Payload {
+
+  @DelegateTo(className="${delegationPackageName}.PayloadDelegate")
+  Object payloadGet(String key);
+  @DelegateTo(className="${delegationPackageName}.PayloadDelegate")
+  void payloadSet(String key, Object object);
+
+}
+
 @Immutable
 interface CodeRange {
   CodeLocation getStart();
@@ -51,6 +60,8 @@ interface CodeLocation {
 interface CodeElement {
   @IgnoreEquals
   CodeRange getCodeRange();
+
+  Payload getPayload();
 }
 
 #foreach( $rcls in ${model.ruleClasses} )

@@ -116,6 +116,11 @@ public class VMFText {
             if(modelOutputDir!=null) {
                 generator.generateModel(model, modelOutputDir);
             }
+
+            // generate model delegates
+            generator.generateModelDelegates(model, outputDir);
+
+            // generate parser
             generator.generateModelParser(model, outputDir);
 
             // generate model unparser
