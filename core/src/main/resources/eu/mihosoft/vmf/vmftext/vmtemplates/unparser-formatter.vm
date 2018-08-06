@@ -33,6 +33,7 @@ import eu.mihosoft.vmf.runtime.core.VMF;
 import ${modelPackageName}.ReadOnlyCodeElement;
 import ${modelPackageName}.CodeElement;
 import ${modelPackageName}.CodeRange;
+import ${modelPackageName}.Payload;
 
 public interface Formatter {
 
@@ -79,6 +80,16 @@ public interface Formatter {
 
             @Override
             public void setCodeRange(CodeRange codeRange) {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public Payload getPayload() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public void setPayload(Payload payload) {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }
 

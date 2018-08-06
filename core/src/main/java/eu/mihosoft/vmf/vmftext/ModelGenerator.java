@@ -61,10 +61,11 @@ public class ModelGenerator {
     }
 
     private static void generateModelDefinition(
-            Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
+            Writer out, VelocityEngine engine, String packageName, String delegationPackageName, GrammarModel model) throws IOException {
         VelocityContext context = new VelocityContext();
         context.put("model", model);
         context.put("TEMPLATE_PATH",TEMPLATE_PATH);
+        context.put("delegationPackageName", delegationPackageName);
         context.put("packageName", packageName);
         context.put("Util", StringUtil.class);
 
@@ -116,7 +117,7 @@ public class ModelGenerator {
 
              Writer w = resource.open()) {
 
-            generateModelDefinition(w, engine, model.getPackageName()+".vmfmodel", model);
+            generateModelDefinition(w, engine, model.getPackageName()+".vmfmodel",model.getPackageName()+".vmfdelegation", model);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -138,6 +139,25 @@ public class ModelGenerator {
 
             generateModelParser(w, engine, model.getPackageName(),
                     model.getPackageName()+".parser", model);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void generateModelDelegates(GrammarModel model, ResourceSet fileset) {
+
+        if(engine==null) {
+            engine = createDefaultEngine();
+        }
+
+        try (Resource resource =
+                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
+                             model.getPackageName()+".vmfdelegation.PayloadDelegate"));
+
+             Writer w = resource.open()) {
+
+            generatePayloadDelegate(w, engine,
+                    model.getPackageName(), model);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -238,5 +258,16 @@ public class ModelGenerator {
         context.put("Util", StringUtil.class);
 
         mergeTemplate("type-to-string-converter", engine, context, out);
+    }
+
+    private static void generatePayloadDelegate(
+            Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
+        VelocityContext context = new VelocityContext();
+        context.put("model", model);
+        context.put("TEMPLATE_PATH",TEMPLATE_PATH);
+        context.put("packageName", packageName);
+        context.put("Util", StringUtil.class);
+
+        mergeTemplate("payload-delegate", engine, context, out);
     }
 }
