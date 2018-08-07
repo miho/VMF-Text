@@ -102,7 +102,21 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
         }
 
-        return parse(parser.${model.rootClass().name}());
+        ${Util.firstToUpper($model.grammarName)}Model result = parse(parser.${model.rootClass().name}());
+
+        // collect ignored pieces of htext for lexical preservation
+        eu.mihosoft.vmf.vmftext.grammar.IgnoredTextListener ignoredTextListener =
+            new eu.mihosoft.vmf.vmftext.grammar.IgnoredTextListener(tokens);
+
+        ParseTreeWalker walker = new ParseTreeWalker();
+        walker.walk(ignoredTextListener,tree);
+
+        Payload payload = Payload().newInstance();
+        result.getRoot().setPayload(payload);
+
+        payload.payloadSet("hidden-text", ignoredTextListener.getIgnoredPiecesOfText());
+
+        return result;
     }
 
     public ${Util.firstToUpper($model.grammarName)}Model parse(File code) throws IOException{
