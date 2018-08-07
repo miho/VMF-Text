@@ -38,7 +38,7 @@ public class PayloadDelegate implements DelegatedBehavior<Payload> {
   private Payload caller;
   private java.util.Map<String, Object> map;
 
-  private Map<String, Object> _getMap() {
+  private java.util.Map<String, Object> _getMap() {
     if(map == null) {
       map = new java.util.HashMap<>();
     }
