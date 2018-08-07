@@ -51,11 +51,11 @@ public class PayloadDelegate implements DelegatedBehavior<Payload> {
   }
 
   public <T> T payloadGet(String key) {
-    return (T) map.get(key);
+    return (T) _getMap().get(key);
   }
 
   public void payloadSet(String key, Object o) {
-    map.put(key,o);
+    _getMap().put(key,o);
   }
 
 }

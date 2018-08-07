@@ -94,6 +94,31 @@ public interface Formatter {
             }
 
             @Override
+            public CodeElement getParent() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public void setParent(CodeElement payload) {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public CodeElement root() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public eu.mihosoft.vcollections.VList<CodeElement> pathToRoot() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public Payload payload() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
             public ReadOnlyCodeElement asReadOnly() {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }

@@ -60,12 +60,25 @@ interface CodeLocation {
 }
 
 @InterfaceOnly
+@DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
 interface CodeElement {
   @IgnoreEquals
   CodeRange getCodeRange();
 
+  @IgnoreEquals
   Payload getPayload();
 
+  @IgnoreEquals
+  CodeElement getParent();
+
+  @DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
+  CodeElement root();
+
+  @DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
+  java.util.List<CodeElement> pathToRoot();
+
+  @DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
+  Payload payload();
 
 }
 

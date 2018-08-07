@@ -161,6 +161,18 @@ public class ModelGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        try (Resource resource =
+                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
+                             model.getPackageName()+".vmfdelegation.CodeElementDelegate"));
+
+             Writer w = resource.open()) {
+
+            generateCodeElementDelegate(w, engine,
+                    model.getPackageName(), model);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void generateModelUnparser(GrammarModel model, UnparserModel unparserModel, File grammarFile, ResourceSet fileset) {
@@ -269,5 +281,16 @@ public class ModelGenerator {
         context.put("Util", StringUtil.class);
 
         mergeTemplate("payload-delegate", engine, context, out);
+    }
+
+    private static void generateCodeElementDelegate(
+            Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
+        VelocityContext context = new VelocityContext();
+        context.put("model", model);
+        context.put("TEMPLATE_PATH",TEMPLATE_PATH);
+        context.put("packageName", packageName);
+        context.put("Util", StringUtil.class);
+
+        mergeTemplate("code-element-delegate", engine, context, out);
     }
 }

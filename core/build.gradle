@@ -16,7 +16,7 @@ buildscript {
 }
 
 plugins {
-    id 'eu.mihosoft.vmf' version '0.1.6'
+    id 'eu.mihosoft.vmf' version '0.1.8'
     id 'com.github.hierynomus.license' version '0.14.0'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.4.0'
