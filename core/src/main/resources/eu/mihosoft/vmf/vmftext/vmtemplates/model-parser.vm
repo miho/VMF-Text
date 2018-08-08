@@ -38,53 +38,57 @@ interface ${Util.firstToUpper($model.grammarName)}Model {
  */
 interface Payload {
 
-  @DelegateTo(className="${delegationPackageName}.PayloadDelegate")
+  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.PayloadDelegate")
   Object payloadGet(String key);
   @DelegateTo(className="${delegationPackageName}.PayloadDelegate")
   void payloadSet(String key, Object object);
 
 }
 
-@Immutable
+@eu.mihosoft.vmf.core.Immutable
 interface CodeRange {
   CodeLocation getStart();
   CodeLocation getStop();
   int getLength();
 }
 
-@Immutable
+@eu.mihosoft.vmf.core.Immutable
 interface CodeLocation {
   int getIndex();
   int getLine();
   int getCharPosInLine();
 }
 
-@InterfaceOnly
-@DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
+@eu.mihosoft.vmf.core.InterfaceOnly
+@eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
 interface CodeElement {
-  @IgnoreEquals
+  @eu.mihosoft.vmf.core.IgnoreEquals
   CodeRange getCodeRange();
 
-  @IgnoreEquals
+  @eu.mihosoft.vmf.core.IgnoreEquals
   Payload getPayload();
 
-  @IgnoreEquals
+  @eu.mihosoft.vmf.core.IgnoreEquals
   CodeElement getParent();
 
-  @DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
+  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
   CodeElement root();
 
   @DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
   java.util.List<CodeElement> pathToRoot();
 
-  @DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
+  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
   Payload payload();
+
+  @eu.mihosoft.vmf.core.IgnoreEquals
+  @eu.mihosoft.vmf.core.DefaultValue(value="false")
+  boolean isParsed();
 
 }
 
 #foreach( $rcls in ${model.ruleClasses} )
 #if( !$rcls.childClasses.empty )
-@InterfaceOnly
+@eu.mihosoft.vmf.core.InterfaceOnly
 #end
 #foreach( $ann in ${rcls.getCustomRuleAnnotations()} )
 $ann.getText()

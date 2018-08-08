@@ -104,6 +104,16 @@ public interface Formatter {
             }
 
             @Override
+            public boolean isParsed() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public void setParsed(boolean state) {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
             public CodeElement root() {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }

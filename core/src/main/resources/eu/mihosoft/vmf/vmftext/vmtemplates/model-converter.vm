@@ -136,6 +136,9 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         payload.payloadSet("vmf-text:hidden-text", ignoredTextListener.getIgnoredPiecesOfText());
 
         element.setPayload(payload);
+
+        element.setParsed(true);
+        element.vmf().content().stream(CodeElement.class).forEach(e->e.setParsed(true));
     }
 
     public ${Util.firstToUpper($model.grammarName)}Model parse(File code) throws IOException{
@@ -681,6 +684,9 @@ class IgnoredTextListener implements org.antlr.v4.runtime.tree.ParseTreeListener
                 if(debugOutputEnabled)
                 System.out.print("{" + piece + "}");
             }
+            else {
+                ignoredPiecesOfText.add("");
+            }
 
             prevNode = node;
 
@@ -700,6 +706,8 @@ class IgnoredTextListener implements org.antlr.v4.runtime.tree.ParseTreeListener
 
                 if(debugOutputEnabled)
                 System.out.print("{" + piece + "}");
+            } else {
+                ignoredPiecesOfText.add("");
             }
 
             prevNode = node;
