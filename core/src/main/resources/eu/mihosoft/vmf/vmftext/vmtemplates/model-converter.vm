@@ -132,6 +132,14 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         ParseTreeWalker walker = new ParseTreeWalker();
         walker.walk(ignoredTextListener,ctx);
 
+        // We need an additional string in case that EOF isn't present in the grammar.
+        //
+        // REASON:
+        // - to prevent 'index out of bounds' exceptions
+        // - in case the grammar doesn't end with EOF in which case we won't be able
+        // to parse the WS/hidden chars from the end of the rule to the end of the file.
+        ignoredTextListener.getIgnoredPiecesOfText().add("");
+
         Payload payload = Payload.newInstance();
         payload.payloadSet("vmf-text:hidden-text", ignoredTextListener.getIgnoredPiecesOfText());
 

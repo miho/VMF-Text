@@ -10,6 +10,8 @@ import eu.mihosoft.vmftext.tests.arraylang.unparser.Formatter;
 import eu.mihosoft.vmftext.tests.java8.Java8Model;
 import eu.mihosoft.vmftext.tests.java8.parser.Java8ModelParser;
 import eu.mihosoft.vmftext.tests.java8.unparser.Java8ModelUnparser;
+import eu.mihosoft.vmftext.tests.lexicalpreservation.parser.CombinedLexerRulesModelParser;
+import eu.mihosoft.vmftext.tests.lexicalpreservation.unparser.CombinedLexerRulesModelUnparser;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -36,7 +38,11 @@ public class LexicalPreservationTest {
 
         List<String> hiddenChars = (List<String>) model.getRoot().payload().payloadGet("vmf-text:hidden-text");
 
-        Assert.assertEquals(hiddenChars.size(), 20);
+        // there are 20 relevant characters + 1 additional empty string
+        // (to prevent 'index out of bounds' exceptions ) in case the
+        // grammar doesn't end with EOF in which case we won't be able to parse the
+        // WS/hidden chars from the end of the rule to the end of the file.
+        Assert.assertEquals(21, hiddenChars.size());
 
         List<String> hiddenCharsNonEmpty = hiddenChars.stream().filter(s->!s.isEmpty()).collect(Collectors.toList());
 
@@ -88,7 +94,7 @@ public class LexicalPreservationTest {
 
         // the code to reproduce
         String code = "" +
-                " (1.0 ,2.0 , 3.0, 4.0\n,5.0,\n6.0,7.0,8.0, 0.0 )";
+                " (1.0 ,2.0 , 3.0, 4.0\n,5.0,\n6.0,7.0,8.0, 0.0 ) ";
 
         // parse the code to a model instance
         ArrayLangModel model = new ArrayLangModelParser().parse(code);
@@ -100,6 +106,34 @@ public class LexicalPreservationTest {
 
         // parse the new code to another model instance
         ArrayLangModel modelAfterUnparsing = new ArrayLangModelParser().parse(newCode);
+
+        // check whether the models are equal
+        Assert.assertEquals(model, modelAfterUnparsing);
+
+        System.out.println("\nUNPARSED: ");
+        System.out.println(newCode);
+
+        // now we finally check whether the new code is equal to the original code
+        Assert.assertEquals(code, newCode);
+    }
+
+    @Test
+    public void lexicalPreservationTestCombinedLexerRules() {
+
+        // the code to reproduce
+        String code = "" +
+                " (1.0 ,2.0 , 3.0, 4.0\n,5.0,\n6.0,7.0,8.0, 0.0 )";
+
+        // parse the code to a model instance
+        CombinedLexerRulesModel model = new CombinedLexerRulesModelParser().parse(code);
+
+        // unparse the model to 'newCode'
+        CombinedLexerRulesModelUnparser unparser = new CombinedLexerRulesModelUnparser();
+        unparser.setFormatter(new DefaultCombinedLexerRulesFormatter(model.getRoot()));
+        String newCode = unparser.unparse(model);
+
+        // parse the new code to another model instance
+        CombinedLexerRulesModel modelAfterUnparsing = new CombinedLexerRulesModelParser().parse(newCode);
 
         // check whether the models are equal
         Assert.assertEquals(model, modelAfterUnparsing);
@@ -171,6 +205,41 @@ public class LexicalPreservationTest {
         }
 
         public void post(Java8ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
+            if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
+                String ws = hiddenText.get(getIntState("pos"));
+                //System.out.print("["+ruleInfo.getRuleText()+"]{"+ws+"}");
+                w.append(hiddenText.get(getIntState("pos")));
+                setIntState("pos",getIntState("pos")+1);
+            }
+        }
+
+    }
+
+    static class DefaultCombinedLexerRulesFormatter extends eu.mihosoft.vmftext.tests.lexicalpreservation.unparser.BaseFormatter {
+
+        private List<String> hiddenText;
+
+        public DefaultCombinedLexerRulesFormatter(eu.mihosoft.vmftext.tests.lexicalpreservation.CodeElement e) {
+            this.hiddenText = (List<String>) e.payload().payloadGet("vmf-text:hidden-text");
+            setIntState("pos", -1);
+        }
+
+        @Override
+        public void pre(CombinedLexerRulesModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
+            if(getIntState("pos") == -1 &&
+                    (ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE)) {
+                setIntState("pos",0);
+
+                String ws = hiddenText.get(getIntState("pos"));
+
+                //System.out.print("{"+ws+"}" + "["+ruleInfo.getRuleText()+"]");
+                w.append(ws);
+
+                setIntState("pos",1);
+            }
+        }
+
+        public void post(CombinedLexerRulesModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
             if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
                 String ws = hiddenText.get(getIntState("pos"));
                 //System.out.print("["+ruleInfo.getRuleText()+"]{"+ws+"}");
