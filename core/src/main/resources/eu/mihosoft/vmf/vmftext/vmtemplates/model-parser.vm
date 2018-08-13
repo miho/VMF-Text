@@ -40,8 +40,11 @@ interface Payload {
 
   @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.PayloadDelegate")
   Object payloadGet(String key);
-  @DelegateTo(className="${delegationPackageName}.PayloadDelegate")
+  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.PayloadDelegate")
   void payloadSet(String key, Object object);
+
+  @eu.mihosoft.vmf.core.Container(opposite="payload")
+  CodeElement getParent()
 
 }
 
@@ -66,6 +69,7 @@ interface CodeElement {
   CodeRange getCodeRange();
 
   @eu.mihosoft.vmf.core.IgnoreEquals
+  @eu.mihosoft.vmf.core.Contains(opposite="parent")
   Payload getPayload();
 
   @eu.mihosoft.vmf.core.IgnoreEquals
