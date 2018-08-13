@@ -59,19 +59,63 @@ public interface Formatter {
     private final RuleType ruleType;
     private final String ruleName;
     private final String ruleText;
+    private final eu.mihosoft.vmf.runtime.core.Property property;
+    private final Integer elementIndex;
 
     // consumed
     private boolean consumed;
 
-    private RuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText) {
+    private RuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText, eu.mihosoft.vmf.runtime.core.Property property, Integer elementIndex) {
       this.parentObject = parentObject;
       this.ruleType = ruleType;
       this.ruleName = ruleName;
       this.ruleText = ruleText;
+      this.property = property;
+      this.elementIndex = elementIndex;
     }
 
-    public static RuleInfo emptyRule() {
-      return new RuleInfo(
+    static RuleInfo emptyRule() {
+      return EMPTY_RULE_INFO;
+    }
+
+   /**
+    * Calling this method consumes the current rule. This method only has an effect if called inside
+    * the {@code Formatter.pre()} method.
+    */
+    public void consume() {
+      this.consumed = true;
+    }
+
+    boolean isConsumed() {
+      return this.consumed;
+    }
+
+    /*package private*/ static RuleInfo newRuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText) {
+      return new RuleInfo(parentObject, ruleType, ruleName, ruleText, null, null);
+    }
+
+    /*package private*/ static RuleInfo newRuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText, eu.mihosoft.vmf.runtime.core.Property property, Integer elementIndex) {
+      return new RuleInfo(parentObject, ruleType, ruleName, ruleText, property, elementIndex);
+    }
+
+    public CodeElement getParentObject() {
+      return this.parentObject;
+    }
+
+    public RuleType getRuleType() {
+      return this.ruleType;
+    }
+
+    public Optional<String> getRuleName() {
+      return Optional.ofNullable(this.ruleName);
+    }
+
+    public String getRuleText() {
+      return this.ruleText;
+    }
+  }
+
+  static final RuleInfo EMPTY_RULE_INFO = new RuleInfo(
         new CodeElement() {
             @Override
             public CodeRange getCodeRange() {
@@ -142,41 +186,7 @@ public interface Formatter {
             public CodeElement clone() {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }
-        }, RuleType.NONE, "","");
-    }
-
-   /**
-    * Calling this method consumes the current rule. This method only has an effect if called inside
-    * the {@code Formatter.pre()} method.
-    */
-    public void consume() {
-      this.consumed = true;
-    }
-
-    boolean isConsumed() {
-      return this.consumed;
-    }
-
-    /*package private*/ static RuleInfo newRuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText) {
-      return new RuleInfo(parentObject, ruleType, ruleName, ruleText);
-    }
-
-    public CodeElement getParentObject() {
-      return this.parentObject;
-    }
-
-    public RuleType getRuleType() {
-      return this.ruleType;
-    }
-
-    public Optional<String> getRuleName() {
-      return Optional.ofNullable(this.ruleName);
-    }
-
-    public String getRuleText() {
-      return this.ruleText;
-    }
-  }
+        }, RuleType.NONE, "","", null, -1);  
 }
 
 class DefaultFormatter implements Formatter {

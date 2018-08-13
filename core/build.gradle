@@ -16,7 +16,7 @@ buildscript {
 }
 
 plugins {
-    id 'eu.mihosoft.vmf' version '0.1.8'
+    id 'eu.mihosoft.vmf' version '0.1.9'
     id 'com.github.hierynomus.license' version '0.14.0'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.4.0'
@@ -45,9 +45,8 @@ repositories {
     mavenLocal()
 }
 
-task wrapper(type: Wrapper) {
+wrapper {
     gradleVersion = '4.9'
-    distributionUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-all.zip"
 }
 
 
