@@ -23,6 +23,7 @@
  *#
 package ${packageName};
 
+// TODO 19.08.2018 get rid of this import to prevent name clashes
 import eu.mihosoft.vmf.core.*;
 
 interface ${Util.firstToUpper($model.grammarName)}Model {
@@ -35,31 +36,35 @@ interface ${Util.firstToUpper($model.grammarName)}Model {
 
 interface Payload {
 
-  @DelegateTo(className="${delegationPackageName}.PayloadDelegate")
+  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.PayloadDelegate")
   Object payloadGet(String key);
-  @DelegateTo(className="${delegationPackageName}.PayloadDelegate")
+  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.PayloadDelegate")
   void payloadSet(String key, Object object);
 
 }
 
-@Immutable
+@eu.mihosoft.vmf.core.Immutable
 interface CodeRange {
   CodeLocation getStart();
   CodeLocation getStop();
   int getLength();
 }
 
-@Immutable
+@eu.mihosoft.vmf.core.Immutable
 interface CodeLocation {
   int getIndex();
   int getLine();
   int getCharPosInLine();
 }
 
-@InterfaceOnly
+@eu.mihosoft.vmf.core.InterfaceOnly
 interface CodeElement {
-  @IgnoreEquals
+  //@eu.mihosoft.vmf.core.IgnoreToString
+  @eu.mihosoft.vmf.core.IgnoreEquals
   CodeRange getCodeRange();
+
+  @eu.mihosoft.vmf.core.IgnoreEquals
+  CodeElement getParent();
 
   Payload getPayload();
 }

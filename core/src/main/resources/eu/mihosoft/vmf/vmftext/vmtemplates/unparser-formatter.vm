@@ -89,6 +89,16 @@ public interface Formatter {
             }
 
             @Override
+            public CodeElement getParent() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public void setParent(CodeElement payload) {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
             public void setPayload(Payload payload) {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }
