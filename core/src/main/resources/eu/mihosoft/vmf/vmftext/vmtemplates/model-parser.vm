@@ -34,14 +34,14 @@ interface ${Util.firstToUpper($model.grammarName)}Model {
 #end
 }
 
-interface Payload {
-
-  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.PayloadDelegate")
-  Object payloadGet(String key);
-  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.PayloadDelegate")
-  void payloadSet(String key, Object object);
-
-}
+##interface Payload {
+##
+##  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.PayloadDelegate")
+##  Object payloadGet(String key);
+##  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.PayloadDelegate")
+##  void payloadSet(String key, Object object);
+##
+##}
 
 @eu.mihosoft.vmf.core.Immutable
 interface CodeRange {
@@ -58,6 +58,7 @@ interface CodeLocation {
 }
 
 @eu.mihosoft.vmf.core.InterfaceOnly
+@eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
 interface CodeElement {
   //@eu.mihosoft.vmf.core.IgnoreToString
   @eu.mihosoft.vmf.core.IgnoreEquals
@@ -66,7 +67,13 @@ interface CodeElement {
   @eu.mihosoft.vmf.core.IgnoreEquals
   CodeElement getParent();
 
-  Payload getPayload();
+  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
+  CodeElement root();
+
+  @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
+  eu.mihosoft.vcollections.VList<CodeElement> pathToRoot();
+
+##  Payload getPayload();
 }
 
 #foreach( $rcls in ${model.ruleClasses} )

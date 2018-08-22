@@ -33,7 +33,7 @@ import eu.mihosoft.vmf.runtime.core.VMF;
 import ${modelPackageName}.ReadOnlyCodeElement;
 import ${modelPackageName}.CodeElement;
 import ${modelPackageName}.CodeRange;
-import ${modelPackageName}.Payload;
+// import ${modelPackageName}.Payload;
 
 public interface Formatter {
 
@@ -83,10 +83,15 @@ public interface Formatter {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }
 
-            @Override
-            public Payload getPayload() {
-                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
-            }
+##            @Override
+##            public void setPayload(Payload payload) {
+##                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+##            }
+##
+##            @Override
+##            public Payload getPayload() {
+##                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+##            }
 
             @Override
             public CodeElement getParent() {
@@ -94,12 +99,17 @@ public interface Formatter {
             }
 
             @Override
-            public void setParent(CodeElement payload) {
+            public void setParent(CodeElement parent) {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }
 
             @Override
-            public void setPayload(Payload payload) {
+            public CodeElement root() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public eu.mihosoft.vcollections.VList<CodeElement> pathToRoot() {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }
 

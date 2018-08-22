@@ -1,0 +1,136 @@
+#*
+ * Copyright 2017-2018 Michael Hoffer <info@michaelhoffer.de>. All rights reserved.
+ * Copyright 2017-2018 Goethe Center for Scientific Computing, University Frankfurt. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * If you use this software for scientific research then please cite the following publication(s):
+ *
+ * M. Hoffer, C. Poliwoda, & G. Wittum. (2013). Visual reflection library:
+ * a framework for declarative GUI programming on the Java platform.
+ * Computing and Visualization in Science, 2013, 16(4),
+ * 181–192. http://doi.org/10.1007/s00791-014-0230-y
+ *#
+package ${packageName}.vmfdelegation;
+
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.Optional;
+
+import eu.mihosoft.vcollections.VList;
+import eu.mihosoft.vmf.runtime.core.DelegatedBehavior;
+import eu.mihosoft.vmf.runtime.core.VObject;
+import vjavax.observer.Subscription;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+
+import eu.mihosoft.vmf.runtime.core.VMF;
+import eu.mihosoft.vmf.runtime.core.DelegatedBehavior;
+
+// import ${packageName}.Payload;
+import ${packageName}.CodeElement;
+
+
+public class CodeElementDelegate implements DelegatedBehavior<CodeElement> {
+
+    private CodeElement codeElement;
+
+    @Override
+    public void setCaller(CodeElement caller) {
+        this.codeElement = caller;
+    }
+
+    public void onCodeElementInstantiated() {
+        codeElement.vmf().changes().addListener( l -> {
+
+            if(l.object() != codeElement || "parent".equals(l.propertyName())) {
+                return;
+            }
+
+            if(l.listChange().isPresent()) {
+
+                l.listChange().get().added().elements().forEach(newO-> {
+                    // register parent with new value
+                    if(newO instanceof CodeElement) {
+                        CodeElement cE = (CodeElement) newO;
+                        cE.setParent(codeElement);
+                    }
+                });
+
+                l.listChange().get().removed().elements().forEach(prevO-> {
+                    // remove parent from old value
+                    if(prevO instanceof CodeElement) {
+                        CodeElement cE = (CodeElement) prevO;
+                        cE.setParent(null);
+                    }
+                });
+
+            } else if(l.propertyChange().isPresent()) {
+
+                // register parent with new value
+                Object newO = l.propertyChange().get().newValue();
+                if(newO instanceof CodeElement) {
+                    CodeElement cE = (CodeElement) newO;
+                    cE.setParent(codeElement);
+                }
+
+                // remove parent from old value
+                Object prevO = l.propertyChange().get().oldValue();
+                if(prevO instanceof CodeElement) {
+                    CodeElement cE = (CodeElement) prevO;
+                    cE.setParent(null);
+                }
+            }
+
+        }, false);
+    }
+
+    public CodeElement root() {
+
+        CodeElement cE = codeElement;
+
+        while(cE.getParent()!=null) {
+            cE = cE.getParent();
+        }
+
+        return cE;
+
+    }
+
+    public eu.mihosoft.vcollections.VList<CodeElement> pathToRoot() {
+
+        eu.mihosoft.vcollections.VList<CodeElement> result =
+            eu.mihosoft.vcollections.VList.newInstance(new ArrayList<>());
+
+        CodeElement cE = codeElement;
+
+        while(cE.getParent()!=null) {
+            result.add(cE);
+            cE = cE.getParent();
+        }
+
+        result.add(cE);
+
+        return result;
+
+    }
+
+##    public Payload payload() {
+##        return pathToRoot().stream().
+##            filter(cE->cE.getPayload()!=null).
+##            map(cE->cE.getPayload()).findFirst().orElse(null);
+##    }
+}

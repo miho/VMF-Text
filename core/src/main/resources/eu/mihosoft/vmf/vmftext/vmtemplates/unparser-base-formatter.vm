@@ -124,6 +124,18 @@ public class BaseFormatter implements Formatter {
         getCurrentState().put(key, value);
     }
 
+    public Integer getIntState(String key) {
+        if(!getCurrentState().containsKey(key)) {
+            return 0;
+        }
+
+        return (Integer) getCurrentState().get(key);
+    }
+
+    public void setIntState(String key, int value) {
+        getCurrentState().put(key, value);
+    }
+
     @Override
     public void pre(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
     

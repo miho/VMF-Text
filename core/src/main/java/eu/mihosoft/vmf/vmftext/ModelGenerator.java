@@ -150,13 +150,25 @@ public class ModelGenerator {
             engine = createDefaultEngine();
         }
 
+//        try (Resource resource =
+//                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
+//                             model.getPackageName()+".vmfdelegation.PayloadDelegate"));
+//
+//             Writer w = resource.open()) {
+//
+//            generatePayloadDelegate(w, engine,
+//                    model.getPackageName(), model);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
         try (Resource resource =
                      fileset.open(TypeUtil.computeFileNameFromJavaFQN(
-                             model.getPackageName()+".vmfdelegation.PayloadDelegate"));
+                             model.getPackageName()+".vmfdelegation.CodeElementDelegate"));
 
              Writer w = resource.open()) {
 
-            generatePayloadDelegate(w, engine,
+            generateCodeElementDelegate(w, engine,
                     model.getPackageName(), model);
         } catch (IOException e) {
             e.printStackTrace();
@@ -260,7 +272,18 @@ public class ModelGenerator {
         mergeTemplate("type-to-string-converter", engine, context, out);
     }
 
-    private static void generatePayloadDelegate(
+//    private static void generatePayloadDelegate(
+//            Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
+//        VelocityContext context = new VelocityContext();
+//        context.put("model", model);
+//        context.put("TEMPLATE_PATH",TEMPLATE_PATH);
+//        context.put("packageName", packageName);
+//        context.put("Util", StringUtil.class);
+//
+//        mergeTemplate("payload-delegate", engine, context, out);
+//    }
+
+    private static void generateCodeElementDelegate(
             Writer out, VelocityEngine engine, String packageName, GrammarModel model) throws IOException {
         VelocityContext context = new VelocityContext();
         context.put("model", model);
@@ -268,6 +291,6 @@ public class ModelGenerator {
         context.put("packageName", packageName);
         context.put("Util", StringUtil.class);
 
-        mergeTemplate("payload-delegate", engine, context, out);
+        mergeTemplate("code-element-delegate", engine, context, out);
     }
 }
