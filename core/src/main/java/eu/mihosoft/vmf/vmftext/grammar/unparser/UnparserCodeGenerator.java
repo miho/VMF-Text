@@ -876,7 +876,7 @@ public class UnparserCodeGenerator {
             w.append("  //    That's why we do checks (matchAlt-calls). Otherwise we can't make a valid decision.").append('\n');
             w.append("  //    FIXME: TODO: using properties with different lexer rules in multiple alts has a negative performance impact.").append('\n');
         } else {
-            w.append("  //    Nothing prevents us from skipping checks (matchAlt-calls). We can decide by checking").append('\n');
+            w.append("  //    Well done! Nothing prevents us from skipping checks (matchAlt-calls). We can decide by checking").append('\n');
             w.append("  //    whether properties in this alt are consumable and/or if properties used in other alts").append('\n');
             w.append("  //    are defined etc.").append('\n');
         }

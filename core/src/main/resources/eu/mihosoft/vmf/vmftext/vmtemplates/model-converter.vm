@@ -138,12 +138,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         // - to prevent 'index out of bounds' exceptions
         // - in case the grammar doesn't end with EOF in which case we won't be able
         //   to parse the WS/hidden chars from the end of the rule to the end of the file.
-        ignoredPiecesOfTextListener.getIgnoredPiecesOfText().add("");
+        ignoredPiecesOfTextListener.getIgnoredPiecesOfText(ctx).add("");
         
-        java.util.List<String> ignoredPiecesOfText = ignoredTextListener.getIgnoredPiecesOfText();
-
-        int idx = 0;
-
         java.util.List<CodeElement> codeElement =
                 element.vmf().content().stream(CodeElement.class).
                         collect(Collectors.toList());
@@ -152,35 +148,10 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         for(CodeElement e : codeElement) {
 
             // payload object
-            final java.util.Map<String,Object> payload = new java.util.HashMap<>();
-            e.setPayload(payload);
-
-            // go over each property of the current code element
-            for(eu.mihosoft.vmf.runtime.core.Property p : e.vmf().reflect().properties()) {
-
-                // we don't care for model types (only lexer and terminal)
-                if(p.getType().isModelType()) {
-                    continue;
-                }
-
-                // we add the sublist from the current index with number of element
-                if(p.getType().isListType()) {
-                    java.util.List<Object> propertyElements = (List<Object>) p.get();
-                    if(propertyElements.isEmpty()) {
-                      payload.put(p.getName(), new java.util.ArrayList());
-                    } else {
-                        int endIdx = idx+propertyElements.size()-1;
-                        List<String> ignoredPiecesOfTextForProperty =
-                            new java.util.ArrayList(ignoredPiecesOfText.subList(idx, endIdx));
-                        idx = endIdx+1;
-                        payload.put(p.getName(), ignoredPiecesOfTextForProperty);
-                    }
-                } else {
-                    String ignoredSection = ignoredPiecesOfText.get(idx);
-                    idx++;
-                    payload.put(p.getName(), ignoredSection);
-                }
-            } // end for each property
+            final java.util.Map<String,Object> payload = (java.util.Map<String,Object>)e.getPayload();
+                       
+            payload.put("vmf-text:ignored-pieces-of-text", ignoredPiecesOfTextListener.getIgnoredPiecesOfText((ParserRuleContext)payload.get("vmf-text:antlr4-rule-ctx")));
+            
         } // end for each code element
     }
 
@@ -465,6 +436,14 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         ${rcls.nameWithLower()}.setCodeRange(ctxToCodeRange(ctx));
 
         // ----------------------------------------
+        // Initializing Rule Payload
+        // ----------------------------------------
+
+        final java.util.Map<String,Object> payload = new java.util.HashMap<>();
+        ${rcls.nameWithLower()}.setPayload(payload);
+        payload.put("vmf-text:antlr4-rule-ctx", ctx);
+
+        // ----------------------------------------
         // Converting Properties
         // ----------------------------------------
 #foreach( $p in $rcls.properties )
@@ -685,109 +664,116 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
 */
 
-}
-
-class IgnoredPiecesOfTextListener implements org.antlr.v4.runtime.tree.ParseTreeListener {
-
-    private final Map<ParserRuleContext, List<String>> ignoredPiecesOfText = new HashMap<>();
-    private final TokenStream stream;
-    private TerminalNode prevNode;
-
-    private final Stack<ParserRuleContext> ruleContextStack = new Stack<>();
-
-    private static boolean debugOutputEnabled = false;
-
-    /**
-     * Constructor. Creates a new instance.
-     * @param stream The token stream to process
-     */
-    public IgnoredPiecesOfTextListener(TokenStream stream) {
-        this.stream = stream;
-    }
-
-    @Override
-    public void visitTerminal(TerminalNode node) {
-
-        if(prevNode==null) {
-
-            int start = 0;
-            int stop = node.getSymbol().getStartIndex()-1;
-
-            if(stop - start > -1) {
-                String piece = stream.getText(
-                        stream.get(0),
-                        stream.get( Math.max(0, node.getSymbol().getTokenIndex()-1) )
-                );
-
-                ignoredPiecesOfText.get(ruleContextStack.peek()).add(piece);
-
-                if(debugOutputEnabled)
-                    System.out.print("{" + piece + "}");
-            }
-            else {
-                ignoredPiecesOfText.get(ruleContextStack.peek()).add("");
-            }
-
-            prevNode = node;
-
-        } else {
-
+    public static class IgnoredPiecesOfTextListener implements org.antlr.v4.runtime.tree.ParseTreeListener {
+    
+        private final java.util.Map<ParserRuleContext, java.util.List<String>> ignoredPiecesOfText = new java.util.HashMap<>();
+        private final TokenStream stream;
+        private TerminalNode prevNode;
+    
+        private final java.util.Stack<ParserRuleContext> ruleContextStack = new java.util.Stack<>();
+    
+        private static boolean debugOutputEnabled = false;
+    
+        /**
+         * Constructor. Creates a new instance.
+         * @param stream The token stream to process
+         */
+        public IgnoredPiecesOfTextListener(TokenStream stream) {
             if(debugOutputEnabled)
-                System.out.print("[" + stream.getText(prevNode.getSourceInterval()) + "]");
-
-            int start = prevNode.getSymbol().getStopIndex() + 1;
-            int stop = node.getSymbol().getStartIndex() - 1;
-
-            if (stop - start > -1) {
-                String piece = stream.getText(
-                        stream.get(prevNode.getSymbol().getTokenIndex() + 1),
-                        stream.get(node.getSymbol().getTokenIndex() - 1));
-                ignoredPiecesOfText.get(ruleContextStack.peek()).add(piece);
-
-                if(debugOutputEnabled)
-                    System.out.print("{" + piece + "}");
+                        System.out.print("\n[DEBUG: IgnoredPiecesOfTextListener]\n");
+            this.stream = stream;
+        }
+    
+        @Override
+        public void visitTerminal(TerminalNode node) {
+    
+            if(prevNode==null) {
+    
+                int start = 0;
+                int stop = node.getSymbol().getStartIndex()-1;
+    
+                if(stop - start > -1) {
+                    String piece = stream.getText(
+                            stream.get(0),
+                            stream.get( Math.max(0, node.getSymbol().getTokenIndex()-1) )
+                    );
+    
+                    getIgnoredPiecesOfText(ruleContextStack.peek()).add(piece);
+    
+                    if(debugOutputEnabled)
+                        System.out.print("{" + piece + "}");
+                }
+                else {
+                    getIgnoredPiecesOfText(ruleContextStack.peek()).add("");
+                }
+    
+                prevNode = node;
+    
             } else {
-                ignoredPiecesOfText.get(ruleContextStack.peek()).add("");
+    
+                if(debugOutputEnabled)
+                    System.out.print("[" + stream.getText(prevNode.getSourceInterval()) + "]");
+    
+                int start = prevNode.getSymbol().getStopIndex() + 1;
+                int stop = node.getSymbol().getStartIndex() - 1;
+    
+                if (stop - start > -1) {
+                    String piece = stream.getText(
+                            stream.get(prevNode.getSymbol().getTokenIndex() + 1),
+                            stream.get(node.getSymbol().getTokenIndex() - 1));
+                    getIgnoredPiecesOfText(ruleContextStack.peek()).add(piece);
+    
+                    if(debugOutputEnabled)
+                        System.out.print("{" + piece + "}");
+                } else {
+                    getIgnoredPiecesOfText(ruleContextStack.peek()).add("");
+                }
+    
+                prevNode = node;
             }
-
-            prevNode = node;
         }
-    }
-
-    public List<String> getIgnoredPiecesOfText(ParserRuleContext ctx) {
-        List<String> result = ignoredPiecesOfText.get(ctx);
-
-        if(result==null) {
-            result = new ArrayList<>();
-            ignoredPiecesOfText.put(ctx,result);
+    
+        public List<String> getIgnoredPiecesOfText(ParserRuleContext ctx) {
+            List<String> result = ignoredPiecesOfText.get(ctx);
+    
+            if(result==null) {
+                result = new ArrayList<>();
+                ignoredPiecesOfText.put(ctx,result);
+            }
+    
+            return result;
         }
+    
+        @Override
+        public void visitErrorNode(ErrorNode node) {
+    
+        }
+    
+        @Override
+        public void enterEveryRule(ParserRuleContext ctx) {
+            ruleContextStack.push(ctx);
+            // System.out.println(" -> ENTER " + ctx.getClass().getSimpleName() + "::" + ctx.getText());
+        }
+    
+        @Override
+        public void exitEveryRule(ParserRuleContext ctx) {
+            ParserRuleContext pCtx = ruleContextStack.pop();
+            // System.out.println(" #num-elements: " + getIgnoredPiecesOfText(pCtx).size());
+            // System.out.println(" <- EXIT  " + ctx.getClass().getSimpleName() + "::" + ctx.getText());
+        }
+    
+        public static boolean isDebugOutputEnabled() {
+            return debugOutputEnabled;
+        }
+    
+        public static void setDebugOutputEnabled(boolean debugOutputEnabled) {
+            IgnoredPiecesOfTextListener.debugOutputEnabled = debugOutputEnabled;
+        }
+    }  // end IgnoredPiecesOfTextListener      
 
-        return result;
-    }
+}  // end 
 
-    @Override
-    public void visitErrorNode(ErrorNode node) {
 
-    }
-
-    @Override
-    public void enterEveryRule(ParserRuleContext ctx) {
-        ruleContextStack.push(ctx);
-    }
-
-    @Override
-    public void exitEveryRule(ParserRuleContext ctx) {
-        ruleContextStack.pop();
-    }
-
-    public static boolean isDebugOutputEnabled() {
-        return debugOutputEnabled;
-    }
-
-    public static void setDebugOutputEnabled(boolean debugOutputEnabled) {
-        IgnoredPiecesOfTextListener.debugOutputEnabled = debugOutputEnabled;
-    }
-}
 
 ##/**
 ## * Collects all pieces of text that are ignored by the grammar ({@code -> channel("Hidden")}). This class is intended

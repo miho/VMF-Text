@@ -26,15 +26,17 @@
 #foreach( $ann in ${p.annotations} )
   $ann.getText()
 #end
+  @eu.mihosoft.vmf.core.PropertyOrder(index = ${foreach.index})
   ${p.type.asModelTypeName()} get${p.nameWithUpper()}();
 
 #end
 
-  // Custom properties
+  // Custom properties (ordered always after regular properties directly derived from the grammar)
 #foreach( $p in ${ruleClass.customProperties} )
 #foreach( $ann in ${p.annotations} )
   $ann.getText()
 #end
+  @eu.mihosoft.vmf.core.PropertyOrder(index = ${Util.addIntegersAndReturnAsString( ${ruleClass.properties.size()} , ${foreach.index} )})
   ${p.type.asModelTypeName()} get${p.nameWithUpper()}();
 
 #end

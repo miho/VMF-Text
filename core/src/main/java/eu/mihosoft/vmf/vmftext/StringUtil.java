@@ -161,4 +161,25 @@ public class StringUtil {
         return Integer.toHexString(ch).toUpperCase();
     }
 
+
+    /**
+     * Returns the sum of the specified inters as string.
+     * @return sum of specified inters as string
+     */
+    public static String addIntegersAndReturnAsString(String a, String b) {
+        return "" + (Integer.parseInt(a) + Integer.parseInt(b));
+    }
+
+    /**
+     * Returns the sum of the specified inters as string.
+     * @return sum of specified inters as string
+     */
+    public static String addIntegersAndReturnAsString(int a, int b) {
+        return "" + ( a + b);
+    }
+
+    public static String callTest() {
+        return "ABC";
+    }
+
 }

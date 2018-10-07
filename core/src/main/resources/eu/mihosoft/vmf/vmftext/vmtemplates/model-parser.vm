@@ -64,12 +64,13 @@ interface CodeElement {
   @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
   eu.mihosoft.vcollections.VList<CodeElement> pathToRoot();
 
+  @eu.mihosoft.vmf.core.IgnoreEquals
   Object getPayload();
 }
 
 #foreach( $rcls in ${model.ruleClasses} )
 #if( !$rcls.childClasses.empty )
-@InterfaceOnly
+@eu.mihosoft.vmf.core.InterfaceOnly
 #end
 #foreach( $ann in ${rcls.getCustomRuleAnnotations()} )
 $ann.getText()
