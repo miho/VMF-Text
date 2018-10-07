@@ -151,9 +151,6 @@ public class LexicalPreservationTest {
 
     static class DefaultArrayLangFormatter extends BaseFormatter {
 
-        private CodeElement prevElement;
-        private List<String> hiddenText;
-
         public DefaultArrayLangFormatter(CodeElement e) {
             //
         }
@@ -200,10 +197,14 @@ public class LexicalPreservationTest {
             if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
                 CodeElement e = ruleInfo.getParentObject();
 
-                int pos = getCounter(e);
-                String ws = getHiddenText(e).get(pos);
-                w.append(ws);
-                inc(e);
+                if(!getHiddenText(e).isEmpty()) {
+                    int pos = getCounter(e);
+                    String ws = getHiddenText(e).get(pos);
+                    w.append(ws);
+                    inc(e);
+                } else {
+                    w.append(" ");
+                }
             }
         }
     }
@@ -211,7 +212,7 @@ public class LexicalPreservationTest {
     static class DefaultJava8Formatter extends eu.mihosoft.vmftext.tests.java8.unparser.BaseFormatter {
 
         public DefaultJava8Formatter(eu.mihosoft.vmftext.tests.java8.CodeElement e) {
-
+            //
         }
 
         private void inc(eu.mihosoft.vmftext.tests.java8.CodeElement e) {
@@ -257,12 +258,15 @@ public class LexicalPreservationTest {
             if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
                 eu.mihosoft.vmftext.tests.java8.CodeElement e = ruleInfo.getParentObject();
 
-                int pos = getCounter(e);
-                String ws = getHiddenText(e).get(pos);
-                w.append(ws);
-                inc(e);
+                if(!getHiddenText(e).isEmpty()) {
+                    int pos = getCounter(e);
+                    String ws = getHiddenText(e).get(pos);
+                    w.append(ws);
+                    inc(e);
+                } else {
+                    w.append(" ");
+                }
             }
-
         }
 
         public void post(Java8ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
@@ -271,62 +275,10 @@ public class LexicalPreservationTest {
 
     }
 
-
-//    static class DefaultJava8Formatter extends eu.mihosoft.vmftext.tests.java8.unparser.BaseFormatter {
-//
-//        private eu.mihosoft.vmftext.tests.java8.CodeElement prevElement;
-//        private List<String> hiddenText;
-//
-//        public DefaultJava8Formatter(eu.mihosoft.vmftext.tests.java8.CodeElement e) {
-//            //this.hiddenText = (List<String>) e.payload().payloadGet("vmf-text:hidden-text");
-//            setIntState("pos", -1);
-//        }
-//
-//        @Override
-//        public void pre(Java8ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
-//
-//            eu.mihosoft.vmftext.tests.java8.CodeElement e = ruleInfo.getParentObject();
-//
-//            if(!Objects.equals(prevElement, e)) {
-//
-//                if(getIntState("pos") != -1) {
-//                    setIntState("pos", 0);
-//                }
-//
-//                hiddenText = (List<String>)
-//                        ((Map<String,Object>)e.getPayload()).get("vmf-text:ignored-pieces-of-text");
-//
-//                prevElement = e;
-//            }
-//
-//            if(getIntState("pos") == -1 &&
-//                    (ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE)) {
-//                setIntState("pos",0);
-//
-//                String ws = hiddenText.get(getIntState("pos"));
-//
-//                System.out.print("{"+ws+"}" + "["+ruleInfo.getRuleText()+"]");
-//                w.append(ws);
-//
-//                setIntState("pos",1);
-//            }
-//        }
-//
-//        public void post(Java8ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
-//            if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
-//                String ws = hiddenText.get(getIntState("pos"));
-//                System.out.print("["+ruleInfo.getRuleText()+"]{"+ws+"}");
-//                w.append(hiddenText.get(getIntState("pos")));
-//                setIntState("pos",getIntState("pos")+1);
-//            }
-//        }
-//
-//    }
-
     static class DefaultCombinedLexerRulesFormatter extends eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.unparser.BaseFormatter {
 
         public DefaultCombinedLexerRulesFormatter(eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.CodeElement e) {
-            setIntState("pos", -1);
+            //
         }
 
         private void inc(eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.CodeElement e) {
@@ -372,66 +324,15 @@ public class LexicalPreservationTest {
             if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
                 eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.CodeElement e = ruleInfo.getParentObject();
 
-                int pos = getCounter(e);
-                String ws = getHiddenText(e).get(pos);
-                w.append(ws);
-                inc(e);
+                if(!getHiddenText(e).isEmpty()) {
+                    int pos = getCounter(e);
+                    String ws = getHiddenText(e).get(pos);
+                    w.append(ws);
+                    inc(e);
+                } else {
+                    w.append(" ");
+                }
             }
-
         }
-
     }
 }
-
-
-//static class DefaultArrayLangFormatter extends BaseFormatter {
-//
-//    private CodeElement prevElement;
-//    private List<String> hiddenText;
-//
-//    public DefaultArrayLangFormatter(CodeElement e) {
-//        setIntState("pos", -1);
-//    }
-//
-//    @Override
-//    public void pre(ArrayLangModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
-//
-//        CodeElement e = ruleInfo.getParentObject();
-//
-//        if(!Objects.equals(prevElement, e)) {
-//
-//            if(getIntState("pos") != -1) {
-//                setIntState("pos", 0);
-//            }
-//
-//            hiddenText = (List<String>)
-//                    ((Map<String,Object>)e.getPayload()).get("vmf-text:ignored-pieces-of-text");
-//
-//            prevElement = e;
-//        }
-//
-//        if(getIntState("pos") == -1 &&
-//                (ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE)) {
-//            setIntState("pos",0);
-//
-//            String ws = hiddenText.get(getIntState("pos"));
-//
-//            System.out.print("{"+ws+"}" + "["+ruleInfo.getRuleText()+"]");
-//            w.append(ws);
-//
-//            setIntState("pos",1);
-//        }
-//    }
-//
-//    public void post(ArrayLangModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
-//        if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
-//            String ws = hiddenText.get(getIntState("pos"));
-//            // System.out.print("["+ruleInfo.getRuleText()+"]{"+ws+"}");
-//            w.append(hiddenText.get(getIntState("pos")));
-//            setIntState("pos",getIntState("pos")+1);
-//        }
-//    }
-//
-//}
-
-

@@ -29,17 +29,6 @@ public class MultipleParserRulesTest {
 
         MultipleParserRulesModel model = new MultipleParserRulesModelParser().parse(code);
 
-//        model.vmf().content().stream(CodeElement.class).forEach(e->{
-//            System.out.print("\n-> " + e.getClass().getName() + " :: ");
-//
-//            List<String> hiddenText = (List<String>)
-//                    ((Map<String,Object>)e.getPayload()).get("vmf-text:ignored-pieces-of-text");
-//
-//            for(String s :  hiddenText) {
-//                System.out.print("{"+s.replace("\n","NL")+"}");
-//            }
-//        });
-
         // unparse the model to 'newCode'
         MultipleParserRulesModelUnparser unparser = new MultipleParserRulesModelUnparser();
         unparser.setFormatter(new MultipleParserRulesFormatter(model.getRoot()));
@@ -58,11 +47,10 @@ public class MultipleParserRulesTest {
         Assert.assertEquals(code, newCode);
     }
 
-
     static class MultipleParserRulesFormatter extends eu.mihosoft.vmftext.tests.lexicalpreservation.multipleparserrules.unparser.BaseFormatter {
 
         public MultipleParserRulesFormatter(eu.mihosoft.vmftext.tests.lexicalpreservation.multipleparserrules.CodeElement e) {
-
+            //
         }
 
         private void inc(CodeElement e) {
@@ -106,12 +94,17 @@ public class MultipleParserRulesTest {
         public void pre(MultipleParserRulesModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
 
             if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
+
                 CodeElement e = ruleInfo.getParentObject();
 
-                int pos = getCounter(e);
-                String ws = getHiddenText(e).get(pos);
-                w.append(ws);
-                inc(e);
+                if(!getHiddenText(e).isEmpty()) {
+                    int pos = getCounter(e);
+                    String ws = getHiddenText(e).get(pos);
+                    w.append(ws);
+                    inc(e);
+                } else {
+                    w.append(" ");
+                }
             }
 
         }
