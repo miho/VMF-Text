@@ -121,7 +121,7 @@ public class MultipleParserRulesTest {
         @Override
         public void pre(MultipleParserRulesModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
 
-            if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
+            //if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
 
                 CodeElement e = ruleInfo.getParentObject();
 
@@ -133,7 +133,7 @@ public class MultipleParserRulesTest {
                 } else {
                     w.append(" ");
                 }
-            }
+            //}
 
         }
 
