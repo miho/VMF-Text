@@ -40,10 +40,15 @@ public interface Formatter {
   default void acceptState() {}
   default void rejectState() {}
 
+  default void done(CodeElement e, boolean success) {}
+
   default void pre( ${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
   default void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
 
   static Formatter newDefaultFormatter() { return new DefaultFormatter();}
+  static Formatter newDefaultFormatterwithoutLexicalPreservation() { 
+    return new DefaultFormatterWithoutLexicalPreservation();
+  }
   static Formatter newJavaStyleFormatter() { return new JavaStyleFormatter();}
 
   static enum RuleType {
@@ -163,11 +168,149 @@ public interface Formatter {
   }
 }
 
-class DefaultFormatter implements Formatter {
-  public void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
-    w.append(" ");
+// ------------------------------------------------------------
+// DEFAULT FORMATTER (with lexical preservation and without) 
+// ------------------------------------------------------------
+
+  class DefaultFormatterWithoutLexicalPreservation implements Formatter {
+    public void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
+      w.append(" ");
+    }
   }
-}
+
+  class DefaultFormatter extends BaseFormatter {
+
+    private CodeElement currentElement;
+    
+    DefaultFormatter() {
+        //
+    }
+
+    @Override
+    public void done(CodeElement e, boolean success) {
+      reset(e);
+    }
+
+    @Override
+    public void rejectState() {
+        super.rejectState();
+
+        if(currentElement!=null) {
+          reset(currentElement);
+        }
+    }
+
+    @Override
+    public void acceptState() {
+        super.acceptState();
+
+//        if(currentElement!=null) {
+//          reset(currentElement);
+//        }
+    }
+
+    private void inc(CodeElement e) {
+
+        if(e.getPayload()==null) {
+          return;
+        }
+
+        if(!(e.getPayload() instanceof java.util.Map)) {
+          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        }
+
+        Integer value = (Integer)
+                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
+        if(value==null) {
+            value = 0;
+        }
+        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",++value);
+    }
+    private void dec(CodeElement e) {
+
+        if(e.getPayload()==null) {
+          return;
+        }
+
+        if(!(e.getPayload() instanceof java.util.Map)) {
+          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        }
+
+        Integer value = (Integer)
+                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
+        if(value==null) {
+            value = 0;
+        }
+        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",--value);
+    }
+    private void reset(CodeElement e) {
+
+        if(e.getPayload()==null) {
+          return;
+        }
+
+        if(!(e.getPayload() instanceof java.util.Map)) {
+          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        }
+
+        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",0);
+    }
+    private int getCounter(CodeElement e) {
+
+        if(e.getPayload()==null) {
+          return 0;
+        }
+
+        if(!(e.getPayload() instanceof java.util.Map)) {
+          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        }
+
+        Integer value = (Integer)
+                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
+        if(value==null) {
+            value = 0;
+        }
+        return value;
+    }
+    private java.util.List<String> getHiddenText(CodeElement e) {
+
+        if(e.getPayload()==null) {
+          return null;
+        }
+
+        if(!(e.getPayload() instanceof java.util.Map)) {
+          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        }
+         
+        java.util.Map<String,Object> payload = (java.util.Map<String,Object>)e.getPayload();
+
+        return (java.util.List<String>)payload.get("vmf-text:ignored-pieces-of-text");
+    }
+    @Override
+    public void pre(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
+        // if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
+            CodeElement e = ruleInfo.getParentObject();
+            currentElement = e;
+            if(getHiddenText(e)!=null && !getHiddenText(e).isEmpty()) {
+                int pos = getCounter(e);
+                if(pos < getHiddenText(e).size()) {
+                  String ws = getHiddenText(e).get(pos);
+                  w.append(ws);
+                  inc(e);
+                } else {
+                  w.append(" ");
+                  System.err.println("ERROR: index=" + pos + ", " + e.getClass().getName());
+                }
+            } else {
+                w.append(" ");
+            }
+        // }
+    }
+    @Override
+    public void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
+
+    }
+  } // end default-formatter
 
 
 class JavaStyleFormatter implements Formatter {

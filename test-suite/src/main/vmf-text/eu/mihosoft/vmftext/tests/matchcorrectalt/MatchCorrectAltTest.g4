@@ -17,7 +17,7 @@ IDENTIFIER: [a-zA-Z][a-zA-Z0-9]*;
 
 
 WS
-:   [ \r\t\n]+ -> skip
+:   [ \r\t\n]+ -> channel(HIDDEN)
 ;
 
 MULTILINE_COMMENT

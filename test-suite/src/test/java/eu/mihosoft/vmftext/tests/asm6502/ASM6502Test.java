@@ -23,7 +23,7 @@ import java.util.BitSet;
 public class ASM6502Test {
     @Test
     public void parseUnparseTest() {
-        createParseUnparseTest(new File("test-code/asm6502/combsort.txt"), false);
+        createParseUnparseTest(new File("test-code/asm6502/combsort.txt"), true);
     }
 
     public void createParseUnparseTest(File file, boolean compareCode) {
@@ -50,13 +50,13 @@ public class ASM6502Test {
 
         // unparse the model
         ASM6502ModelUnparser unparser = new ASM6502ModelUnparser();
-        unparser.setFormatter(new Formatter() {
-            public void post(ASM6502ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
-                if(!ruleInfo.getRuleText().startsWith(";")) {
-                    w.append(" ");
-                }
-            }
-        });
+//        unparser.setFormatter(new Formatter() {
+//            public void post(ASM6502ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
+//                if(!ruleInfo.getRuleText().startsWith(";")) {
+//                    w.append(" ");
+//                }
+//            }
+//        });
         String newCode = unparser.unparse(model);
 
         System.out.println(newCode);

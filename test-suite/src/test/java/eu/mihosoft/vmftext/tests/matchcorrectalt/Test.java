@@ -50,9 +50,9 @@ public class Test {
         String s3 = unparser.unparse(model3);
         System.out.println(s3);
 
-        Assert.assertTrue("s1 needs to contain the string 'name'",s1.startsWith("name"));
-        Assert.assertTrue("s2 needs to contain the string 'number'",s2.startsWith("number"));
-        Assert.assertTrue("s3 needs to contain the string 'terminal'",s3.startsWith("terminal"));
+        Assert.assertTrue("s1 needs to start with the string 'name', but is '"+s1+"'",s1.startsWith("name"));
+        Assert.assertTrue("s2 needs to start with the string 'number', but is '"+s2+"'",s2.startsWith("number"));
+        Assert.assertTrue("s3 needs to start with the string 'terminal', but is '"+s3+"'",s3.startsWith("terminal"));
     }
 
 
@@ -69,8 +69,8 @@ public class Test {
         String s2 = unparser.unparse(model2);
         System.out.println(s2);
 
-        Assert.assertTrue("s1 needs to contain the string 'terminal2'",s1.startsWith("terminal2"));
-        Assert.assertTrue("s2 needs to contain the string 'terminal1'",s2.startsWith("terminal1"));
+        Assert.assertTrue("s1 needs to start with the string 'terminal2', but is '"+s1+"'",s1.startsWith("terminal2"));
+        Assert.assertTrue("s2 needs to start with the string 'terminal1', but is '"+s2+"'",s2.startsWith("terminal1"));
     }
 
 }
