@@ -30,7 +30,7 @@ matrix:
   fast_finish: true
 
 cache:
-  - C:\projects\vmf-text\
+#  - C:\projects\vmf-text\
 
 build_script:
   - cd %APPVEYOR_BUILD_FOLDER%
