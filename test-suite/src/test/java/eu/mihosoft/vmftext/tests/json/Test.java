@@ -80,6 +80,8 @@ public class Test {
 
         ((ObjectValue)model.getRoot().getValue()).getValue().getPairs().add(myPair);
 
+        System.out.println("--- Unparse modified model ---");
+
         // output changed json document
         String changedJson = unparser.unparse(model);
 

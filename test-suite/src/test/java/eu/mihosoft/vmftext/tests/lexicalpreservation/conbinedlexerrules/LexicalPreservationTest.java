@@ -73,7 +73,6 @@ public class LexicalPreservationTest {
 
         // unparse the model to 'newCode'
         Java8ModelUnparser unparser = new Java8ModelUnparser();
-        unparser.setFormatter(new DefaultJava8Formatter(model.getRoot()));
         String newCode = unparser.unparse(model);
 
         System.out.println("\nUNPARSED: ");
@@ -105,7 +104,6 @@ public class LexicalPreservationTest {
 
         // unparse the model to 'newCode'
         ArrayLangModelUnparser unparser = new ArrayLangModelUnparser();
-        unparser.setFormatter(new DefaultArrayLangFormatter(model.getRoot()));
         String newCode = unparser.unparse(model);
 
         // parse the new code to another model instance
@@ -133,7 +131,6 @@ public class LexicalPreservationTest {
 
         // unparse the model to 'newCode'
         CombinedLexerRulesModelUnparser unparser = new CombinedLexerRulesModelUnparser();
-        unparser.setFormatter(new DefaultCombinedLexerRulesFormatter(model.getRoot()));
         String newCode = unparser.unparse(model);
 
         // parse the new code to another model instance
@@ -147,200 +144,5 @@ public class LexicalPreservationTest {
 
         // now we finally check whether the new code is equal to the original code
         Assert.assertEquals(code, newCode);
-    }
-
-    static class DefaultArrayLangFormatter extends BaseFormatter {
-
-        private CodeElement root;
-
-        public DefaultArrayLangFormatter(CodeElement e) {
-            root = e;
-        }
-
-        private void inc(CodeElement e) {
-            Integer value = (Integer)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
-
-            if(value==null) {
-                value = 0;
-            }
-
-            ((Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",++value);
-        }
-        private void dec(CodeElement e) {
-            Integer value = (Integer)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
-
-            if(value==null) {
-                value = 0;
-            }
-
-            ((Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",--value);
-        }
-
-        private int getCounter(CodeElement e) {
-            Integer value = (Integer)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
-
-            if(value==null) {
-                value = 0;
-            }
-
-            return value;
-        }
-
-        private List<String> getHiddenText(CodeElement e) {
-            return (List<String>)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:ignored-pieces-of-text");
-        }
-
-        @Override
-        public void pre(ArrayLangModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
-            //if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
-                CodeElement e = ruleInfo.getParentObject();
-
-                if(!getHiddenText(e).isEmpty()) {
-                    int pos = getCounter(e);
-                    String ws = getHiddenText(e).get(pos);
-                    w.append(ws);
-                    inc(e);
-                } else {
-                    w.append(" ");
-                }
-            //}
-
-        }
-
-        @Override
-        public void post(ArrayLangModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
-
-        }
-    }
-
-    static class DefaultJava8Formatter extends eu.mihosoft.vmftext.tests.java8.unparser.BaseFormatter {
-
-        public DefaultJava8Formatter(eu.mihosoft.vmftext.tests.java8.CodeElement e) {
-            //
-        }
-
-        private void inc(eu.mihosoft.vmftext.tests.java8.CodeElement e) {
-            Integer value = (Integer)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
-
-            if(value==null) {
-                value = 0;
-            }
-
-            ((Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",++value);
-        }
-        private void dec(eu.mihosoft.vmftext.tests.java8.CodeElement e) {
-            Integer value = (Integer)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
-
-            if(value==null) {
-                value = 0;
-            }
-
-            ((Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",--value);
-        }
-
-        private int getCounter(eu.mihosoft.vmftext.tests.java8.CodeElement e) {
-            Integer value = (Integer)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
-
-            if(value==null) {
-                value = 0;
-            }
-
-            return value;
-        }
-
-        private List<String> getHiddenText(eu.mihosoft.vmftext.tests.java8.CodeElement e) {
-            return (List<String>)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:ignored-pieces-of-text");
-        }
-
-        @Override
-        public void pre(Java8ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
-
-            //if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
-                eu.mihosoft.vmftext.tests.java8.CodeElement e = ruleInfo.getParentObject();
-
-                if(!getHiddenText(e).isEmpty()) {
-                    int pos = getCounter(e);
-                    String ws = getHiddenText(e).get(pos);
-                    w.append(ws);
-                    inc(e);
-                } else {
-                    w.append(" ");
-                }
-            //}
-        }
-
-        public void post(Java8ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
-
-        }
-
-    }
-
-    static class DefaultCombinedLexerRulesFormatter extends eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.unparser.BaseFormatter {
-
-        public DefaultCombinedLexerRulesFormatter(eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.CodeElement e) {
-            //
-        }
-
-        private void inc(eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.CodeElement e) {
-            Integer value = (Integer)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
-
-            if(value==null) {
-                value = 0;
-            }
-
-            ((Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",++value);
-        }
-        private void dec(eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.CodeElement e) {
-            Integer value = (Integer)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
-
-            if(value==null) {
-                value = 0;
-            }
-
-            ((Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",--value);
-        }
-
-        private int getCounter(eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.CodeElement e) {
-            Integer value = (Integer)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
-
-            if(value==null) {
-                value = 0;
-            }
-
-            return value;
-        }
-
-        private List<String> getHiddenText(eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.CodeElement e) {
-            return (List<String>)
-                    ((Map<String,Object>)e.getPayload()).get("vmf-text:ignored-pieces-of-text");
-        }
-
-        @Override
-        public void pre(CombinedLexerRulesModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
-
-            //if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
-                eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.CodeElement e = ruleInfo.getParentObject();
-
-                if(!getHiddenText(e).isEmpty()) {
-                    int pos = getCounter(e);
-                    String ws = getHiddenText(e).get(pos);
-                    w.append(ws);
-                    inc(e);
-                } else {
-                    w.append(" ");
-                }
-            //}
-        }
     }
 }

@@ -189,6 +189,7 @@ public interface Formatter {
     @Override
     public void done(CodeElement e, boolean success) {
       reset(e);
+      currentElement = null;
     }
 
     @Override
