@@ -70,7 +70,6 @@ public class UnparserCodeGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     private static void generateUPGrammarCode(GrammarModel gModel, UnparserModel model,
@@ -608,13 +607,14 @@ public class UnparserCodeGenerator {
 
                     String altName = ruleName + "Alt" + a.getId();
 
-                    w.append("    if( unparse" + altName + "( obj, w ) ) { popState(); return; }").append('\n').append('\n');
+                    w.append("    if( unparse" + altName + "( obj, w ) ) { popState(); getUnparser().getFormatter().done(obj,true); return; }").append('\n').append('\n');
 
                 }
                 w.append("    // TODO: 29.12.2017 introduce unparser error handler etc.").append('\n');
+                w.append("    getUnparser().getFormatter().done(obj,false);").append("\n");
                 w.append("    throw new RuntimeException(\"Cannot unparse rule '" + ruleName + "'. Language model is invalid!\");").append('\n');
                 w.append("    // popState();").append('\n').append('\n');
-                w.append("  }").append('\n');
+                w.append("  } // end unparse").append('\n');
 
 
                 int altIndex = 0;

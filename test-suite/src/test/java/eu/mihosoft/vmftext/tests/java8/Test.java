@@ -46,7 +46,8 @@ public class Test {
         Java8Model model = parser.parse(code);
 
         Java8ModelUnparser unparser = new Java8ModelUnparser();
-        unparser.setFormatter(new MyFormatter());
+
+        // unparser.setFormatter(new MyFormatter());
 
         long timeStampBegin = System.nanoTime();
 
@@ -75,7 +76,8 @@ public class Test {
                 filter(cls -> "Java8RungeKutta".equals(cls.getClassName())).forEach(cls -> cls.setClassName(cls.getClassName() + "Out"));
 
         Java8ModelUnparser unparser = new Java8ModelUnparser();
-        unparser.setFormatter(new MyFormatter());
+
+        // unparser.setFormatter(new MyFormatter());
 
         try (FileWriter fw = new FileWriter(new File("test-code/Java8RungeKuttaOut.java"))) {
             unparser.unparse(model, fw);
@@ -116,7 +118,9 @@ public class Test {
         Java8Model model = parser.parse(code);
 
         Java8ModelUnparser unparser = new Java8ModelUnparser();
-        unparser.setFormatter(new MyFormatter());
+
+        //unparser.setFormatter(new MyFormatter());
+
         String out = unparser.unparse(model);
 
     }
@@ -131,7 +135,8 @@ public class Test {
 
 
         Java8ModelUnparser unparser = new Java8ModelUnparser();
-        unparser.setFormatter(new MyFormatter());
+
+        // unparser.setFormatter(new MyFormatter());
 
         long timeStampBegin = System.nanoTime();
 
@@ -155,7 +160,7 @@ public class Test {
         Java8ModelParser parser = new Java8ModelParser();
         Java8ModelUnparser unparser = new Java8ModelUnparser();
 
-        unparser.setFormatter(new MyFormatter());
+        // unparser.setFormatter(new MyFormatter());
 
 
         FieldDeclaration fieldDecl = FieldDeclaration.newInstance();
@@ -192,7 +197,7 @@ public class Test {
         Java8ModelParser parser = new Java8ModelParser();
         Java8ModelUnparser unparser = new Java8ModelUnparser();
 
-        unparser.setFormatter(new MyFormatter());
+        // unparser.setFormatter(new MyFormatter());
 
         ClassDeclaration cDecl = ClassDeclaration.newInstance();
         ClassBody clsBody = ClassBody.newInstance();
@@ -333,7 +338,7 @@ public class Test {
                 );
 
         Java8ModelUnparser unparser = new Java8ModelUnparser();
-        unparser.setFormatter(new MyFormatter());
+        // unparser.setFormatter(new MyFormatter());
 
         String transformed = unparser.unparse(model);
 
@@ -376,7 +381,7 @@ public class Test {
                 );
 
         Java8ModelUnparser unparser = new Java8ModelUnparser();
-        unparser.setFormatter(new MyFormatter());
+        // unparser.setFormatter(new MyFormatter());
 
         String transformed = unparser.unparse(model);
 
@@ -427,7 +432,7 @@ public class Test {
         Assert.assertEquals(5, numInstrumentationCalls);
 
         Java8ModelUnparser unparser = new Java8ModelUnparser();
-        unparser.setFormatter(new MyFormatter());
+        // unparser.setFormatter(new MyFormatter());
 
         String transformed = unparser.unparse(model);
 

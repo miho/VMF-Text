@@ -83,7 +83,7 @@ public class Test {
         // output changed json document
         String changedJson = unparser.unparse(model);
 
-        String expectedJson = "{ \"version\" : 2.0 , \"data\" : { \"sampleArray\" : [ \"mystring\" , false , true , { \"name\" : \"my name\" } ] } , \"my number\" : 1.2345 }";
+        String expectedJson = "{ \"version\" : 2.0 , \"data\" : { \"sampleArray\" : [ \"mystring\" , false , true , { \"name\" : \"my name\" } ] }, \"my number\" : 1.2345 }";
 
 
         Assert.assertEquals(expectedJson, changedJson.trim());

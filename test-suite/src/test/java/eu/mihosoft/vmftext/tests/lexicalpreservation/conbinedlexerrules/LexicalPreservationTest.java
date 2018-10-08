@@ -92,7 +92,7 @@ public class LexicalPreservationTest {
     @Test
     public void lexicalPreservationTestArrayLang() {
 
-        // the code to reproduce (INCLUDING EOF (TODO 7.10.2018))
+//        // the code to reproduce (INCLUDING EOF (TODO 7.10.2018))
 //        String code = "" +
 //                " (1.0 ,2.0 , 3.0, 4.0\n,5.0,\n6.0,7.0,8.0, 0.0 ) ";
 
@@ -151,8 +151,10 @@ public class LexicalPreservationTest {
 
     static class DefaultArrayLangFormatter extends BaseFormatter {
 
+        private CodeElement root;
+
         public DefaultArrayLangFormatter(CodeElement e) {
-            //
+            root = e;
         }
 
         private void inc(CodeElement e) {
@@ -194,7 +196,7 @@ public class LexicalPreservationTest {
 
         @Override
         public void pre(ArrayLangModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
-            if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
+            //if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
                 CodeElement e = ruleInfo.getParentObject();
 
                 if(!getHiddenText(e).isEmpty()) {
@@ -205,7 +207,13 @@ public class LexicalPreservationTest {
                 } else {
                     w.append(" ");
                 }
-            }
+            //}
+
+        }
+
+        @Override
+        public void post(ArrayLangModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
+
         }
     }
 
@@ -255,7 +263,7 @@ public class LexicalPreservationTest {
         @Override
         public void pre(Java8ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
 
-            if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
+            //if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
                 eu.mihosoft.vmftext.tests.java8.CodeElement e = ruleInfo.getParentObject();
 
                 if(!getHiddenText(e).isEmpty()) {
@@ -266,7 +274,7 @@ public class LexicalPreservationTest {
                 } else {
                     w.append(" ");
                 }
-            }
+            //}
         }
 
         public void post(Java8ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
@@ -321,7 +329,7 @@ public class LexicalPreservationTest {
         @Override
         public void pre(CombinedLexerRulesModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
 
-            if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
+            //if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
                 eu.mihosoft.vmftext.tests.lexicalpreservation.conbinedlexerrules.CodeElement e = ruleInfo.getParentObject();
 
                 if(!getHiddenText(e).isEmpty()) {
@@ -332,7 +340,7 @@ public class LexicalPreservationTest {
                 } else {
                     w.append(" ");
                 }
-            }
+            //}
         }
     }
 }
