@@ -117,6 +117,73 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         return result;
     }
 
+    private void addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(CodeElement e) {
+        // add ws to the ignored-pieces-of-text info 
+        // (if present and no space already in front of it)
+        if(e!=null && e.getPayload() instanceof java.util.Map) {
+
+            // payload object
+            final java.util.Map<String,Object> payload =
+                    (java.util.Map<String,Object>)e.getPayload();
+
+            // if ignored-pieces-of-text info is present we add the ws char       
+            if(payload.containsKey("vmf-text:ignored-pieces-of-text")) {
+
+                List<String> ignoredPiecesOfText =
+                        (List<String>) payload.get("vmf-text:ignored-pieces-of-text");
+                
+                if(ignoredPiecesOfText.isEmpty()) {
+                    ignoredPiecesOfText.add(" ");
+                } else if(ignoredPiecesOfText.get(0).isEmpty()) {
+                    ignoredPiecesOfText.set(0," ");
+                }
+            }
+        }
+    }
+
+    private void registerIgnoredPiecesOfTextChangeListener(CodeElement element) {
+        // replace ignored-pieces-of-text info if a property backed by terminal/lexer rule
+        // (non-model type) has been changed
+        // TODO 08.10.2018 maybe analyze the grammar to check whether we can reuse the information
+        element.vmf().changes().addListener((evt)->{
+            boolean isModelType = element.vmf().reflect().propertyByName(evt.propertyName()).
+                    map(p->p.getType().isModelType()).orElse(false);
+            // if the added object(s) is/are model types, we must ensure that there's at least one ws
+            // between them and the objects unparsed directly prior to us to prevent potential
+            // parse erros.
+            //
+            // For example:
+            //
+            // we could end up with two INT's merged together without any
+            // space between them.
+            //
+            // TODO 08.10.2018 we could analyze the rules whether such an accidental merge could happen, e.g.
+            // by checking ebnf-multiplicity ('+' and '*').
+            if(isModelType) {
+                // if the property is a single object, it's simple, we just add one ws in front of the
+                // ignored-pieces-of-text info
+                if(evt.getType() == eu.mihosoft.vmf.runtime.core.Change.ChangeType.PROPERTY) {
+                    // retrieve the element
+                    CodeElement e = evt.propertyChange().map(pC->pC.newValue()).
+                            filter(pC->pC instanceof CodeElement).map(pC->(CodeElement)pC).orElse(null);
+                    // add ws to the ignored-pieces-of-text info
+                    // (if present and no space already in front of it)
+                    addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(e);
+                } else if(evt.getType() == eu.mihosoft.vmf.runtime.core.Change.ChangeType.LIST) {
+                    evt.listChange().get().added().elements().stream().
+                            filter(o->o instanceof CodeElement).map(o->(CodeElement)o).
+                            forEach(codeElement -> addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(codeElement));
+                }
+            } else {
+                // payload object
+                final java.util.Map<String,Object> payload =
+                        (java.util.Map<String,Object>)element.getPayload();
+                // replace ignored pieces of text info
+                payload.put("vmf-text:ignored-pieces-of-text", new java.util.ArrayList<>());
+            }
+        }, false);
+    }
+
     /**
      * Adds hidden text to payloads for lexical preservation.
      */
@@ -146,6 +213,9 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
         // go over each code element
         for(CodeElement e : codeElement) {
+
+            // register listener to clear ignored-pieces-of-text info if terminal/lexer properties do change
+            registerIgnoredPiecesOfTextChangeListener(e);
 
             // payload object
             final java.util.Map<String,Object> payload = (java.util.Map<String,Object>)e.getPayload();

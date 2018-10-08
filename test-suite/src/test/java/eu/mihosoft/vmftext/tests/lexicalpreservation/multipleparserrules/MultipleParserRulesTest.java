@@ -1,5 +1,6 @@
 package eu.mihosoft.vmftext.tests.lexicalpreservation.multipleparserrules;
 
+import eu.mihosoft.vmf.runtime.core.Change.ChangeType;
 import eu.mihosoft.vmftext.tests.arraylang.ArrayLangModel;
 import eu.mihosoft.vmftext.tests.arraylang.parser.ArrayLangModelParser;
 import eu.mihosoft.vmftext.tests.arraylang.unparser.ArrayLangModelUnparser;
@@ -47,6 +48,33 @@ public class MultipleParserRulesTest {
         Assert.assertEquals(code, newCode);
     }
 
+    @Test
+    public void testModelChanges() {
+        // the code to reproduce
+        String code = "" +
+                " 2  +   3\n45 +  12";
+
+        MultipleParserRulesModelParser.IgnoredPiecesOfTextListener.setDebugOutputEnabled(false);
+
+        MultipleParserRulesModel model = new MultipleParserRulesModelParser().parse(code);
+
+        // change the model
+        String additionalRuleCode = "101+ 202";
+        Rule1 additionalRule = new MultipleParserRulesModelParser().parseRule1(additionalRuleCode);
+        model.getRoot().getRules().add(additionalRule);
+
+        // unparse the model to 'newCode'
+        MultipleParserRulesModelUnparser unparser = new MultipleParserRulesModelUnparser();
+        unparser.setFormatter(new MultipleParserRulesFormatter(model.getRoot()));
+        String newCode = unparser.unparse(model);
+
+        System.out.println("\nUNPARSED: ");
+        System.out.println(newCode);
+
+        // now we finally check whether the new code is equal to the original code
+        Assert.assertEquals(code+" " + additionalRuleCode, newCode);
+    }
+
     static class MultipleParserRulesFormatter extends eu.mihosoft.vmftext.tests.lexicalpreservation.multipleparserrules.unparser.BaseFormatter {
 
         public MultipleParserRulesFormatter(eu.mihosoft.vmftext.tests.lexicalpreservation.multipleparserrules.CodeElement e) {
@@ -71,7 +99,7 @@ public class MultipleParserRulesTest {
                 value = 0;
             }
 
-            ((Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",value--);
+            ((Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",--value);
         }
 
         private int getCounter(CodeElement e) {
