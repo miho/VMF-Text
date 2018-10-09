@@ -607,11 +607,11 @@ public class UnparserCodeGenerator {
 
                     String altName = ruleName + "Alt" + a.getId();
 
-                    w.append("    if( unparse" + altName + "( obj, w ) ) { popState(); getUnparser().getFormatter().done(obj,true); return; }").append('\n').append('\n');
+                    w.append("    if( unparse" + altName + "( obj, w ) ) { popState(); getUnparser().getFormatter().done(obj,true,w); return; }").append('\n').append('\n');
 
                 }
                 w.append("    // TODO: 29.12.2017 introduce unparser error handler etc.").append('\n');
-                w.append("    getUnparser().getFormatter().done(obj,false);").append("\n");
+                w.append("    getUnparser().getFormatter().done(obj,false,w);").append("\n");
                 w.append("    throw new RuntimeException(\"Cannot unparse rule '" + ruleName + "'. Language model is invalid!\");").append('\n');
                 w.append("    // popState();").append('\n').append('\n');
                 w.append("  } // end unparse").append('\n');

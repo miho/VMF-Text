@@ -58,7 +58,7 @@ public class MultipleParserRulesTest {
         MultipleParserRulesModel model = new MultipleParserRulesModelParser().parse(code);
 
         // change the model
-        String additionalRuleCode = "101+ 202";
+        String additionalRuleCode = "101+ 202 ";
         Rule1 additionalRule = new MultipleParserRulesModelParser().parseRule1(additionalRuleCode);
         model.getRoot().getRules().add(additionalRule);
 

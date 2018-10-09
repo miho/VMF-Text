@@ -91,13 +91,35 @@ public class LexicalPreservationTest {
     @Test
     public void lexicalPreservationTestArrayLang() {
 
-//        // the code to reproduce (INCLUDING EOF (TODO 7.10.2018))
-//        String code = "" +
-//                " (1.0 ,2.0 , 3.0, 4.0\n,5.0,\n6.0,7.0,8.0, 0.0 ) ";
+        String code = "" +
+                " (1.0 ,2.0 , 3.0, 4.0\n,5.0,\n6.0,7.0,8.0, 0.0 )";
+
+        // parse the code to a model instance
+        ArrayLangModel model = new ArrayLangModelParser().parse(code);
+
+        // unparse the model to 'newCode'
+        ArrayLangModelUnparser unparser = new ArrayLangModelUnparser();
+        String newCode = unparser.unparse(model);
+
+        // parse the new code to another model instance
+        ArrayLangModel modelAfterUnparsing = new ArrayLangModelParser().parse(newCode);
+
+        // check whether the models are equal
+        Assert.assertEquals(model, modelAfterUnparsing);
+
+        System.out.println("\nUNPARSED: ");
+        System.out.println(newCode);
+
+        // now we finally check whether the new code is equal to the original code
+        Assert.assertEquals(code, newCode);
+    }
+
+    @Test
+    public void lexicalPreservationTestArrayLangEOF() {
 
         // the code to reproduce
         String code = "" +
-                " (1.0 ,2.0 , 3.0, 4.0\n,5.0,\n6.0,7.0,8.0, 0.0 )";
+                " (1.0 ,2.0 , 3.0, 4.0\n,5.0,\n6.0,7.0,8.0, 0.0 ) ";
 
         // parse the code to a model instance
         ArrayLangModel model = new ArrayLangModelParser().parse(code);

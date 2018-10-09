@@ -21,8 +21,9 @@ public class LuaTest {
     public void parseUnparseTest() throws IOException {
 
         System.out.println(">> simple expression:");
-        // TODO 08.10.2018 make this work createParseUnparseTest("a = 2 + 3 ", true);
+
         createParseUnparseTest("a = 2 + 3", true);
+        createParseUnparseTest("a = 2 + 3 ", true);
 
         System.out.println(">> large code sample 1:");
         createParseUnparseTest(new String(Files.readAllBytes(Paths.get("test-code/lua/test-code-1.lua"))),

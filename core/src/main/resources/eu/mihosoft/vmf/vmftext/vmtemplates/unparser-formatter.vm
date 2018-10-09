@@ -40,7 +40,7 @@ public interface Formatter {
   default void acceptState() {}
   default void rejectState() {}
 
-  default void done(CodeElement e, boolean success) {}
+  default void done(CodeElement e, boolean success, PrintWriter w) {}
 
   default void pre( ${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
   default void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
@@ -187,7 +187,17 @@ public interface Formatter {
     }
 
     @Override
-    public void done(CodeElement e, boolean success) {
+    public void done(CodeElement e, boolean success, PrintWriter w) {
+
+      // In case there's another ws we emit it. This is important
+      // in case of white spaces between the last terminal and EOF.
+      int pos = getCounter(e);
+      if(getHiddenText(e)!=null && pos < getHiddenText(e).size()) {
+        String ws = getHiddenText(e).get(pos);
+        w.append(ws);
+      } 
+
+      // now reset the counter information for reconstructing WS info
       reset(e);
       currentElement = null;
     }
