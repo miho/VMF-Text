@@ -40,15 +40,58 @@ public interface Formatter {
   default void acceptState() {}
   default void rejectState() {}
 
+  /**
+   * This method is called to indicate that the rendering of the specified code element is done.
+   * @param e code element
+   * @param success indicates whether unparsing was successful 
+   * @param w print writer that can be used to insert additional strings to the currently unparsed text
+   */
   default void done(CodeElement e, boolean success, PrintWriter w) {}
 
+  /**
+   * Called prior to rendering an element. Can be used to insert additional text before rendering the
+   * element. 
+   * @param unparser the model unparser, i.e., top-level unparser
+   * @param ruleInfo information about the rule that is currently rendered
+   * @param w the print writer used to render the current element
+   */
   default void pre( ${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
+
+  /**
+   * TODO 10.10.2018
+   */
+  default void render(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w, String s) {
+    w.print(s);
+  }
+
+  /**
+   * Called after rendering an element. Can be used to insert additional text after rendering the
+   * element. 
+   * @param unparser the model unparser, i.e., top-level unparser
+   * @param ruleInfo information about the rule that is currently rendered
+   * @param w the print writer used to render the current element
+   */
   default void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
 
+  /**
+   * Returns a new instance of the default formatter that supports lexical preservation, i.e., the default
+   * formatter tries to reproduce white-spaces as accurately as possible.
+   */
   static Formatter newDefaultFormatter() { return new DefaultFormatter();}
-  static Formatter newDefaultFormatterwithoutLexicalPreservation() { 
+
+  /**
+   * Returns a new instance of the default formatte without support for lexical preservation. This
+   * is recommended whenever the format of the textual representation isn't relevant and if performace is
+   * crutial.
+   */
+  static Formatter newDefaultFormatterWithoutLexicalPreservation() { 
     return new DefaultFormatterWithoutLexicalPreservation();
   }
+
+  /**
+   * TODO
+   */
+  @Deprecated 
   static Formatter newJavaStyleFormatter() { return new JavaStyleFormatter();}
 
   static enum RuleType {
@@ -57,6 +100,9 @@ public interface Formatter {
     NONE
   }
 
+  /**
+   * This class stores information about the element rule to enable custom rendering behavior.
+   */
   static final class RuleInfo {
 
     private final CodeElement parentObject;

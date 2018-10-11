@@ -985,13 +985,13 @@ public class UnparserCodeGenerator {
 
         generateMatchAltMethod(gModel, altName, w);
 
-        final boolean nocheckFinal = noCheck;
+        final boolean noCheckFinal = noCheck;
         a.getElements().stream().filter(el->el instanceof SubRule).filter(el->!(el instanceof UPNamedSubRuleElement)).
                 map(el->(SubRule)el).forEach(sr-> {
 
             for(AlternativeBase sa : sr.getAlternatives()) {
                 try {
-                    generateAltCode(w, model, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa, /*we check based on parent alts preferences*/nocheckFinal,sr.getAlternatives().size());
+                    generateAltCode(w, model, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa, /*we check based on parent alts preferences*/noCheckFinal,sr.getAlternatives().size());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -1312,7 +1312,8 @@ public class UnparserCodeGenerator {
             String ruleString = StringUtil.escapeJavaStyleString(eText,true);
             String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.TERMINAL, null, \"" + ruleString + "\")";
             w.append(indent + "    getUnparser().getFormatter().pre( unparser, " + ruleInfoString + ", internalW);").append('\n');
-            w.append(indent + "    internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\");").append('\n');
+            w.append(indent + "    // internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\");").append('\n');
+            w.append(indent + "    getUnparser().getFormatter().render( unparser, " + ruleInfoString + ", internalW, " + "\""+StringUtil.escapeJavaStyleString(eText,true) + "\");").append('\n');
             w.append(indent + "    getUnparser().getFormatter().post(unparser, " + ruleInfoString + ", internalW);").append('\n');
             return;
         } else if(Character.isUpperCase(eText.charAt(0))){
@@ -1343,7 +1344,8 @@ public class UnparserCodeGenerator {
                     String ruleName = eText;
                     String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.LEXER_RULE, \"" + ruleName + "\", \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\")";
                     w.append(indent + "    getUnparser().getFormatter().pre( unparser, " + ruleInfoString + ", internalW);").append('\n');
-                    w.append(indent + "    internalW.print( \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\" /*+ \" \" */);").append('\n');
+                    w.append(indent + "    // internalW.print( \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\" /*+ \" \" */);").append('\n');
+                    w.append(indent + "    getUnparser().getFormatter().render( unparser, " + ruleInfoString + ", internalW, " + "\""+StringUtil.escapeJavaStyleString(lexerRuleString,true) + "\");").append('\n');
                     w.append(indent + "    getUnparser().getFormatter().post(unparser, " + ruleInfoString + ", internalW);").append('\n');
                     return;
                 }  else {
@@ -1418,7 +1420,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
-                        w.append(indent+"            internalW.print(s);").append('\n');
+                        w.append(indent+"            // internalW.print(s);").append('\n');
+                        w.append(indent + "          getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
                         w.append(indent+"          }").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"        }").append('\n');
@@ -1428,7 +1431,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj /*TERMINAL String conversion*/" + ")");
                         w.append(indent+"      getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"      if(!ruleInfo.isConsumed()) {").append('\n');
-                        w.append(indent+"        internalW.print(s);").append('\n');
+                        w.append(indent+"        // internalW.print(s);").append('\n');
+                        w.append(indent+"        getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
                         w.append(indent+"      }").append('\n');
                         w.append(indent+"      getUnparser().getFormatter().post( unparser, ruleInfo, internalW);").append('\n');
                     }
@@ -1451,7 +1455,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
-                        w.append(indent+"            internalW.print(s);").append('\n');
+                        w.append(indent+"            // internalW.print(s);").append('\n');
+                        w.append(indent+"            getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
                         w.append(indent+"          }").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"        }").append('\n');
@@ -1463,7 +1468,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj.toString() /*TERMINAL String conversion*/" + ")");
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
-                        w.append(indent+"            internalW.print(s);").append('\n');
+                        w.append(indent+"            // internalW.print(s);").append('\n');
+                        w.append(indent+"            getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
                         w.append(indent+"          }").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().post( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"      }").append('\n');
@@ -1484,7 +1490,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
-                        w.append(indent+"            internalW.print(s);").append('\n');
+                        w.append(indent+"            // internalW.print(s);").append('\n');
+                        w.append(indent+"            getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
                         w.append(indent+"          }").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"        }").append('\n');
@@ -1496,7 +1503,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
-                        w.append(indent+"            internalW.print(s);").append('\n');
+                        w.append(indent+"            // internalW.print(s);").append('\n');
+                        w.append(indent+"            getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
                         w.append(indent+"          }").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"        }").append('\n');
@@ -1517,7 +1525,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                         w.append(indent+"            getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"            if(!ruleInfo.isConsumed()) {").append('\n');
-                        w.append(indent+"              internalW.print(s);").append('\n');
+                        w.append(indent+"              // internalW.print(s);").append('\n');
+                        w.append(indent+"              getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
                         w.append(indent+"            }").append('\n');
                         w.append(indent+"            getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          }").append('\n');
@@ -1529,7 +1538,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                         w.append(indent+"            getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"            if(!ruleInfo.isConsumed()) {").append('\n');
-                        w.append(indent+"              internalW.print(s);").append('\n');
+                        w.append(indent+"              // internalW.print(s);").append('\n');
+                        w.append(indent+"              getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
                         w.append(indent+"            }").append('\n');
                         w.append(indent+"            getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          }").append('\n');
@@ -1558,9 +1568,10 @@ public class UnparserCodeGenerator {
                 w.append(indent + "      if(s!=null) {").append('\n');
                 w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                 w.append(indent + "        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
-                w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
-                w.append(indent + "          internalW.print(s);").append('\n');
-                w.append(indent+"          }").append('\n');
+                w.append(indent + "          if(!ruleInfo.isConsumed()) {").append('\n');
+                w.append(indent + "            // internalW.print(s);").append('\n');
+                w.append(indent + "            getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
+                w.append(indent + "          }").append('\n');
                 w.append(indent + "        getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent + "      }").append('\n');
                 w.append(indent + "    }").append('\n');
@@ -1573,9 +1584,10 @@ public class UnparserCodeGenerator {
                 w.append(indent + "      if(s!=null) {").append('\n');
                 w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
                 w.append(indent + "        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
-                w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
-                w.append(indent + "          internalW.print(s);").append('\n');
-                w.append(indent+"          }").append('\n');
+                w.append(indent + "        if(!ruleInfo.isConsumed()) {").append('\n');
+                w.append(indent + "          // internalW.print(s);").append('\n');
+                w.append(indent + "          getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
+                w.append(indent + "        }").append('\n');
                 w.append(indent + "        getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                 if(sre.ebnfOptional()) {
                 w.append(indent + "      }").append('\n');
@@ -1611,7 +1623,8 @@ public class UnparserCodeGenerator {
                 w.append(indent+"        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", s);").append('\n');
                 w.append(indent+"        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent+"        if(!ruleInfo.isConsumed()) {").append('\n');
-                w.append(indent+"          internalW.print(s);").append('\n');
+                w.append(indent+"          // internalW.print(s);").append('\n');
+                w.append(indent+"          getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
                 w.append(indent+"        }").append('\n');
                 w.append(indent+"        getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent+"      }").append('\n');
@@ -1622,7 +1635,8 @@ public class UnparserCodeGenerator {
                 w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ");").append('\n');
                 w.append(indent+"      getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent+"      if(!ruleInfo.isConsumed()) {").append('\n');
-                w.append(indent+"        internalW.print(" + propName + ");").append('\n');
+                w.append(indent+"        // internalW.print(" + propName + ");").append('\n');
+                w.append(indent+"        getUnparser().getFormatter().render( unparser, ruleInfo, internalW, " + propName + ");").append('\n');
                 w.append(indent+"      }").append('\n');
                 w.append(indent+"      getUnparser().getFormatter().post(unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent+"      // string type: we define the property as used/consumed").append('\n');
