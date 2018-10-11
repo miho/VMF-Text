@@ -58,7 +58,12 @@ public interface Formatter {
   default void pre( ${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
 
   /**
-   * TODO 10.10.2018
+   * Renderes an element. This method is called after the {@code pre()}-method and before the {@code post()}-method.
+   *
+   * @param unparser the model unparser, i.e., top-level unparser
+   * @param ruleInfo information about the rule that is currently rendered
+   * @param w the print writer used to render the current element
+   * @param s the string representation of the current element (can be changed by the implementation of this method)
    */
   default void render(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w, String s) {
     w.print(s);
