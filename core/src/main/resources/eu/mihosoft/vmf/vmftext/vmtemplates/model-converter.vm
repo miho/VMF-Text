@@ -192,7 +192,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         ${Util.firstToUpper($model.grammarName)}Parser parser, TokenStream tokens,
         ParserRuleContext ctx) {
 
-        // collect ignored pieces of htext for lexical preservation
+        // collect ignored pieces of text for lexical preservation
         IgnoredPiecesOfTextListener ignoredPiecesOfTextListener =
           new IgnoredPiecesOfTextListener(tokens);
 
@@ -253,39 +253,39 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     
     
     public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, InputStream codeStream) throws IOException{
-      CharStream input = CharStreams.fromStream(codeStream);
+        CharStream input = CharStreams.fromStream(codeStream);
 
-      ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
+        ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
 
-      for(ANTLRErrorListener l : errorListeners) {
-          lexer.addErrorListener(l);
-      }
+        for(ANTLRErrorListener l : errorListeners) {
+            lexer.addErrorListener(l);
+        }
 
-      if(isConsoleOutputDisabled()) {
-          lexer.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
-      }
+        if(isConsoleOutputDisabled()) {
+            lexer.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+        }
 
-      CommonTokenStream tokens = new CommonTokenStream(lexer);
-      ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
 
-      if(errorHandler!=null) {
-          parser.setErrorHandler(errorHandler);
-      }
+        if(errorHandler!=null) {
+            parser.setErrorHandler(errorHandler);
+        }
 
-      for(ANTLRErrorListener l : errorListeners) {
-          parser.addErrorListener(l);
-      }
+        for(ANTLRErrorListener l : errorListeners) {
+            parser.addErrorListener(l);
+        }
 
-      if(isConsoleOutputDisabled()) {
-          parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
-      }
+        if(isConsoleOutputDisabled()) {
+            parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
+        }
 
         ${model.rootClass().nameWithUpper()}Context rootCtx = parser.${model.rootClass().name}();
         ${Util.firstToUpper($model.grammarName)}Model result = parse(model, rootCtx);
         addHiddenTextToModel(result.getRoot(), parser, tokens, rootCtx);
 
         return result;
-  }
+    }
 
   public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, File code) throws IOException{
       try(FileInputStream codeStream = new FileInputStream(code)) {
@@ -376,7 +376,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       addHiddenTextToModel(result, parser, tokens, rootCtx);
       return result;
 #end##  if rcls has child classes    
-  }
+    }
 
     public ${rcls.nameWithUpper()} parse${rcls.nameWithUpper()}(File code) throws IOException {
       try(FileInputStream codeStream = new FileInputStream(code)) {
@@ -662,12 +662,20 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       return builder.withLength(stop.getIndex()-start.getIndex()+1/*+1 because of inclusive vs. exclusive*/).build();
     }
 
+    /**
+     * This listener visits every terminal node and records hidden characters between them. Commonly, white-spaces are
+     * ignored and the grammar doesn't rely on the number of white-spaces between elements.
+     */
     public static class IgnoredPiecesOfTextListener implements org.antlr.v4.runtime.tree.ParseTreeListener {
     
+        // ignored pieces of text per rule
         private final java.util.Map<ParserRuleContext, java.util.List<String>> ignoredPiecesOfText = new java.util.HashMap<>();
+        // the token stream used to access the hidden/ignored pieces of text
         private final TokenStream stream;
+        //previously visited terminal node
         private TerminalNode prevNode;
     
+        // parse rule stack (records inside which rule we currently are)
         private final java.util.Stack<ParserRuleContext> ruleContextStack = new java.util.Stack<>();
     
         private static boolean debugOutputEnabled = false;
@@ -731,6 +739,11 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             }
         }
     
+        /**
+         * Returns the ignored/hidden pieces of text of the specified rule context.
+         * @param ctx context
+         * @return the ignored/hidden pieces of text of the specified rule context
+         */
         public List<String> getIgnoredPiecesOfText(ParserRuleContext ctx) {
             List<String> result = ignoredPiecesOfText.get(ctx);
     
