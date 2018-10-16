@@ -129,14 +129,35 @@ public interface Formatter {
     private final String ruleName;
     private final String ruleText;
 
+    // like xpath, i.e., /r37/a5/sr2 -> sub-rule 2 inside alternative 5 of rule 37
+    private final String rulePath;
+
+    // an unlabeled rule, i.e. a rule that's not represented as property
+    private final boolean unnamed; 
+
+    // indicates whether this rule is optional and its validity isn't defined by properties
+    // Examples:
+    // (1) name=IDENTIFIER ';'?
+    // (2) ('(' assignments+=assignment* ')')?
+    private final boolean optional; 
+
+    // like (',' names+=IDENTIFIER)*  
+    private final String grammarText;
+
     // consumed
     private boolean consumed;
 
-    private RuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText) {
+    private RuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText,
+                     String rulePath, boolean unnamed, boolean optional, String grammarText) {
       this.parentObject = parentObject;
       this.ruleType = ruleType;
       this.ruleName = ruleName;
       this.ruleText = ruleText;
+
+      this.rulePath = rulePath;
+      this.unnamed  = unnamed;
+      this.optional = optional;
+      this.grammarText = grammarText;
     }
 
     public static RuleInfo emptyRule() {
@@ -196,7 +217,7 @@ public interface Formatter {
             public CodeElement clone() {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }
-        }, RuleType.NONE, "","");
+        }, RuleType.NONE, "","", "", true, false, "");
     }
 
    /**
@@ -211,8 +232,9 @@ public interface Formatter {
       return this.consumed;
     }
 
-    /*package private*/ static RuleInfo newRuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText) {
-      return new RuleInfo(parentObject, ruleType, ruleName, ruleText);
+    /*package private*/ static RuleInfo newRuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText, 
+        String rulePath, boolean unnamed, boolean optional, String grammarText) {
+      return new RuleInfo(parentObject, ruleType, ruleName, ruleText, rulePath, unnamed, optional, grammarText);
     }
 
     public CodeElement getParentObject() {
@@ -230,6 +252,24 @@ public interface Formatter {
     public String getRuleText() {
       return this.ruleText;
     }
+
+    public String getRulePath() {
+      return this.rulePath;
+    }
+
+    public boolean isUnnamed() {
+      return this.unnamed;
+    }
+
+    public boolean isOptional() {
+      return this.optional;
+    }
+
+    public String getGrammarText() {
+      return this.grammarText;
+    }
+
+
   }
 }
 

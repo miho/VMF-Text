@@ -1310,7 +1310,13 @@ public class UnparserCodeGenerator {
             eText = eText.substring(1,eText.length()-1);
             w.append(indent + "    // handling unnamed terminal element  '"+eText+"'").append('\n');
             String ruleString = StringUtil.escapeJavaStyleString(eText,true);
-            String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.TERMINAL, null, \"" + ruleString + "\")";
+
+            String rulePath = "/rule-path";
+            boolean unnamedRule = true;
+            boolean optionalRule=e.ebnfOptional() || e.ebnfZeroMany();
+            String grammarText = e.getText();
+            String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.TERMINAL, null, \"" + ruleString + "\", \"" + rulePath + "\", " + unnamedRule + ", "+ optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText,false) + "\")";
+
             w.append(indent + "    getUnparser().getFormatter().pre( unparser, " + ruleInfoString + ", internalW);").append('\n');
             w.append(indent + "    // internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\");").append('\n');
             w.append(indent + "    getUnparser().getFormatter().render( unparser, " + ruleInfoString + ", internalW, " + "\""+StringUtil.escapeJavaStyleString(eText,true) + "\");").append('\n');
@@ -1342,7 +1348,13 @@ public class UnparserCodeGenerator {
                     w.append(indent + "    // handling unnamed lexer rule ref '" + eText + "'").append('\n');
                     w.append(indent + "    // we could successfully find terminal text of the rule").append('\n');
                     String ruleName = eText;
-                    String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.LEXER_RULE, \"" + ruleName + "\", \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\")";
+
+                    String rulePath = "/rule-path";
+                    boolean unnamedRule = true;
+                    boolean optionalRule=e.ebnfOptional() || e.ebnfZeroMany();
+                    String grammarText = e.getText();
+                    String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.LEXER_RULE, \"" + ruleName + "\", \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\", \"" + rulePath + "\", " + unnamedRule + ", "+ optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText,false) + "\")";
+                    // String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.LEXER_RULE, \"" + ruleName + "\", \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\")";
                     w.append(indent + "    getUnparser().getFormatter().pre( unparser, " + ruleInfoString + ", internalW);").append('\n');
                     w.append(indent + "    // internalW.print( \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\" /*+ \" \" */);").append('\n');
                     w.append(indent + "    getUnparser().getFormatter().render( unparser, " + ruleInfoString + ", internalW, " + "\""+StringUtil.escapeJavaStyleString(lexerRuleString,true) + "\");").append('\n');
@@ -1417,7 +1429,15 @@ public class UnparserCodeGenerator {
                         w.append(indent+"        " + targetTypeOfMapping + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc());").append('\n');
                         w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString" + (mappingExists?"ForRule"+lexerRuleName:"") + "( listElemObj )").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
+                        String rulePath = "/rule-path";
+                        boolean unnamedRule = false;
+                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        String grammarText = sre.getText();
+
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        //w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
                         w.append(indent+"            // internalW.print(s);").append('\n');
@@ -1428,7 +1448,15 @@ public class UnparserCodeGenerator {
                         w.append(indent+"      }").append('\n');
                     } else {
                         w.append(indent+"      String listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".getAndInc());").append('\n');
-                        w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj /*TERMINAL String conversion*/" + ")");
+
+                        String rulePath = "/rule-path";
+                        boolean unnamedRule = false;
+                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        String grammarText = sre.getText();
+
+                        w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj /*TERMINAL String conversion*/, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        //w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj /*TERMINAL String conversion*/" + ")");
+
                         w.append(indent+"      getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"      if(!ruleInfo.isConsumed()) {").append('\n');
                         w.append(indent+"        // internalW.print(s);").append('\n');
@@ -1452,7 +1480,15 @@ public class UnparserCodeGenerator {
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
                         w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
+                        String rulePath = "/rule-path";
+                        boolean unnamedRule = false;
+                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        String grammarText = sre.getText();
+
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        // w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
                         w.append(indent+"            // internalW.print(s);").append('\n');
@@ -1465,7 +1501,16 @@ public class UnparserCodeGenerator {
                         w.append(indent+"      {").append('\n');
                         w.append(indent+"        String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) /*TERMINAL String conversion*/;").append('\n');
                         w.append(indent+"        if(s !=null) {").append('\n');
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj.toString() /*TERMINAL String conversion*/" + ")");
+
+
+                        String rulePath = "/rule-path";
+                        boolean unnamedRule = false;
+                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        String grammarText = sre.getText();
+
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj.toString() /*TERMINAL String conversion*/, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        // w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj.toString() /*TERMINAL String conversion*/" + ")");
+
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
                         w.append(indent+"            // internalW.print(s);").append('\n');
@@ -1487,7 +1532,15 @@ public class UnparserCodeGenerator {
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
                         w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
+                        String rulePath = "/rule-path";
+                        boolean unnamedRule = false;
+                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        String grammarText = sre.getText();
+
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        // w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
                         w.append(indent+"            // internalW.print(s);").append('\n');
@@ -1500,7 +1553,15 @@ public class UnparserCodeGenerator {
                         w.append(indent+"      {").append('\n');
                         w.append(indent+"        String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) /*TERMINAL String conversion*/;").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
+                        String rulePath = "/rule-path";
+                        boolean unnamedRule = false;
+                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        String grammarText = sre.getText();
+
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        // w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"          if(!ruleInfo.isConsumed()) {").append('\n');
                         w.append(indent+"            // internalW.print(s);").append('\n');
@@ -1522,7 +1583,15 @@ public class UnparserCodeGenerator {
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
                         w.append(indent+"          String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
                         w.append(indent+"          if(s!=null) {").append('\n');
-                        w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
+                        String rulePath = "/rule-path";
+                        boolean unnamedRule = false;
+                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        String grammarText = sre.getText();
+
+                        w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        // w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
                         w.append(indent+"            getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"            if(!ruleInfo.isConsumed()) {").append('\n');
                         w.append(indent+"              // internalW.print(s);").append('\n');
@@ -1535,7 +1604,15 @@ public class UnparserCodeGenerator {
                         w.append(indent+"        {").append('\n');
                         w.append(indent+"          String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()).toString() /*TERMINAL String conversion*/;").append('\n');
                         w.append(indent+"          if(s!=null) {").append('\n');
-                        w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
+                        String rulePath = "/rule-path";
+                        boolean unnamedRule = false;
+                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        String grammarText = sre.getText();
+
+                        w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        // w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
                         w.append(indent+"            getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"            if(!ruleInfo.isConsumed()) {").append('\n');
                         w.append(indent+"              // internalW.print(s);").append('\n');
@@ -1566,7 +1643,15 @@ public class UnparserCodeGenerator {
                 boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
                 w.append(indent + "      String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "() );").append('\n');
                 w.append(indent + "      if(s!=null) {").append('\n');
-                w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
+                String rulePath = "/rule-path";
+                boolean unnamedRule = false;
+                boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                String grammarText = sre.getText();
+
+                w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                //w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
                 w.append(indent + "        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent + "          if(!ruleInfo.isConsumed()) {").append('\n');
                 w.append(indent + "            // internalW.print(s);").append('\n');
@@ -1582,7 +1667,15 @@ public class UnparserCodeGenerator {
                 w.append(indent + "      prop" + StringUtil.firstToUpper(sre.getName()) + "Used.set(true);").append('\n');
                 w.append(indent + "      String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "() /*TERMINAL String conversion*/;").append('\n');
                 w.append(indent + "      if(s!=null) {").append('\n');
-                w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
+                String rulePath = "/rule-path";
+                boolean unnamedRule = false;
+                boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                String grammarText = sre.getText();
+
+                w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                //w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
+
                 w.append(indent + "        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent + "        if(!ruleInfo.isConsumed()) {").append('\n');
                 w.append(indent + "          // internalW.print(s);").append('\n');
@@ -1620,7 +1713,15 @@ public class UnparserCodeGenerator {
                 w.append(indent+"    if(" + indexName+ ".get()" +" < " +propName+ ".size() ) {").append('\n');
                 w.append(indent+"      String s = " + propName + ".get(" + indexName +".getAndInc()) /*TERMINAL String conversion*/;").append('\n');
                 w.append(indent+"      if(s!=null) {").append('\n');
-                w.append(indent+"        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", s);").append('\n');
+
+                String rulePath = "/rule-path";
+                boolean unnamedRule = false;
+                boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                String grammarText = sre.getText();
+
+                w.append(indent+"        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                //w.append(indent+"        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", s);").append('\n');
+
                 w.append(indent+"        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent+"        if(!ruleInfo.isConsumed()) {").append('\n');
                 w.append(indent+"          // internalW.print(s);").append('\n');
@@ -1632,7 +1733,15 @@ public class UnparserCodeGenerator {
             } else {
                 String propStateName = "prop" + StringUtil.firstToUpper(sre.getName()) + "Used";
                 w.append(indent+"    if(!" + propStateName + ".is()) { ").append('\n');
-                w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ");").append('\n');
+
+                String rulePath = "/rule-path";
+                boolean unnamedRule = false;
+                boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                String grammarText = sre.getText();
+
+                w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ", " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                //w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ");").append('\n');
+
                 w.append(indent+"      getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                 w.append(indent+"      if(!ruleInfo.isConsumed()) {").append('\n');
                 w.append(indent+"        // internalW.print(" + propName + ");").append('\n');
