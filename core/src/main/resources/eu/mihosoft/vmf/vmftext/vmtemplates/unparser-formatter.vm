@@ -34,10 +34,24 @@ import ${modelPackageName}.ReadOnlyCodeElement;
 import ${modelPackageName}.CodeElement;
 import ${modelPackageName}.CodeRange;
 
+/**
+ * Text formatting interface.
+ */
 public interface Formatter {
 
+  /**
+   * Pushes the current state onto the stack.
+   */
   default void pushState()   {}
+
+  /**
+   * Accepts the current state, i.e., pops the current state but merges its content to the parent state retrieved via peek().
+   */
   default void acceptState() {}
+
+  /**
+   * Rejects the current state, i.e., pops the current state without retaining its content.
+   */
   default void rejectState() {}
 
   /**
@@ -58,7 +72,7 @@ public interface Formatter {
   default void pre( ${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
 
   /**
-   * Renderes an element. This method is called after the {@code pre()}-method and before the {@code post()}-method.
+   * Renders an element. This method is called after the {@code pre()}-method and before the {@code post()}-method.
    *
    * @param unparser the model unparser, i.e., top-level unparser
    * @param ruleInfo information about the rule that is currently rendered
