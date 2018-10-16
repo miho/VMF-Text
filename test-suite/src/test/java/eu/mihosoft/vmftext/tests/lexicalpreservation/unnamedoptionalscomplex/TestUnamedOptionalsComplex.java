@@ -14,7 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Map;
 
-public class TestUnamedOptionalsComlex {
+public class TestUnamedOptionalsComplex {
 
     @Test
     public void testNestedUnnamedOptionals() {
