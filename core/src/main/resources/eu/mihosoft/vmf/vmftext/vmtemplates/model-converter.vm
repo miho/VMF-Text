@@ -133,7 +133,9 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                         (List<String>) payload.get("vmf-text:ignored-pieces-of-text");
                 
                 if(ignoredPiecesOfText.isEmpty()) {
-                    ignoredPiecesOfText.add(" ");
+                    // TODO 17.10.2018 is it correct to not add a whitespace if the ignoredPiecesOfText is empty?
+                    // it actually should but more testing might help
+                    //ignoredPiecesOfText.add(" ");
                 } else if(ignoredPiecesOfText.get(0).isEmpty()) {
                     ignoredPiecesOfText.set(0," ");
                 }
@@ -146,6 +148,12 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         // (non-model type) has been changed
         // TODO 08.10.2018 maybe analyze the grammar to check whether we can reuse the information
         element.vmf().changes().addListener((evt)->{
+
+            // ignore changes to parent (irrelevant for hidden text)
+            if("parent".equals(evt.propertyName())) {
+                return;
+            }
+
             boolean isModelType = element.vmf().reflect().propertyByName(evt.propertyName()).
                     map(p->p.getType().isModelType()).orElse(false);
             // if the added object(s) is/are model types, we must ensure that there's at least one ws
