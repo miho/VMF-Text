@@ -47,8 +47,8 @@ public final class UPRuleUtil {
     public static boolean isEffectivelyOptional(UPElement e) {
 
         // if e is a named element it is not optional
-        boolean effectivelyOptionalUnnamed = e instanceof WithName;
-        if(!effectivelyOptionalUnnamed) return false;
+        boolean effectivelyOptionalNamed = e instanceof WithName;
+        if(effectivelyOptionalNamed) return false;
 
         // ebnf suffix indicates e is optional
         // if true then we can skip further tests since e is definitely effectively optional
