@@ -89,7 +89,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         currentRule.getAlternatives().add(alt);
 
         if(debug)
-        System.out.println(" -> alt id: " + alt.getId());
+        System.out.println(" -> alt id: " + alt.getAltId());
 
         currentAlts.push(alt);
 
@@ -152,7 +152,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         currentRule.getAlternatives().add(alt);
 
         if(debug)
-        System.out.println(" -> alt id: " + alt.getId());
+        System.out.println(" -> alt id: " + alt.getAltId());
 
         currentAlts.push(alt);
 
@@ -206,7 +206,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
                 // if sub-rule is a block-set we need to manually add alternatives
                 if(debug)
-                System.out.println(" -> sub-rule id: " + subRule.getId());
+                System.out.println(" -> sub-rule id: " + subRule.getRuleId());
             } else {
                 if(debug)
                 System.out.println(">>> LE:           " +elementText);
@@ -251,7 +251,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 currentAlt.getElements().add(subRule);
 
                 if(debug)
-                System.out.println(" -> sub-rule id: " + subRule.getId());
+                System.out.println(" -> sub-rule id: " + subRule.getRuleId());
 
                 currentRules.push(subRule);
             } else {
@@ -279,7 +279,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                     currentAlt.getElements().add(subRule);
 
                     if(debug)
-                    System.out.println(" -> sub-rule id: " + subRule.getId());
+                    System.out.println(" -> sub-rule id: " + subRule.getRuleId());
 
                     currentRules.push(subRule);
                 } else {
@@ -330,7 +330,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         currentRules.push(rule);
         model.getRules().add(rule);
         if(debug)
-        System.out.println(" -> rule id: " + rule.getId());
+        System.out.println(" -> rule id: " + rule.getRuleId());
 
         super.enterParserRuleSpec(ctx);
     }

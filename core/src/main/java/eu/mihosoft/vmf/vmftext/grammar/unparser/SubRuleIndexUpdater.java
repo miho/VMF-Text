@@ -24,11 +24,9 @@
 package eu.mihosoft.vmf.vmftext.grammar.unparser;
 
 import eu.mihosoft.vmf.runtime.core.DelegatedBehavior;
-import eu.mihosoft.vmf.vmftext.grammar.AlternativeBase;
-import eu.mihosoft.vmf.vmftext.grammar.SubRule;
-import eu.mihosoft.vmf.vmftext.grammar.UPElement;
-import eu.mihosoft.vmf.vmftext.grammar.UPRuleBase;
+import eu.mihosoft.vmf.vmftext.grammar.*;
 
+// TODO 17.10.2018 update class name since we are also updating element ids
 public class SubRuleIndexUpdater implements DelegatedBehavior<AlternativeBase>{
     private AlternativeBase caller;
 
@@ -53,8 +51,17 @@ public class SubRuleIndexUpdater implements DelegatedBehavior<AlternativeBase>{
                     // count number of elements of type sub-rule from 0-"our index"
                     int index = (int) evt.source().subList(0, evt.added().indices()[i]).stream().
                             filter(el -> el instanceof SubRule).count();
-                    ((SubRule) e).setId(index);
+                    SubRule subRule = (SubRule) e;
+                    subRule.setRuleId(index);
                 }
+
+                {
+                    // count number of elements from 0-"our index"
+                    int index = (int) evt.source().subList(0, evt.added().indices()[i]).stream().
+                            /*filter(el -> !(el instanceof SubRule)).*/count();
+                    e.setElementId(index);
+                }
+
             }
         });
     }

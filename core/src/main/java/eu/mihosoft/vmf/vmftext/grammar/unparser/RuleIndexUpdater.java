@@ -41,7 +41,7 @@ public class RuleIndexUpdater implements DelegatedBehavior<UnparserModel>{
             // update id of every rule that has been added to the list
             for(int i = 0; i < evt.added().indices().length;i++) {
                 UPRule r =evt.added().elements().get(i);
-                r.setId(evt.added().indices()[i]);
+                r.setRuleId(evt.added().indices()[i]);
             }
 
         });

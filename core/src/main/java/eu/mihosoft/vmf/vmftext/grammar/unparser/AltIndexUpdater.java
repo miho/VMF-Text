@@ -43,7 +43,7 @@ public class AltIndexUpdater implements DelegatedBehavior<UPRuleBase>{
             // update id of every alternative that has been added to the list
             for(int i = 0; i < evt.added().indices().length;i++) {
                 AlternativeBase a =evt.added().elements().get(i);
-                a.setId(evt.added().indices()[i]);
+                a.setAltId(evt.added().indices()[i]);
             }
 
         });

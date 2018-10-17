@@ -87,7 +87,7 @@ public class UnparserCodeGenerator {
     private static void generateAltGrammarCode(GrammarModel gModel, UnparserModel model, List<UPRule> rules,
                                                UPRuleBase rule, String parentName, Writer w) throws IOException {
         for(AlternativeBase a : rule.getAlternatives()) {
-            String aName = parentName + "Alt"+a.getId();
+            String aName = parentName + "Alt"+a.getAltId();
 
             // filter alt name elements (have to be removed to produce a valid grammar)
             String aText = a.getElements().stream().filter(e->!e.getText().
@@ -104,7 +104,7 @@ public class UnparserCodeGenerator {
         for(UPElement e : alt.getElements()) {
             if(e instanceof SubRule) {
                 SubRule sr = (SubRule) e;
-                String srName = parentName+"SubRule"+sr.getId();
+                String srName = parentName+"SubRule"+sr.getRuleId();
 
                 String eText = e.getText(); // TODO 27.12.2017 maybe simplify expression by removing all labels and substitute sub-rules?
 
@@ -605,7 +605,7 @@ public class UnparserCodeGenerator {
 
                 for (AlternativeBase a : alts) {
 
-                    String altName = ruleName + "Alt" + a.getId();
+                    String altName = ruleName + "Alt" + a.getAltId();
 
                     w.append("    if( unparse" + altName + "( obj, w ) ) { popState(); getUnparser().getFormatter().done(obj,true,w); return; }").append('\n').append('\n');
 
@@ -659,7 +659,7 @@ public class UnparserCodeGenerator {
     private static void generateSubRuleCode(String ruleName, String altName, String objName, SubRule sr, List<UPRule> rules, RuleClass gRule, Writer w) throws IOException {
 
         w.append('\n');
-        w.append("  private boolean unparse" + altName + "SubRule" + sr.getId() + "( " + objName + " obj, PrintWriter w ) { boolean valid = false;").append('\n');
+        w.append("  private boolean unparse" + altName + "SubRule" + sr.getRuleId() + "( " + objName + " obj, PrintWriter w ) { boolean valid = false;").append('\n');
 
         boolean multiplierCase = false;
         if(sr instanceof UPElement) {
@@ -679,7 +679,7 @@ public class UnparserCodeGenerator {
 
             for(AlternativeBase a : sr.getAlternatives()) {
 
-                String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
+                String altNameSub = altName + "SubRule" + sr.getRuleId() + "Alt" + a.getAltId();
 
                 w.append("    if( unparse" + altNameSub + "( obj, w ) ) { return true; }").append('\n');
             }
@@ -745,7 +745,7 @@ public class UnparserCodeGenerator {
         w.append('\n');
         w.append("    // begin declaring can-consume variables").append('\n');
         for(AlternativeBase a : sr.getAlternatives()) {
-            String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
+            String altNameSub = altName + "SubRule" + sr.getRuleId() + "Alt" + a.getAltId();
             String canConsumeVarName = StringUtil.firstToLower(altNameSub + "CanConsume");
             w.append("    boolean " + canConsumeVarName + " = true;").append('\n');
         }
@@ -764,7 +764,7 @@ public class UnparserCodeGenerator {
 
         for(AlternativeBase a : alts) {
 
-            String altNameSub = altName + "SubRule" + sr.getId() + "Alt" + a.getId();
+            String altNameSub = altName + "SubRule" + sr.getRuleId() + "Alt" + a.getAltId();
 
             String canConsumeVarName = StringUtil.firstToLower(altNameSub + "CanConsume");
 
@@ -823,7 +823,7 @@ public class UnparserCodeGenerator {
                                         String ruleName, String objName, AlternativeBase a, boolean noCheck, int numAltsPerRule) throws IOException {
 
         boolean userNoCheck = noCheck;
-        boolean lastRuleAlt = a.getId() == numAltsPerRule-1;
+        boolean lastRuleAlt = a.getAltId() == numAltsPerRule-1;
         boolean negationOperatorUsedInAlt = propertiesOfAltUseNegateOperator(a, r, gRule);
         boolean propertiesUsedInMultipleAlts = propertiesUsedInMultipleRuleAlts(a, r, gRule);
 
@@ -881,7 +881,7 @@ public class UnparserCodeGenerator {
             w.append("  //    are defined etc.").append('\n');
         }
         w.append("  // ");
-        String altName = ruleName + "Alt" + a.getId();
+        String altName = ruleName + "Alt" + a.getAltId();
         w.append('\n');
         w.append("  private boolean unparse"+ altName + "( " + objName + " obj, PrintWriter w ) {").append('\n');
 
@@ -991,7 +991,7 @@ public class UnparserCodeGenerator {
 
             for(AlternativeBase sa : sr.getAlternatives()) {
                 try {
-                    generateAltCode(w, model, gModel, r, gRule, altName + "SubRule" + sr.getId(), objName, sa, /*we check based on parent alts preferences*/noCheckFinal,sr.getAlternatives().size());
+                    generateAltCode(w, model, gModel, r, gRule, altName + "SubRule" + sr.getRuleId(), objName, sa, /*we check based on parent alts preferences*/noCheckFinal,sr.getAlternatives().size());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -1699,7 +1699,7 @@ public class UnparserCodeGenerator {
     private static void generateNamedSubRuleElementCode(Writer w, String indent, UPNamedSubRuleElement sre,
                                                         RuleClass gRule, String altName, boolean noCheck) throws IOException {
 
-        w.append(indent+"    // handling sub-rule " + sre.getId() + " with name '"+sre.getName()+"'").append('\n');
+        w.append(indent+"    // handling sub-rule " + sre.getRuleId() + " with name '"+sre.getName()+"'").append('\n');
 
         // if the sub-rule is a string or a string list, we need to manually consume the property.
         Type subRuleType = gRule.getModel().propertyByName(gRule.nameWithUpper(), sre.getName()).get().getType();
@@ -1767,16 +1767,16 @@ public class UnparserCodeGenerator {
     }
 
     private static void generateSubRuleElementCode(Writer w, String altName, String indent, UPSubRuleElement sre, RuleClass gRule, boolean noCheck) throws IOException {
-        w.append(indent+"    // handling sub-rule " + sre.getId()).append('\n');
+        w.append(indent+"    // handling sub-rule " + sre.getRuleId()).append('\n');
         if(!sre.ebnfOptional()&&!sre.ebnfZeroMany()) {
             w.append(indent+"    // this rule is not optional. we skip the rest of this alt if we can't match it.").append('\n');
-            w.append(indent+"    if(!unparse" + altName + "SubRule" + sre.getId() + "( obj, internalW )) {").append('\n');
+            w.append(indent+"    if(!unparse" + altName + "SubRule" + sre.getRuleId() + "( obj, internalW )) {").append('\n');
             generateRejectStateCode(indent + "      ", gRule, altName, noCheck, w);
             w.append(indent+"      return false;").append('\n');
             w.append(indent+"    }").append('\n');
         } else {
             w.append(indent+"    // this rule is optional. we continue with the rest of this alt even if we can't match it.").append('\n');
-            w.append(indent + "  unparse" + altName + "SubRule" + sre.getId() + "( obj, internalW );").append('\n');
+            w.append(indent + "  unparse" + altName + "SubRule" + sre.getRuleId() + "( obj, internalW );").append('\n');
         }
     }
 }

@@ -45,13 +45,23 @@ interface UPLexerRule extends WithName, WithText {
 }
 
 @InterfaceOnly
-interface WithId {
-    int getId();
+interface WithAltId {
+    int getAltId();
+}
+
+@InterfaceOnly
+interface WithElementId {
+    int getElementId();
+}
+
+@InterfaceOnly
+interface WithRuleId {
+    int getRuleId();
 }
 
 @InterfaceOnly
 @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.AltIndexUpdater")
-interface UPRuleBase extends WithId {
+interface UPRuleBase extends WithRuleId {
     @Contains(opposite = "parentRule")
     AlternativeBase[] getAlternatives();
 }
@@ -68,7 +78,7 @@ interface SubRule extends UPRuleBase {
 
 @InterfaceOnly
 @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.SubRuleIndexUpdater")
-interface AlternativeBase extends WithText, WithId {
+interface AlternativeBase extends WithText, WithAltId {
     @Container(opposite = "alternatives")
     UPRuleBase getParentRule();
 
@@ -76,7 +86,7 @@ interface AlternativeBase extends WithText, WithId {
     UPElement[] getElements();
 }
 
-interface UPElement extends WithText {
+interface UPElement extends WithText, WithElementId {
     @Container(opposite = "elements")
     AlternativeBase getParentAlt();
 
