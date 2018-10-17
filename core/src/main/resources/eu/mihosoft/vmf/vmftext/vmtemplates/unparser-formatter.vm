@@ -422,7 +422,10 @@ public interface Formatter {
                   inc(e);
                 } else {
                   w.append(" ");
-                  System.err.println("ERROR: index=" + pos + ", " + e.getClass().getName());
+                  String errorMsg = "ERROR: index=" + pos + ", " + e.getClass().getName();
+                  System.err.println(errorMsg);
+                  /*Since 17.10.2018 we don't tolerate hidden-text related problems*/
+                  throw new RuntimeException(errorMsg);
                 }
             } else {
                 w.append(" ");
