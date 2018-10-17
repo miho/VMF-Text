@@ -45,9 +45,9 @@ script:
 after_success:
 - mkdir -p ~/deployment-folder/$TRAVIS_BRANCH
 - cp -r ./test-suite/build/reports/tests ~/deployment-folder/$TRAVIS_BRANCH
-- ncftpput -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/$TRAVIS_BRANCH ~/deployment-folder/$TRAVIS_BRANCH*
+- ncftpput -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/ ~/deployment-folder/$TRAVIS_BRANCH
 
 after_failure:
 - mkdir -p ~/deployment-folder/$TRAVIS_BRANCH
 - cp -r ./test-suite/build/reports/tests ~/deployment-folder/$TRAVIS_BRANCH
-- ncftpput -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/$TRAVIS_BRANCH ~/deployment-folder/$TRAVIS_BRANCH*
+- ncftpput -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/ ~/deployment-folder/$TRAVIS_BRANCH
