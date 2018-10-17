@@ -1316,7 +1316,7 @@ public class UnparserCodeGenerator {
 
             String rulePath = UPRuleUtil.getPath(e);
             boolean unnamedRule = true;
-            boolean optionalRule=e.ebnfOptional() || e.ebnfZeroMany();
+            boolean optionalRule=UPRuleUtil.isEffectivelyOptional(e);
             String grammarText = e.getText();
             String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.TERMINAL, null, \"" + ruleString + "\", \"" + rulePath + "\", " + unnamedRule + ", "+ optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText,false) + "\")";
 
@@ -1354,7 +1354,7 @@ public class UnparserCodeGenerator {
 
                     String rulePath = UPRuleUtil.getPath(e);
                     boolean unnamedRule = true;
-                    boolean optionalRule=e.ebnfOptional() || e.ebnfZeroMany();
+                    boolean optionalRule=UPRuleUtil.isEffectivelyOptional(e);
                     String grammarText = e.getText();
                     String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.LEXER_RULE, \"" + ruleName + "\", \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\", \"" + rulePath + "\", " + unnamedRule + ", "+ optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText,false) + "\")";
                     // String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.LEXER_RULE, \"" + ruleName + "\", \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\")";
@@ -1435,7 +1435,7 @@ public class UnparserCodeGenerator {
 
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
-                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                         String grammarText = sre.getText();
 
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1454,7 +1454,7 @@ public class UnparserCodeGenerator {
 
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
-                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                         String grammarText = sre.getText();
 
                         w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj /*TERMINAL String conversion*/, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1486,7 +1486,7 @@ public class UnparserCodeGenerator {
 
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
-                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                         String grammarText = sre.getText();
 
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1508,7 +1508,7 @@ public class UnparserCodeGenerator {
 
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
-                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                         String grammarText = sre.getText();
 
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj.toString() /*TERMINAL String conversion*/, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1538,7 +1538,7 @@ public class UnparserCodeGenerator {
 
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
-                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                         String grammarText = sre.getText();
 
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1559,7 +1559,7 @@ public class UnparserCodeGenerator {
 
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
-                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                         String grammarText = sre.getText();
 
                         w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1589,7 +1589,7 @@ public class UnparserCodeGenerator {
 
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
-                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                         String grammarText = sre.getText();
 
                         w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1610,7 +1610,7 @@ public class UnparserCodeGenerator {
 
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
-                        boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                        boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                         String grammarText = sre.getText();
 
                         w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1649,7 +1649,7 @@ public class UnparserCodeGenerator {
 
                 String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
-                boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                 String grammarText = sre.getText();
 
                 w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1673,7 +1673,7 @@ public class UnparserCodeGenerator {
 
                 String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
-                boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                 String grammarText = sre.getText();
 
                 w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1719,7 +1719,7 @@ public class UnparserCodeGenerator {
 
                 String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
-                boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                 String grammarText = sre.getText();
 
                 w.append(indent+"        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
@@ -1739,7 +1739,7 @@ public class UnparserCodeGenerator {
 
                 String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
-                boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
+                boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                 String grammarText = sre.getText();
 
                 w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ", " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
