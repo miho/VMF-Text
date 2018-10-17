@@ -1,46 +1,39 @@
 sudo: false
-
 env:
+  matrix:
   - TERM=dumb
-  
+  global:
+  - secure: KUpc2TosqLJi6iMCAGwJTy8ZMK30/B7L2R9xahTy27rlbRvIgNTAjL6XCfc4DRODQdApeDxe5ekNCs1/lHa+/0KuJIv3Q+OHT7y+drUOiC4w9pKmZ3cFY4a+6dxVOE4nTRBFPPJiP68vtpvkgEOi2uF82kdVDKreQLmoRzTquuYawATWRldysD2CtB+HMaM5XJzkNd0IHRh376n6rJyi3qQ5znSL4jv8VdMD8X6W+dAJ8HfH/6IXBlM9c5txlFddp/qOGCJCp6jshYRfGs87d9LGxtdPbQoDPhSGRFGQtt0dI6/QfgGc8PpZ9d4plyDwkxu+h/eYqe6aW+aJHZSjwz8JXu+GSB/KbrZLvL5ZBQUbBbnUAlrDtHKKfd6E05tvT7oT8D4p3c0bYnR0nkfgqJ4UfiRsN29dGLwQ81HpAj0XU8P06OxMhNYy0dL7C6TLU0rm4WcithIpK25gKpn7IV7x3M3wTqkqHRNbvaLshbbwHWfCYEOIbz+jYvKGr17wb7+T0zx/Ycd6w3jhKV8wDOgCrJ3aHf1SeDIx0FLz3t+Qj6OsB8f2Kwq+XifhV/ZafwBL/p/bRFpNiK6fIZX0NFIvnvA5wKVxu0b1pyVMXGms/xsvOOZ2lu8ts+0d8aMuALUy3RGo9X8sEawZ3oM0WtP9pgC65nchPXP06lhoMOc=
+  - secure: etffCRkyXq4vl0RdNof3fOmW/MGCNAfrAzm4B9seaisexobi5SR/EGU+TkcQIhVzfSA8xBo9VPz7+L6c9mjLm/Ay/o+LLgdVUvvA4t+CY0JGCyUeleG0tUVytqGSXcQtzb/KN81omAwt8LSyzXlwtb7anQKU6DHRzIviqwbXhDLvuACasIyuDA1sajpKSSeYvPjVqdikmTM8xzFPh9/6O5JwBNmimSrS67l+HGee1LZmSYV38oncUlRi6BAYIAwT8Lh8NhHheSlcoRmr98Oe2x5ivK8n/NdqiuTHjyUcxG9/2N35jaJtI957aLaSvFyd9IHlzO1VfP8tGnmgejp0W/ZM8IIepYOJv2yPiZAhJw7vf+ja0mSKIYRXfc5UoZzx98mfp8wvIjIaixvZzYDW4o/0iLEjbJpT/XV3pN86Z/0Z24FJOrU2tPgHSUFIvYw43J+QZEZdu7RTIzuCvFlslptOiynrzY8+gnR5b/tNaBdu5Ku6OkkoxcksDgBT/MvTi6rrQYbitBp+2JcgUmq3CbxfDCbit/axbxfV9cxDcUsQVAV4FYOg+IYMGPmtJx7qeW3IWdi/Ic0l4fAdbeL+Yqzk4qGtXGNB8QCPl8kNO2Ynwux0vTbuYeldktRXI5f9SEVrwx/+orrmUCUOOIivSCFYQgd1BYxqvi/ii5XCgls=
 matrix:
-    include:
-    - os: linux
-      language: java
-      jdk:  oraclejdk8
-    - os: linux
-      language: java
-      jdk:  oraclejdk9
-    - os: linux
-      language: java
-      jdk:  oraclejdk10
-    - os: linux
-      language: java
-      jdk:  openjdk11
-    - os: linux
-      language: java
-      jdk:  openjdk-ea
-    allow_failures:
-       - os: linux
-         language: java
-         jdk:  openjdk-ea
-
-#cache:
-#  ccache: true
-#  directories:
-#  - /Users/travis/build/miho/
-
-# before_script:
-# - echo 'before script'
-  
+  include:
+  - os: linux
+    language: java
+    jdk: oraclejdk8
+  - os: linux
+    language: java
+    jdk: oraclejdk9
+  - os: linux
+    language: java
+    jdk: oraclejdk10
+  - os: linux
+    language: java
+    jdk: openjdk11
+  - os: linux
+    language: java
+    jdk: openjdk-ea
+  allow_failures:
+  - os: linux
+    language: java
+    jdk: openjdk-ea
 script:
-  - export CWD=$(pwd)
-  - cd core
-  - sh ./gradlew clean publishToMavenLocal
-  - cd $CWD
-  - cd gradle-plugin
-  - sh ./gradlew clean publishToMavenLocal
-  - cd $CWD
-  - cd test-suite
-  - travis_wait 30 ./gradlew clean test --stacktrace
-  - cd $CWD
+- export CWD=$(pwd)
+- cd core
+- sh ./gradlew clean publishToMavenLocal
+- cd $CWD
+- cd gradle-plugin
+- sh ./gradlew clean publishToMavenLocal
+- cd $CWD
+- cd test-suite
+- travis_wait 30 ./gradlew clean test --stacktrace
+- cd $CWD
