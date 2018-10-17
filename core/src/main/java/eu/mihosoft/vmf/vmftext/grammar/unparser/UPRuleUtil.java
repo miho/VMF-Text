@@ -33,8 +33,11 @@ public final class UPRuleUtil {
 
         if(r == null) return "";
 
-        if(r instanceof UPSubRuleElement || r instanceof UPNamedSubRuleElement) {
+        if(r instanceof UPSubRuleElement) {
             UPSubRuleElement sre = (UPSubRuleElement) r;
+            return getPath(sre.getParentAlt()) + "/sr"+sre.getRuleId();
+        } else if(r instanceof UPNamedSubRuleElement) {
+            UPNamedSubRuleElement sre = (UPNamedSubRuleElement) r;
             return getPath(sre.getParentAlt()) + "/sr"+sre.getRuleId();
         } else {
             return "/r" + r.getRuleId();
