@@ -57,14 +57,15 @@ public final class UPRuleUtil {
 
         // e is not directly optional but could be effectively optional because of the parent
         // sub-rule being optional
-
         boolean namedSiblings =
                 e.getParentAlt().getElements().stream().filter(
                         ne->ne instanceof UPNamedElement
                                 || ne instanceof UPNamedSubRuleElement).count()>0;
 
         // if we didn't find named siblings we can b e sure that e is effectively optional
-        if(!namedSiblings) {
+        if(!namedSiblings && e.getParentAlt().getParentRule() instanceof UPSubRuleElement
+                && (((UPSubRuleElement)e.getParentAlt().getParentRule()).ebnfOptional()
+                || ((UPSubRuleElement)e.getParentAlt().getParentRule()).ebnfZeroMany())) {
             return true;
         }
 
