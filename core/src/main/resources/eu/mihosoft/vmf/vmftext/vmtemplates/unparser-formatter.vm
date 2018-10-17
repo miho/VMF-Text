@@ -407,7 +407,7 @@ public interface Formatter {
         // if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
 
             // skip effectively optional elements
-            if(ruleInfo./*TODO 17.10.2018 effectively optional*/isOptional()) {
+            if(ruleInfo./*TODO 17.10.2018 effectively optional*/isOptional() && ruleInfo.isUnnamed()) {
                 w.append(" ");
                 return;
             }
