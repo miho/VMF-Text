@@ -43,7 +43,7 @@ script:
 - cd $CWD
 
 after_success:
-- ncftpput -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis ./test-suite/build/reports/tests/test
+- ncftpput -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/$TRAVIS_BRANCH ./test-suite/build/reports/tests/*
 
 after_failure:
-- ncftpput -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis ./test-suite/build/reports/tests/test
+- ncftpput -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/$TRAVIS_BRANCH ./test-suite/build/reports/tests/*
