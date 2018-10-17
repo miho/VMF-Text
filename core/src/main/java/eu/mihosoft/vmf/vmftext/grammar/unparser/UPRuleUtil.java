@@ -62,7 +62,8 @@ public final class UPRuleUtil {
                         ne->ne instanceof UPNamedElement
                                 || ne instanceof UPNamedSubRuleElement).count()>0;
 
-        // if we didn't find named siblings we can b e sure that e is effectively optional
+        // if we didn't find named siblings and the parent rule is optional then
+        // we can b e sure that e is effectively optional
         if(!namedSiblings && e.getParentAlt().getParentRule() instanceof UPSubRuleElement
                 && (((UPSubRuleElement)e.getParentAlt().getParentRule()).ebnfOptional()
                 || ((UPSubRuleElement)e.getParentAlt().getParentRule()).ebnfZeroMany())) {
@@ -85,7 +86,7 @@ public final class UPRuleUtil {
                                     ne->ne instanceof UPNamedElement
                                     || ne instanceof UPNamedSubRuleElement).count()>0;
 
-                    // if we didn't find named siblings we can b e sure that e is effectively optional
+                    // if we didn't find named siblings we can be sure that e is effectively optional
                     if(!namedSiblings) {
                         return true;
                     }
