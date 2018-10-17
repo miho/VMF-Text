@@ -1311,7 +1311,7 @@ public class UnparserCodeGenerator {
             w.append(indent + "    // handling unnamed terminal element  '"+eText+"'").append('\n');
             String ruleString = StringUtil.escapeJavaStyleString(eText,true);
 
-            String rulePath = "/rule-path";
+            String rulePath = UPRuleUtil.getPath(e);
             boolean unnamedRule = true;
             boolean optionalRule=e.ebnfOptional() || e.ebnfZeroMany();
             String grammarText = e.getText();
@@ -1349,7 +1349,7 @@ public class UnparserCodeGenerator {
                     w.append(indent + "    // we could successfully find terminal text of the rule").append('\n');
                     String ruleName = eText;
 
-                    String rulePath = "/rule-path";
+                    String rulePath = UPRuleUtil.getPath(e);
                     boolean unnamedRule = true;
                     boolean optionalRule=e.ebnfOptional() || e.ebnfZeroMany();
                     String grammarText = e.getText();
@@ -1430,7 +1430,7 @@ public class UnparserCodeGenerator {
                         w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString" + (mappingExists?"ForRule"+lexerRuleName:"") + "( listElemObj )").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
 
-                        String rulePath = "/rule-path";
+                        String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                         String grammarText = sre.getText();
@@ -1449,7 +1449,7 @@ public class UnparserCodeGenerator {
                     } else {
                         w.append(indent+"      String listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName + ".getAndInc());").append('\n');
 
-                        String rulePath = "/rule-path";
+                        String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                         String grammarText = sre.getText();
@@ -1481,7 +1481,7 @@ public class UnparserCodeGenerator {
                         w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
 
-                        String rulePath = "/rule-path";
+                        String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                         String grammarText = sre.getText();
@@ -1503,7 +1503,7 @@ public class UnparserCodeGenerator {
                         w.append(indent+"        if(s !=null) {").append('\n');
 
 
-                        String rulePath = "/rule-path";
+                        String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                         String grammarText = sre.getText();
@@ -1533,7 +1533,7 @@ public class UnparserCodeGenerator {
                         w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
 
-                        String rulePath = "/rule-path";
+                        String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                         String grammarText = sre.getText();
@@ -1554,7 +1554,7 @@ public class UnparserCodeGenerator {
                         w.append(indent+"        String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) /*TERMINAL String conversion*/;").append('\n');
                         w.append(indent+"        if(s!=null) {").append('\n');
 
-                        String rulePath = "/rule-path";
+                        String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                         String grammarText = sre.getText();
@@ -1584,7 +1584,7 @@ public class UnparserCodeGenerator {
                         w.append(indent+"          String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
                         w.append(indent+"          if(s!=null) {").append('\n');
 
-                        String rulePath = "/rule-path";
+                        String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                         String grammarText = sre.getText();
@@ -1605,7 +1605,7 @@ public class UnparserCodeGenerator {
                         w.append(indent+"          String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()).toString() /*TERMINAL String conversion*/;").append('\n');
                         w.append(indent+"          if(s!=null) {").append('\n');
 
-                        String rulePath = "/rule-path";
+                        String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                         String grammarText = sre.getText();
@@ -1644,7 +1644,7 @@ public class UnparserCodeGenerator {
                 w.append(indent + "      String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "() );").append('\n');
                 w.append(indent + "      if(s!=null) {").append('\n');
 
-                String rulePath = "/rule-path";
+                String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
                 boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                 String grammarText = sre.getText();
@@ -1668,7 +1668,7 @@ public class UnparserCodeGenerator {
                 w.append(indent + "      String s = obj.get" + StringUtil.firstToUpper(sre.getName()) + "() /*TERMINAL String conversion*/;").append('\n');
                 w.append(indent + "      if(s!=null) {").append('\n');
 
-                String rulePath = "/rule-path";
+                String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
                 boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                 String grammarText = sre.getText();
@@ -1714,7 +1714,7 @@ public class UnparserCodeGenerator {
                 w.append(indent+"      String s = " + propName + ".get(" + indexName +".getAndInc()) /*TERMINAL String conversion*/;").append('\n');
                 w.append(indent+"      if(s!=null) {").append('\n');
 
-                String rulePath = "/rule-path";
+                String rulePath = UPRuleUtil.getPath((SubRule)sre);
                 boolean unnamedRule = false;
                 boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                 String grammarText = sre.getText();
@@ -1734,7 +1734,7 @@ public class UnparserCodeGenerator {
                 String propStateName = "prop" + StringUtil.firstToUpper(sre.getName()) + "Used";
                 w.append(indent+"    if(!" + propStateName + ".is()) { ").append('\n');
 
-                String rulePath = "/rule-path";
+                String rulePath = UPRuleUtil.getPath((SubRule)sre);
                 boolean unnamedRule = false;
                 boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                 String grammarText = sre.getText();
