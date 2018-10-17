@@ -128,3 +128,6 @@ This will use the latest snapshot vmf-text and gradle-plugin to execute the test
 ### Viewing the Report
 
 An HTML version of the test report is located in the build folder `test-suite/build/reports/tests/test/index.html`.
+
+Test reports of the travis builds are available as well: 
+[[Test reports]](https://vmf-text-tests.mihosoft.eu/)
