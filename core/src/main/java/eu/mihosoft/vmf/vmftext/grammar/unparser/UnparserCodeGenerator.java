@@ -643,7 +643,10 @@ public class UnparserCodeGenerator {
 
 
     private static UPRule labeledAltToRule(String name, List<LabeledAlternative> la) {
-        UPRule r = UPRule.newBuilder().withName(name).build();
+
+        if(la.isEmpty()) throw new RuntimeException("Cannot convert empty labeled-alt-list");
+
+        UPRule r = UPRule.newBuilder().withName(name).withRuleId(la.get(0).getParentRule().getRuleId()).build();
 
         List<Alternative> alts = la.stream().map(UnparserCodeGenerator::labeledAltToAlt).collect(Collectors.toList());
         r.getAlternatives().addAll(alts);
@@ -1714,7 +1717,7 @@ public class UnparserCodeGenerator {
                 w.append(indent+"      String s = " + propName + ".get(" + indexName +".getAndInc()) /*TERMINAL String conversion*/;").append('\n');
                 w.append(indent+"      if(s!=null) {").append('\n');
 
-                String rulePath = UPRuleUtil.getPath((SubRule)sre);
+                String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
                 boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                 String grammarText = sre.getText();
@@ -1734,7 +1737,7 @@ public class UnparserCodeGenerator {
                 String propStateName = "prop" + StringUtil.firstToUpper(sre.getName()) + "Used";
                 w.append(indent+"    if(!" + propStateName + ".is()) { ").append('\n');
 
-                String rulePath = UPRuleUtil.getPath((SubRule)sre);
+                String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
                 boolean optionalRule=sre.ebnfOptional() || sre.ebnfZeroMany();
                 String grammarText = sre.getText();

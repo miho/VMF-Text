@@ -22,14 +22,14 @@ public final class UPRuleUtil {
         }
     }
 
-    public static String getPath(AlternativeBase a) {
+    private static String getPath(AlternativeBase a) {
 
         if(a == null) return "";
 
         return getPath(a.getParentRule()) + "/a"+a.getAltId();
     }
 
-    public static String getPath(UPRuleBase r) {
+    private static String getPath(UPRuleBase r) {
 
         if(r == null) return "";
 
