@@ -45,11 +45,11 @@ script:
 after_success:
 - export JAVA_VERSION=`echo "$(java -version 2>&1)" | grep "java version" | awk '{ print substr($3, 2, length($3)-2); }'`
 - mkdir -p ~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION
-- cp -r ./test-suite/build/reports/tests ~/deployment-folder/$TRAVIS_BRANCH
+- cp -r ./test-suite/build/reports/tests ~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION
 - ncftpput -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/ ~/deployment-folder/$TRAVIS_BRANCH
 
 after_failure:
 - export JAVA_VERSION=`echo "$(java -version 2>&1)" | grep "java version" | awk '{ print substr($3, 2, length($3)-2); }'`
 - mkdir -p ~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION
-- cp -r ./test-suite/build/reports/tests ~/deployment-folder/$TRAVIS_BRANCH
+- cp -r ./test-suite/build/reports/tests ~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION
 - ncftpput -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/ ~/deployment-folder/$TRAVIS_BRANCH
