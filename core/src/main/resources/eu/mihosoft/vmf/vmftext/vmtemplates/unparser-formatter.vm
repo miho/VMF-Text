@@ -422,7 +422,7 @@ public interface Formatter {
                   inc(e);
                 } else {
                   w.append(" ");
-                  String errorMsg = "ERROR: index=" + pos + ", " + e.getClass().getName();
+                  String errorMsg = "ERROR: index=" + pos + ", " + e.getClass().getName() + ", size: " + getHiddenText(e).size();
                   System.err.println(errorMsg);
                   /*Since 17.10.2018 we don't tolerate hidden-text related problems*/
                   throw new RuntimeException(errorMsg);

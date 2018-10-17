@@ -174,7 +174,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                             filter(o->o instanceof CodeElement).map(o->(CodeElement)o).
                             forEach(codeElement -> addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(codeElement));
                 }
-            } else {
+            } /*TODO 17.10.2018 prevent unnecessary deletions*//*else*/ {
                 // payload object
                 final java.util.Map<String,Object> payload =
                         (java.util.Map<String,Object>)element.getPayload();
