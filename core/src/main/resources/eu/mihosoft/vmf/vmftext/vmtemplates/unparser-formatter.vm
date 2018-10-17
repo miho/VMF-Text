@@ -405,6 +405,13 @@ public interface Formatter {
     @Override
     public void pre(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
         // if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
+
+            // skip effectively optional elements
+            if(ruleInfo./*TODO 17.10.2018 effectively optional*/isOptional()) {
+                w.append(" ");
+                return;
+            }
+
             CodeElement e = ruleInfo.getParentObject();
             currentElement = e;
             if(getHiddenText(e)!=null && !getHiddenText(e).isEmpty()) {
