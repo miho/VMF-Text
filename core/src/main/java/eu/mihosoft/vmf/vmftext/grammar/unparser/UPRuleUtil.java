@@ -123,7 +123,7 @@ public final class UPRuleUtil {
                     }
                 } else {
                     atLeastOneSiblingAltWithoutNamedElements =
-                            atLeastOneSiblingAltWithoutNamedElementsPred.test(e.getParentAlt());
+                            atLeastOneSiblingAltWithoutNamedElementsPred.test(sre.getParentAlt());
                     // if we didn't find named siblings and the at least one sibling alt consists completely of unnamed
                     // elements e is effectively optional even if the parent rule is not optional
                     //
