@@ -6,6 +6,8 @@ import eu.mihosoft.vmftext.tests.json.JSONModel;
 import eu.mihosoft.vmftext.tests.json.parser.JSONModelParser;
 import eu.mihosoft.vmftext.tests.json.unparser.BaseFormatter;
 import eu.mihosoft.vmftext.tests.json.unparser.JSONModelUnparser;
+import eu.mihosoft.vmftext.tests.ruleinfo.parser.RuleInfoModelParser;
+import eu.mihosoft.vmftext.tests.ruleinfo.unparser.RuleInfoModelUnparser;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -46,5 +48,35 @@ public class RuleInfoTest {
         unparser.unparse(model);
 
         Assert.assertArrayEquals(expectedInfoStrings, infoStrings.toArray(new String[infoStrings.size()]));
+    }
+
+    @Test
+    public void testEffectivelyOptional(){
+        String code = "[  ]";
+        RuleInfoModel model = new RuleInfoModelParser().parse(code);
+
+        RuleInfoModelUnparser unparser = new RuleInfoModelUnparser();
+
+        String[] expectedInfoStrings = {
+                "<NONE> -> true",
+                "<NONE> -> true"
+        };
+
+        List<String> infoStrings = new ArrayList<>(expectedInfoStrings.length);
+
+        unparser.setFormatter(new eu.mihosoft.vmftext.tests.ruleinfo.unparser.BaseFormatter(){
+            @Override
+            public void render(RuleInfoModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w, String s) {
+                super.render(unparser,ruleInfo,w,s+" ");
+                String infoString = ruleInfo.getRuleName().orElse("<NONE>")+" -> " + ruleInfo.isOptional();
+                System.out.println(infoString);
+                infoStrings.add(infoString);
+            }
+        });
+
+        unparser.unparse(model);
+
+        Assert.assertArrayEquals(expectedInfoStrings, infoStrings.toArray(new String[infoStrings.size()]));
+
     }
 }

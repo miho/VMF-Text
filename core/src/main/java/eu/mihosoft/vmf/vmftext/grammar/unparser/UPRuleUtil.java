@@ -67,22 +67,23 @@ public final class UPRuleUtil {
         boolean effectivelyOptionalViaEbnf = e.ebnfOptional() || e.ebnfZeroMany();
         if(effectivelyOptionalViaEbnf) return true;
 
-        // indicates whether the elements in the specified alt are
+        // indicates whether the elements in the specified alt are all unnamed
         final Predicate<AlternativeBase> onlyUnnamedElementsInAltPred = (a)->a.getElements().stream().filter(
                 ne->ne instanceof UPNamedElement
                         || ne instanceof UPNamedSubRuleElement).count()==0;
 
         // indicates whether at least one sibling alt has only unnamed elements
         final Predicate<AlternativeBase> atLeastOneSiblingAltWithoutNamedElementsPred =
-                (alt)->alt.getParentRule().getAlternatives().
-                stream().filter(a->a!=alt).filter(onlyUnnamedElementsInAltPred).count()==0;
+                (alt)-> alt.getParentRule().getAlternatives().
+                stream().filter(a->a!=alt).filter(onlyUnnamedElementsInAltPred).count()
+                        > 0;
 
         // e is not directly optional but could be effectively optional because of the parent
         // sub-rule being optional
         boolean onlyUnnamedSiblings = onlyUnnamedElementsInAltPred.test(e.getParentAlt());
 
         // if we didn't find named siblings and the parent rule is optional then
-        // we can b e sure that e is effectively optional
+        // we can be sure that e is effectively optional
         if(onlyUnnamedSiblings && e.getParentAlt().getParentRule() instanceof UPSubRuleElement
                 && (((UPSubRuleElement)e.getParentAlt().getParentRule()).ebnfOptional()
                 || ((UPSubRuleElement)e.getParentAlt().getParentRule()).ebnfZeroMany())) {
