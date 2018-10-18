@@ -215,16 +215,13 @@ public class Test {
 
         // unparse the current model
         MiniJavaModelUnparser unparser = new MiniJavaModelUnparser();
-        unparser.setFormatter(new MyFormatter());
+        // unparser.setFormatter(new MyFormatter());
         String s = unparser.unparse(model);
 
         // parse the model from the previously unparsed model
         MiniJavaModel modelup = parser.parse(s);
 
         Assert.assertEquals(model, modelup);
-
-
-        String code = new MiniJavaModelUnparser().unparse(model);
 
     }
 
