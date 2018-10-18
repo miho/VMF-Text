@@ -13,6 +13,12 @@ public final class UPRuleUtil {
         throw new AssertionError("Don't instantiate me!");
     }
 
+    /**
+     * Returns the path of the specified element, e.g., {@code /r0/a2/sr4/a1/e7}. The path
+     * specifies the location of the element in the grammar tree.
+     * @param e element
+     * @return path of the specified element
+     */
     public static String getPath(UPElement e) {
         if(e == null) return "";
 
@@ -45,6 +51,11 @@ public final class UPRuleUtil {
         }
     }
 
+    /**
+     * Determines whether a specified element is effectively optional (see issue github issue #6).
+     * @param e element to check
+     * @return {@code true} if the specified element is effectively optional; {@code false} otherwise
+     */
     public static boolean isEffectivelyOptional(UPElement e) {
 
         // if e is a named element it is not optional
@@ -100,10 +111,11 @@ public final class UPRuleUtil {
                 UPSubRuleElement sre= (UPSubRuleElement) r;
                 boolean opt = sre.ebnfOptional() || sre.ebnfZeroMany();
 
+                onlyUnnamedSiblings = onlyUnnamedElementsInAltPred.test(sre.getParentAlt());
+
                 // if the subrule element is optional we need to check the siblings in this alt whether they
                 // make the current alt non optional, e.g., named element
                 if(opt) {
-                    onlyUnnamedSiblings = onlyUnnamedElementsInAltPred.test(sre.getParentAlt());
 
                     // if we didn't find named siblings we can be sure that e is effectively optional
                     if(onlyUnnamedSiblings) {
