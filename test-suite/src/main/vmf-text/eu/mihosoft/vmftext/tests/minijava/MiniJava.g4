@@ -220,12 +220,12 @@ DecimalNumeral
 	;
 
 	WS
-	:   [ \r\t\n]+ -> skip
+	:   [ \r\t\n]+ -> channel(HIDDEN)
 	;
 
 	MULTILINE_COMMENT
-	:  '/*' .*? '*/' -> skip
+	:  '/*' .*? '*/' -> channel(HIDDEN)
 	;
 	LINE_COMMENT
-	:  '//' .*? '\n' -> skip
+	:  '//' .*? '\n' -> channel(HIDDEN)
 ;
