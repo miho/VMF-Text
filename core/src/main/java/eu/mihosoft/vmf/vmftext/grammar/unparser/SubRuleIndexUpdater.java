@@ -47,6 +47,9 @@ public class SubRuleIndexUpdater implements DelegatedBehavior<AlternativeBase>{
 
                 UPElement e = evt.added().elements().get(i);
 
+                // actions are not counted as elements
+                if(e.isAction()) continue;
+
                 if (e instanceof SubRule) {
                     // count number of elements of type sub-rule from 0-"our index"
                     int index = (int) evt.source().subList(0, evt.added().indices()[i]).stream().
@@ -58,7 +61,7 @@ public class SubRuleIndexUpdater implements DelegatedBehavior<AlternativeBase>{
                 {
                     // count number of elements from 0-"our index"
                     int index = (int) evt.source().subList(0, evt.added().indices()[i]).stream().
-                            /*filter(el -> !(el instanceof SubRule)).*/count();
+                            filter(el -> !el.isAction()).count();
                     e.setElementId(index);
                 }
 

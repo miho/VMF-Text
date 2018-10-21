@@ -197,6 +197,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                         withNegated(ParseTreeUtil.isNegated(ctx)).
                         withTokenIndexStart(ctx.start.getTokenIndex()).
                         withTokenIndexStop(ctx.stop.getTokenIndex()).
+                        withAction(ParseTreeUtil.isActionElement(ctx)).
                         build();
 
                 if(subRule.isParserRule()||subRule.isLexerRule()) {
@@ -226,6 +227,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                         withNegated(ParseTreeUtil.isNegated(ctx)).
                         withTokenIndexStart(ctx.start.getTokenIndex()).
                         withTokenIndexStop(ctx.stop.getTokenIndex()).
+                        withAction(ParseTreeUtil.isActionElement(ctx)).
                         build();
 
                 if(namedElement.isParserRule()||namedElement.isLexerRule()) {
@@ -253,6 +255,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                         withNegated(ParseTreeUtil.isNegated(ctx)).
                         withTokenIndexStart(ctx.start.getTokenIndex()).
                         withTokenIndexStop(ctx.stop.getTokenIndex()).
+                        withAction(ParseTreeUtil.isActionElement(ctx)).
                         build();
 
                 if(subRule.isParserRule()||subRule.isLexerRule()) {
@@ -285,6 +288,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                             withNegated(ParseTreeUtil.isNegated(ctx)).
                             withTokenIndexStart(ctx.start.getTokenIndex()).
                             withTokenIndexStop(ctx.stop.getTokenIndex()).
+                            withAction(ParseTreeUtil.isActionElement(ctx)).
                             build();
 
                     if(subRule.isParserRule()||subRule.isLexerRule()) {
@@ -311,6 +315,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                             withNegated(ParseTreeUtil.isNegated(ctx)).
                             withTokenIndexStart(ctx.start.getTokenIndex()).
                             withTokenIndexStop(ctx.stop.getTokenIndex()).
+                            withAction(ParseTreeUtil.isActionElement(ctx)).
                             build();
 
                     if(currentElement.isParserRule()||currentElement.isLexerRule()) {

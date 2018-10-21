@@ -121,6 +121,8 @@ interface UPElement extends WithText, WithElementId, WithTokenLocation {
     boolean isTerminal();
     boolean isParserRule();
 
+    boolean isAction();
+
     boolean isNegated();
 
     String getRuleName();

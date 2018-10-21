@@ -141,6 +141,15 @@ public class ParseTreeUtil {
     }
 
     /**
+     * Indicates whether the specified element context is an embedded action, e.g., {@code { Sysste.out.println(..)}}.
+     * @param e the element context to check
+     * @return {@code true} if the specified element context is an embedded grammar action; {@code false} otherwise
+     */
+    public static boolean isActionElement(ANTLRv4Parser.ElementContext e) {
+        return e.actionBlock()!=null;
+    }
+
+    /**
      * Returns the text of the specified element context.
      * @param e element context
      * @return the text of the specified element context
