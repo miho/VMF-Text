@@ -25,9 +25,14 @@ package eu.mihosoft.vmf.vmftext;
 
 import eu.mihosoft.vmf.vmftext.grammar.CodeLocation;
 import eu.mihosoft.vmf.vmftext.grammar.CodeRange;
-import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
+import eu.mihosoft.vmf.vmftext.grammar.antlr4.*;
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.*;
 
 /**
  * Utility class for ANTLR4 parse trees. The utility methods provided by this class are

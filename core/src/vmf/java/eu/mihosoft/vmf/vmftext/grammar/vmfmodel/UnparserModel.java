@@ -23,10 +23,7 @@
  */
 package eu.mihosoft.vmf.vmftext.grammar.vmfmodel;
 
-import eu.mihosoft.vmf.core.Container;
-import eu.mihosoft.vmf.core.Contains;
-import eu.mihosoft.vmf.core.DelegateTo;
-import eu.mihosoft.vmf.core.InterfaceOnly;
+import eu.mihosoft.vmf.core.*;
 
 
 @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.unparser.RuleIndexUpdater")
@@ -42,6 +39,14 @@ interface UnparserModel {
 interface UPLexerRule extends WithName, WithText {
     @Container(opposite = "lexerRules")
     UnparserModel getParent();
+}
+
+@InterfaceOnly
+interface WithTokenLocation {
+    @IgnoreEquals
+    int getTokenIndexStart();
+    @IgnoreEquals
+    int getTokenIndexStop();
 }
 
 @InterfaceOnly
@@ -86,7 +91,7 @@ interface AlternativeBase extends WithText, WithAltId {
     UPElement[] getElements();
 }
 
-interface UPElement extends WithText, WithElementId {
+interface UPElement extends WithText, WithElementId, WithTokenLocation {
     @Container(opposite = "elements")
     AlternativeBase getParentAlt();
 

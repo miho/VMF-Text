@@ -145,4 +145,37 @@ public final class UPRuleUtil {
 
         return false;
     }
+
+    /**
+     * Indicates whether the specified element is a block set, i.e. {@code ('a'|'b')}.
+     * @param element element to check
+     * @return {@code true} if this element is a block set; {@code false} otherwise
+     */
+    public static boolean isBlockSet(UPElement element) {
+
+        System.out.println("E " + element.isLexerRule());
+
+        if (!(element instanceof SubRule)) {
+            return false;
+        }
+
+        UPRuleBase sre = (UPRuleBase) element;
+
+        for(AlternativeBase a : sre.getAlternatives()) {
+
+            if(a.getElements().size() > 1) {
+                return false;
+            }
+
+            UPElement e = a.getElements().get(0);
+
+            if(!e.ebnfOne()) return false;
+
+            if(!e.isTerminal() && !e.isLexerRule()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

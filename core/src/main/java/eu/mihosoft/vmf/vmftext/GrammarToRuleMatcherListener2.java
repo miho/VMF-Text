@@ -23,13 +23,20 @@
  */
 package eu.mihosoft.vmf.vmftext;
 
+import eu.mihosoft.vcollections.VList;
+import eu.mihosoft.vcollections.VListChange;
+import eu.mihosoft.vmf.runtime.core.Change;
+import eu.mihosoft.vmf.runtime.core.ChangeListener;
 import eu.mihosoft.vmf.vmftext.grammar.*;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4ParserBaseListener;
+import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4ParserBaseVisitor;
 import org.antlr.v4.runtime.TokenStream;
+import org.antlr.v4.runtime.misc.Interval;
+import vjavax.observer.collection.CollectionChangeEvent;
+import vjavax.observer.collection.CollectionChangeListener;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.*;
 
 class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
@@ -68,7 +75,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
     public void enterLabeledAlt(ANTLRv4Parser.LabeledAltContext ctx) {
 
         if(debug)
-            System.out.println("entering alt (l): " + ctx.getText());
+        System.out.println("entering alt (l): " + ctx.getText());
 
         currentAlt = ctx;
 
@@ -80,7 +87,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                     withText(stream.getText(ctx.getSourceInterval())).build();
         } else {
             if(debug)
-                System.out.println(" -> labeled: " + ctx.identifier().getText());
+            System.out.println(" -> labeled: " + ctx.identifier().getText());
             alt = LabeledAlternative.newBuilder().
                     withName(ctx.identifier().getText()).
                     withText(stream.getText(ctx.getSourceInterval())).build();
@@ -88,7 +95,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         currentRule.getAlternatives().add(alt);
 
         if(debug)
-            System.out.println(" -> alt id: " + alt.getAltId());
+        System.out.println(" -> alt id: " + alt.getAltId());
 
         currentAlts.push(alt);
 
@@ -141,7 +148,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         if(currentAlt!=null&&currentAlt.alternative()==ctx) return;
 
         if(debug)
-            System.out.println("entering alt (*): " + ctx.getText());
+        System.out.println("entering alt (*): " + ctx.getText());
 
         UPRuleBase currentRule = getCurrentRule();
 
@@ -151,7 +158,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         currentRule.getAlternatives().add(alt);
 
         if(debug)
-            System.out.println(" -> alt id: " + alt.getAltId());
+        System.out.println(" -> alt id: " + alt.getAltId());
 
         currentAlts.push(alt);
 
@@ -164,7 +171,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         AlternativeBase a = currentAlts.pop();
 
         if(debug)
-            System.out.println("exiting alt:      " + ctx.getText());
+        System.out.println("exiting alt:      " + ctx.getText());
 
         super.exitAlternative(ctx);
     }
@@ -183,7 +190,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
             if(ctx.labeledElement().block()!=null) {
 
                 if(debug)
-                    System.out.println(">>> LE-BLOCK:     "+elementText);
+                System.out.println(">>> LE-BLOCK:     "+elementText);
                 System.out.println("    isLexer: "+ParseTreeUtil.isLexerRule(ctx));
                 System.out.println("    isTerminal: "+ParseTreeUtil.isStringLiteral(ctx));
 
@@ -209,10 +216,10 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
                 // if sub-rule is a block-set we need to manually add alternatives
                 if(debug)
-                    System.out.println(" -> sub-rule id: " + subRule.getRuleId());
+                System.out.println(" -> sub-rule id: " + subRule.getRuleId());
             } else {
                 if(debug)
-                    System.out.println(">>> LE:           " +elementText);
+                System.out.println(">>> LE:           " +elementText);
                 System.out.println("    isLexer: "+ParseTreeUtil.isLexerRule(ctx));
                 System.out.println("    isTerminal: "+ParseTreeUtil.isStringLiteral(ctx));
 
@@ -241,7 +248,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
             if(ParseTreeUtil.isBlockElement(ctx)) {
 
                 if(debug)
-                    System.out.println(">>>  E-BLOCK:     "+stream.getText(ctx.getSourceInterval()));
+                System.out.println(">>>  E-BLOCK:     "+stream.getText(ctx.getSourceInterval()));
                 System.out.println("     isLexer: "+ParseTreeUtil.isLexerRule(ctx));
                 System.out.println("     isTerminal: "+ParseTreeUtil.isStringLiteral(ctx));
 
@@ -262,7 +269,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                 currentAlt.getElements().add(subRule);
 
                 if(debug)
-                    System.out.println(" -> sub-rule id: " + subRule.getRuleId());
+                System.out.println(" -> sub-rule id: " + subRule.getRuleId());
 
                 currentRules.push(subRule);
             } else {
@@ -274,7 +281,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
                 if(elementText.startsWith("(")) {
                     if(debug)
-                        System.out.println(">>>  E-BLOCK(*):  " + stream.getText(ctx.getSourceInterval()));
+                    System.out.println(">>>  E-BLOCK(*):  " + stream.getText(ctx.getSourceInterval()));
                     System.out.println("     isLexer: "+ParseTreeUtil.isLexerRule(ctx));
                     System.out.println("     isTerminal: "+ParseTreeUtil.isStringLiteral(ctx));
                     UPSubRuleElement subRule = UPSubRuleElement.newBuilder().
@@ -294,24 +301,24 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                     currentAlt.getElements().add(subRule);
 
                     if(debug)
-                        System.out.println(" -> sub-rule id: " + subRule.getRuleId());
+                    System.out.println(" -> sub-rule id: " + subRule.getRuleId());
 
                     currentRules.push(subRule);
                 } else {
                     if(debug)
-                        System.out.println(">>>  E:           " + stream.getText(ctx.getSourceInterval()));
+                    System.out.println(">>>  E:           " + stream.getText(ctx.getSourceInterval()));
                     System.out.println("     isLexer: "+ParseTreeUtil.isLexerRule(ctx));
                     System.out.println("     isTerminal: "+ParseTreeUtil.isStringLiteral(ctx));
 
                     currentElement = UPElement.newBuilder().
-                            withText(stream.getText(ctx.getSourceInterval())).
-                            withParserRule(ParseTreeUtil.isParserRule(ctx)).
-                            withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
-                            withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
-                            withNegated(ParseTreeUtil.isNegated(ctx)).
-                            withTokenIndexStart(ctx.start.getTokenIndex()).
-                            withTokenIndexStop(ctx.stop.getTokenIndex()).
-                            build();
+                                withText(stream.getText(ctx.getSourceInterval())).
+                                withParserRule(ParseTreeUtil.isParserRule(ctx)).
+                                withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
+                                withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
+                                withNegated(ParseTreeUtil.isNegated(ctx)).
+                                withTokenIndexStart(ctx.start.getTokenIndex()).
+                                withTokenIndexStop(ctx.stop.getTokenIndex()).
+                                build();
 
                     if(currentElement.isParserRule()||currentElement.isLexerRule()) {
                         currentElement.setRuleName(StringUtil.firstToUpper(ParseTreeUtil.getElementText(ctx)));
@@ -341,7 +348,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
         String ruleName = ctx.RULE_REF().getText();
         if(debug)
-            System.out.println("> entering rule:  '" + ruleName + "'");
+        System.out.println("> entering rule:  '" + ruleName + "'");
         currentRuleNames.push(ruleName);
 
         UPRule rule = UPRule.newBuilder().withName(ruleName).build();
@@ -349,7 +356,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         currentRules.push(rule);
         model.getRules().add(rule);
         if(debug)
-            System.out.println(" -> rule id: " + rule.getRuleId());
+        System.out.println(" -> rule id: " + rule.getRuleId());
 
         super.enterParserRuleSpec(ctx);
     }
@@ -357,7 +364,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
     @Override
     public void exitParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
         if(debug)
-            System.out.println("< exiting rule:   '" + ((UPRule)currentRules.pop()).getName() + "'");
+        System.out.println("< exiting rule:   '" + ((UPRule)currentRules.pop()).getName() + "'");
 
         super.exitParserRuleSpec(ctx);
     }
@@ -366,7 +373,7 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
     public void enterLexerRuleSpec(ANTLRv4Parser.LexerRuleSpecContext ctx) {
 
         if(debug)
-            System.out.println("> entering lexer rule:   '" + ctx.TOKEN_REF().getText() + "'");
+        System.out.println("> entering lexer rule:   '" + ctx.TOKEN_REF().getText() + "'");
 
         UPLexerRule lr = UPLexerRule.newBuilder().
                 withName(ctx.TOKEN_REF().getText()).

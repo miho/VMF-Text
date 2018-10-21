@@ -90,25 +90,25 @@ public class VMFText {
     public static void generate(File grammar, String packageName, ResourceSet outputDir, ResourceSet modelOutputDir) {
 
 
-        // rewrite grammar
-        try {
-            grammar = rewriteGrammar(grammar);
-            System.out.println("FILE: " + grammar);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        // rewrite grammar
+//        try {
+//            grammar = rewriteGrammar(grammar);
+//            System.out.println("FILE: " + grammar);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
 
         AntlrTool.setOutput(outputDir);
 
         AntlrTool.main(
                 new String[]{
-                        grammar.getAbsolutePath(),
-                        "-listener",
-                        "-package", packageName+".parser",
+                grammar.getAbsolutePath(),
+                "-listener",
+                "-package", packageName+".parser",
 //                "-lib",
 //                "srcPath",
-                        "-o", "" // packageName.replace('.','/')
+                "-o", "" // packageName.replace('.','/')
                 }
         );
 
@@ -195,49 +195,51 @@ public class VMFText {
     }
 
     private static File rewriteGrammar(File grammar) throws IOException {
-        InputStream codeStream = new FileInputStream(grammar);
-        CharStream input = CharStreams.fromStream(codeStream);
+//        InputStream codeStream = new FileInputStream(grammar);
+//        CharStream input = CharStreams.fromStream(codeStream);
+//
+//        ANTLRv4Lexer lexer = new ANTLRv4Lexer(input);
+//        CommonTokenStream tokens = new CommonTokenStream(lexer);
+//        ANTLRv4Parser parser = new ANTLRv4Parser(tokens);
+//
+//        ParserRuleContext tree = parser.grammarSpec();
+//        ParseTreeWalker walker = new ParseTreeWalker();
+//
+//        GrammarToRuleMatcherListener matchListenr = new GrammarToRuleMatcherListener(tokens);
+//        //GrammarToRuleMatcherListener.setDebug(true);
+//
+//        walker.walk(matchListenr, tree);
+//
+//        Path dir = Files.createTempDirectory("vmf-text");
+//
+//        File grammarOut = new File(dir.toFile(),grammar.getName());
+//
+//        TokenStreamRewriter rewriter = new TokenStreamRewriter(tokens);
+//
+//        UnparserModel model = matchListenr.getModel();
+//
+//        model.vmf().content().stream(UPElement.class).forEach(upElement -> {
+//            System.out.println("BLOCK-SET: " + upElement.getText() + "  ->  lexer:" + upElement.isLexerRule());
+//
+//            boolean parentIsBlockSet = false;
+//
+//            if(upElement.getParentAlt().getParentRule() instanceof SubRule) {
+//                if(UPRuleUtil.isBlockSet((UPElement) upElement.getParentAlt().getParentRule())) {
+//                    parentIsBlockSet = true;
+//                }
+//            }
+//
+//            if(UPRuleUtil.isEffectivelyOptional(upElement)&&!parentIsBlockSet) {
+//                rewriter.insertAfter(upElement.getTokenIndexStop(),
+//                        "{System.out.println(\"UPE: " + UPRuleUtil.getPath(upElement) + "\");}");
+//            }
+//        });
+//
+//        Files.write(grammarOut.toPath(), rewriter.getText().getBytes("UTF-8"));
+//
+//        return grammarOut;
 
-        ANTLRv4Lexer lexer = new ANTLRv4Lexer(input);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        ANTLRv4Parser parser = new ANTLRv4Parser(tokens);
-
-        ParserRuleContext tree = parser.grammarSpec();
-        ParseTreeWalker walker = new ParseTreeWalker();
-
-        GrammarToRuleMatcherListener matchListenr = new GrammarToRuleMatcherListener(tokens);
-        //GrammarToRuleMatcherListener.setDebug(true);
-
-        walker.walk(matchListenr, tree);
-
-        Path dir = Files.createTempDirectory("vmf-text");
-
-        File grammarOut = new File(dir.toFile(),grammar.getName());
-
-        TokenStreamRewriter rewriter = new TokenStreamRewriter(tokens);
-
-        UnparserModel model = matchListenr.getModel();
-
-        model.vmf().content().stream(UPElement.class).forEach(upElement -> {
-            System.out.println("BLOCK-SET: " + upElement.getText() + "  ->  lexer:" + upElement.isLexerRule());
-
-            boolean parentIsBlockSet = false;
-
-            if(upElement.getParentAlt().getParentRule() instanceof SubRule) {
-                if(UPRuleUtil.isBlockSet((UPElement) upElement.getParentAlt().getParentRule())) {
-                    parentIsBlockSet = true;
-                }
-            }
-
-            if(UPRuleUtil.isEffectivelyOptional(upElement)&&!parentIsBlockSet) {
-                rewriter.insertAfter(upElement.getTokenIndexStop(),
-                        "{System.out.println(\"UPE: " + UPRuleUtil.getPath(upElement) + "\");}");
-            }
-        });
-
-        Files.write(grammarOut.toPath(), rewriter.getText().getBytes("UTF-8"));
-
-        return grammarOut;
+        return grammar;
     }
 
     private static GrammarAndUnparser convertGrammarToModel(File grammar) throws IOException {
