@@ -1478,7 +1478,7 @@ public class UnparserCodeGenerator {
                         w.append(indent+"      }").append('\n');
                         w.append(indent+"      getUnparser().getFormatter().post( unparser, ruleInfo, internalW);").append('\n');
                     }
-                    w.append(indent + "    }").append('\n');
+                        w.append(indent + "    }").append('\n');
                 } else {
 
                     String breakOrReturn = " /*non optional case*/ return false;";
@@ -1522,7 +1522,7 @@ public class UnparserCodeGenerator {
                         boolean optionalRule=UPRuleUtil.isEffectivelyOptional(sre);
                         String grammarText = sre.getText();
 
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj.toString() /*TERMINAL String conversion*/, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s /*TERMINAL String conversion*/, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                         // w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj.toString() /*TERMINAL String conversion*/" + ")");
 
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1531,6 +1531,7 @@ public class UnparserCodeGenerator {
                         w.append(indent+"            getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
                         w.append(indent+"          }").append('\n');
                         w.append(indent+"          getUnparser().getFormatter().post( unparser, ruleInfo, internalW);").append('\n');
+                        w.append(indent+"        }").append('\n');
                         w.append(indent+"      }").append('\n');
                     }
 
