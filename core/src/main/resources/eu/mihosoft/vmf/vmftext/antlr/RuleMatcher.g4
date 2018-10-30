@@ -10,9 +10,11 @@ expr:	left=expr operator=('*'|'/') right=expr      # MultDivOpExpr
     |	'(' expression = expr ')'                    # ParanExpr
     ;
 
-nested:	'(' ('id' id=INT | 'name' name=IDENTIFIER ) ')' ';'?
+nested locals[int xyz, double abc] :	'(' ('id' id=DOUBLE | 'name' name=IDENTIFIER ) ')' ';'?
     |   '('  'otherName' otherName=IDENTIFIER ')' ';'?
     ;
+
+nested2: '(' ('a''b' | 'c');
 
 array:
         '(' values+=DOUBLE (',' values+=DOUBLE)* ')'

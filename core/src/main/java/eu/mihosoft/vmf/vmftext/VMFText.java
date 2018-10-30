@@ -50,6 +50,11 @@ public class VMFText {
         throw new AssertionError("Don't instantiate me!");
     }
 
+    public static final String CTX_PARSED_OPTIONAL_CODE = "{$ctx.__vmf_text__parsed_optional = true;} ";
+    public static final String CTX_ADD_OPTIONAL_STATE_CODE_COMPLEX_CASE = "{$ctx.__vmf_text__optionalSymbols.add($ctx.__vmf_text__parsed_optional);$ctx.__vmf_text__parsed_optional=false;}";
+    public static final String CTX_ADD_OPTIONAL_STATE_CODE = "{$ctx.__vmf_text__optionalSymbols.add(true);}";
+    public static final String CTX_RULE_LOCALS_CODE = " locals [List<Boolean> __vmf_text__optionalSymbols = new ArrayList<Boolean>(), boolean __vmf_text__parsed_optional = false]";
+    public static final String CTX_APPEND_RULE_LOCALS_CODE = ", List<Boolean> __vmf_text__optionalSymbols = new ArrayList<Boolean>(), boolean __vmf_text__parsed_optional = false";
 
     private static class GrammarAndUnparser {
         UnparserModel unparserModel;
@@ -210,7 +215,8 @@ public class VMFText {
 
         walker.walk(matchListenr, tree);
 
-        Path dir = Files.createTempDirectory("vmf-text");
+        Path dir = new File("/Users/miho/tmp").toPath();
+        //Path dir = Files.createTempDirectory("vmf-text");
 
         File grammarOut = new File(dir.toFile(),grammar.getName());
 
@@ -218,8 +224,22 @@ public class VMFText {
 
         UnparserModel model = matchListenr.getModel();
 
+        model.vmf().content().stream(UPRule.class).forEach(r -> {
+
+            // add optional symbol list to rule definition
+            // - if locals is present, we append to the locals definition
+            // - otherwise, we add the 'locals [..]' definition to the rule def
+            if(r.getTokenIndexLOCALS()<0) {
+                String str = CTX_RULE_LOCALS_CODE;
+                rewriter.insertBefore(r.getTokenIndexCOLON(), str);
+            } else {
+                String str = CTX_APPEND_RULE_LOCALS_CODE;
+                rewriter.insertAfter(r.getTokenIndexLOCALS(), str);
+            }
+
+        });
+
         model.vmf().content().stream(UPElement.class).forEach(upElement -> {
-            System.out.println("BLOCK-SET: " + upElement.getText() + "  ->  lexer:" + upElement.isLexerRule());
 
             boolean parentIsBlockSet = false;
 
@@ -229,9 +249,29 @@ public class VMFText {
                 }
             }
 
-            if(UPRuleUtil.isEffectivelyOptional(upElement)&&!parentIsBlockSet) {
-                rewriter.insertAfter(upElement.getTokenIndexStop(),
-                        "{System.out.println(\"UPE: " + UPRuleUtil.getPath(upElement) + "\");}");
+            if(UPRuleUtil.isEffectivelyOptional(upElement) && !parentIsBlockSet) {
+
+                boolean optionalEBNF = upElement.ebnfZeroMany() || upElement.ebnfOptional();
+
+                if(optionalEBNF) {
+                    // put everything inside a sub-rule since otherwise we can't add an action between
+                    // the optional element and the ebnf suffix (* or ?)
+                    //
+                    // example:
+                    //
+                    // ';'?    -> (';' {action:true} )? {action:record_symbol(true or false)}
+                    //
+                    rewriter.insertBefore(upElement.getTokenIndexStart(),"(");
+                    rewriter.insertAfter(upElement.getTokenIndexStop()-1,
+                            CTX_PARSED_OPTIONAL_CODE+")");
+                    rewriter.insertAfter(upElement.getTokenIndexStop(),
+                            CTX_ADD_OPTIONAL_STATE_CODE_COMPLEX_CASE);
+                } else {
+                    // just add the action since no ebnf suffix is present
+                    rewriter.insertAfter(upElement.getTokenIndexStop(),
+                            CTX_ADD_OPTIONAL_STATE_CODE);
+                }
+
             }
         });
 

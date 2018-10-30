@@ -34,6 +34,7 @@ interface UnparserModel {
 
     @Contains(opposite = "parent")
     UPLexerRule[] getLexerRules();
+
 }
 
 interface UPLexerRule extends WithName, WithText {
@@ -71,9 +72,15 @@ interface UPRuleBase extends WithRuleId {
     AlternativeBase[] getAlternatives();
 }
 
-interface UPRule extends WithName, UPRuleBase {
+interface UPRule extends WithName, UPRuleBase, WithTokenLocation {
     @Container(opposite = "rules")
     UnparserModel getParent();
+
+    @IgnoreEquals
+    int getTokenIndexCOLON();
+
+    @IgnoreEquals
+    int getTokenIndexLOCALS();
 }
 
 @InterfaceOnly

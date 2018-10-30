@@ -28,6 +28,7 @@ import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
 import eu.mihosoft.vmf.vmftext.StringUtil;
 import eu.mihosoft.vmf.vmftext.TemplateEngine;
+import eu.mihosoft.vmf.vmftext.VMFText;
 import eu.mihosoft.vmf.vmftext.grammar.*;
 import org.apache.velocity.VelocityContext;
 
@@ -93,6 +94,11 @@ public class UnparserCodeGenerator {
             String aText = a.getElements().stream().filter(e->!e.getText().
                     startsWith("#")).map(e->e.getText() + " ").collect(Collectors.joining());
 
+            aText = aText.replace(VMFText.CTX_PARSED_OPTIONAL_CODE,"");
+            aText = aText.replace(VMFText.CTX_RULE_LOCALS_CODE,"");
+            aText = aText.replace(VMFText.CTX_ADD_OPTIONAL_STATE_CODE_COMPLEX_CASE,"");
+            aText = aText.replace(VMFText.CTX_ADD_OPTIONAL_STATE_CODE,"");
+
             w.append(aName+": ").append(aText + " " + (aText.endsWith("EOF")?"":"EOF")+" ;\n");
 
             generateElementGrammarCode(gModel,model,rules,a,aName,w);
@@ -107,6 +113,11 @@ public class UnparserCodeGenerator {
                 String srName = parentName+"SubRule"+sr.getRuleId();
 
                 String eText = e.getText(); // TODO 27.12.2017 maybe simplify expression by removing all labels and substitute sub-rules?
+
+                eText = eText.replace(VMFText.CTX_PARSED_OPTIONAL_CODE,"");
+                eText = eText.replace(VMFText.CTX_RULE_LOCALS_CODE,"");
+                eText = eText.replace(VMFText.CTX_ADD_OPTIONAL_STATE_CODE_COMPLEX_CASE,"");
+                eText = eText.replace(VMFText.CTX_ADD_OPTIONAL_STATE_CODE,"");
 
                 w.append(srName+": ").append(eText+";\n");
 

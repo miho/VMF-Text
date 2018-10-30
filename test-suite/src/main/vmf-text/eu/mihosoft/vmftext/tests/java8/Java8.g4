@@ -45,8 +45,6 @@ importDeclaration
     : IMPORT importStatic=STATIC? packageOrClassName=qualifiedName starImport=DOT_STAR? ';'
     ;
 
-DOT_STAR: '.' '*';
-
 typeDeclaration
     : typeModifiers+=classOrInterfaceModifier*
       (classDecl=classDeclaration | enumDecl=enumDeclaration | interfaceDecl=interfaceDeclaration | annotationDecl=annotationTypeDeclaration)
@@ -657,6 +655,8 @@ arguments
 // added by miho: 18.01.2018
 
 ARRAY_BRACKETS: '[' ']';
+
+DOT_STAR: '.' '*';
 
 
 /*

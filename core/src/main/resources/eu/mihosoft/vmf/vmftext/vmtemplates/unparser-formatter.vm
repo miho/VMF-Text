@@ -286,6 +286,8 @@ public interface Formatter {
   class DefaultFormatter extends BaseFormatter {
 
     private CodeElement currentElement;
+
+    private boolean consumeElement = false;
     
     DefaultFormatter() {
         //
@@ -296,7 +298,7 @@ public interface Formatter {
 
       // In case there's another ws we emit it. This is important
       // in case of white spaces between the last terminal and EOF.
-      int pos = getCounter(e);
+      int pos = getHiddenTextCounter(e);
       if(getHiddenText(e)!=null && pos < getHiddenText(e).size()) {
         String ws = getHiddenText(e).get(pos);
         w.append(ws);
@@ -325,7 +327,7 @@ public interface Formatter {
 //        }
     }
 
-    private void inc(CodeElement e) {
+    private void incHiddenTextCounter(CodeElement e) {
 
         if(e.getPayload()==null) {
           return;
@@ -336,13 +338,13 @@ public interface Formatter {
         }
 
         Integer value = (Integer)
-                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
+                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:hidden-text-counter");
         if(value==null) {
             value = 0;
         }
-        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",++value);
+        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:hidden-text-counter",++value);
     }
-    private void dec(CodeElement e) {
+    private void decHiddenTextCounter(CodeElement e) {
 
         if(e.getPayload()==null) {
           return;
@@ -353,11 +355,45 @@ public interface Formatter {
         }
 
         Integer value = (Integer)
-                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
+                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:hidden-text-counter");
         if(value==null) {
             value = 0;
         }
-        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",--value);
+        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:hidden-text-counter",--value);
+    }
+    private void incOptionalSymbolsCounter(CodeElement e) {
+
+        if(e.getPayload()==null) {
+          return;
+        }
+
+        if(!(e.getPayload() instanceof java.util.Map)) {
+          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        }
+
+        Integer value = (Integer)
+                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:optional-symbols-counter");
+        if(value==null) {
+            value = 0;
+        }
+        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:optional-symbols-counter",++value);
+    }
+    private void decOptionalSymbolsCounter(CodeElement e) {
+
+        if(e.getPayload()==null) {
+          return;
+        }
+
+        if(!(e.getPayload() instanceof java.util.Map)) {
+          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        }
+
+        Integer value = (Integer)
+                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:optional-symbols-counter");
+        if(value==null) {
+            value = 0;
+        }
+        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:optional-symbols-counter",--value);
     }
     private void reset(CodeElement e) {
 
@@ -369,9 +405,10 @@ public interface Formatter {
           throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
         }
 
-        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:counter",0);
+        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:hidden-text-counter",0);
+        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:optional-symbols-counter",0);
     }
-    private int getCounter(CodeElement e) {
+    private int getHiddenTextCounter(CodeElement e) {
 
         if(e.getPayload()==null) {
           return 0;
@@ -382,7 +419,7 @@ public interface Formatter {
         }
 
         Integer value = (Integer)
-                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:counter");
+                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:hidden-text-counter");
         if(value==null) {
             value = 0;
         }
@@ -402,24 +439,81 @@ public interface Formatter {
 
         return (java.util.List<String>)payload.get("vmf-text:ignored-pieces-of-text");
     }
+
+    private java.util.List<Boolean> getOptionalSymbolState(CodeElement e) {
+
+        if(e.getPayload()==null) {
+          return null;
+        }
+
+        if(!(e.getPayload() instanceof java.util.Map)) {
+          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        }
+         
+        java.util.Map<String,Object> payload = (java.util.Map<String,Object>)e.getPayload();
+
+        return (java.util.List<Boolean>)payload.get("vmf-text:optionalSymbols");
+    }
+
+    private int getOptionalSymbolsCounter(CodeElement e) {
+
+        if(e.getPayload()==null) {
+          return 0;
+        }
+
+        if(!(e.getPayload() instanceof java.util.Map)) {
+          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        }
+
+        Integer value = (Integer)
+                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:optional-symbols-counter");
+        if(value==null) {
+            value = 0;
+        }
+        return value;
+    }
+
     @Override
     public void pre(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
         // if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
 
-            // skip effectively optional elements
-            if(ruleInfo.isOptional()) {
-                w.append(" ");
-                return;
-            }
+            consumeElement = false;
 
             CodeElement e = ruleInfo.getParentObject();
             currentElement = e;
+
+            // skip effectively optional elements depending on state
+            if(ruleInfo.isOptional()) {
+
+                boolean symbolState = false;
+
+                if(getOptionalSymbolState(e)==null) {
+                  System.err.println("OptionalSymbolState NULL: Rule-Info: " + ruleInfo.getGrammarText() + " -> " + ruleInfo.getRuleName());
+                } else {
+
+                  int pos = getOptionalSymbolsCounter(e);
+                  if(pos < getOptionalSymbolState(e).size()) {
+                    symbolState = getOptionalSymbolState(e).get(pos);
+                    incOptionalSymbolsCounter(e);
+                  }
+
+                }
+
+                if(!symbolState) {
+                  ruleInfo.consume();
+                  System.out.println("Rule-Info: " + ruleInfo.getGrammarText() + " -> " + ruleInfo.getRuleName());
+                  consumeElement = true;
+                }
+
+                return;
+            }
+
             if(getHiddenText(e)!=null && !getHiddenText(e).isEmpty()) {
-                int pos = getCounter(e);
+                int pos = getHiddenTextCounter(e);
                 if(pos < getHiddenText(e).size()) {
                   String ws = getHiddenText(e).get(pos);
                   w.append(ws);
-                  inc(e);
+                  incHiddenTextCounter(e);
                 } else {
                   w.append(" ");
                   String errorMsg = "ERROR: index=" + pos + ", " + e.getClass().getName() + ", size: " + getHiddenText(e).size();
@@ -432,6 +526,13 @@ public interface Formatter {
             }
         // }
     }
+
+    public void render(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w, String s) {
+      if(!consumeElement) {
+        w.print(s);
+      }
+    }
+
     @Override
     public void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
 
@@ -448,11 +549,11 @@ class JavaStyleFormatter implements Formatter {
     return indent;
   }
 
-  void inc() {
+  void incHiddenTextCounter() {
     indent+="  ";
   }
 
-  void dec() {
+  void decHiddenTextCounter() {
     if(indent.length() > 1) {
       indent=indent.substring(2);
     }
@@ -463,13 +564,13 @@ class JavaStyleFormatter implements Formatter {
 
 
     if(Objects.equals(ruleInfo.getRuleText(), "}")) {
-      dec();
+      decHiddenTextCounter();
       w.append('\n').append(getIndent());
     }
   }
   public void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
     if(Objects.equals(ruleInfo.getRuleText(), "{")) {
-      inc();
+      incHiddenTextCounter();
       w.append('\n').append(getIndent());
     } else if(Objects.equals(ruleInfo.getRuleText(), ";")) {
       w.append('\n').append(getIndent());

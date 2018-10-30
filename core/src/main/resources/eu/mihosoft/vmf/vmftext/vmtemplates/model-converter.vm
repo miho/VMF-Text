@@ -227,11 +227,32 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
             // payload object
             final java.util.Map<String,Object> payload = (java.util.Map<String,Object>)e.getPayload();
+
+            ParserRuleContext eCtx = (ParserRuleContext)payload.get("vmf-text:antlr4-rule-ctx");
                        
-            payload.put("vmf-text:ignored-pieces-of-text", ignoredPiecesOfTextListener.getIgnoredPiecesOfText((ParserRuleContext)payload.get("vmf-text:antlr4-rule-ctx")));
-            
+            payload.put("vmf-text:ignored-pieces-of-text", ignoredPiecesOfTextListener.getIgnoredPiecesOfText(eCtx));
+            payload.put("vmf-text:optionalSymbols", getOptionalSymbolList(eCtx) );
+
         } // end for each code element
     }
+
+    private static java.util.List<Boolean> getOptionalSymbolList(ParserRuleContext ctx) {
+
+        try {
+            Class<?>  clazz = ctx.getClass();
+            java.lang.reflect.Field field = clazz.getField("__vmf_text__optionalSymbols");
+            Object value = field.get(ctx);
+
+            return (java.util.List<Boolean>) value;
+        } catch(Exception ex) {
+            ex.printStackTrace(System.err);
+        }
+
+        throw new RuntimeException("Cannot get optional-symbol-list");
+
+    }
+
+
 
     public ${Util.firstToUpper($model.grammarName)}Model parse(File code) throws IOException{
         try(FileInputStream codeStream = new FileInputStream(code)) {

@@ -4,6 +4,7 @@ import eu.mihosoft.vmf.vmftext.grammar.*;
 
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * TODO 17.10.2018
@@ -58,15 +59,6 @@ public final class UPRuleUtil {
      */
     public static boolean isEffectivelyOptional(UPElement e) {
 
-        // if e is a named element it is not optional
-        boolean effectivelyOptionalNamed = e instanceof WithName;
-        if(effectivelyOptionalNamed) return false;
-
-        // ebnf suffix indicates e is optional
-        // if true then we can skip further tests since e is definitely effectively optional
-        boolean effectivelyOptionalViaEbnf = e.ebnfOptional() || e.ebnfZeroMany();
-        if(effectivelyOptionalViaEbnf) return true;
-
         // indicates whether the elements in the specified alt are all unnamed
         final Predicate<AlternativeBase> onlyUnnamedElementsInAltPred = (a)->a.getElements().stream().filter(
                 ne->ne instanceof UPNamedElement
@@ -75,8 +67,46 @@ public final class UPRuleUtil {
         // indicates whether at least one sibling alt has only unnamed elements
         final Predicate<AlternativeBase> atLeastOneSiblingAltWithoutNamedElementsPred =
                 (alt)-> alt.getParentRule().getAlternatives().
-                stream().filter(a->a!=alt).filter(onlyUnnamedElementsInAltPred).count()
+                        stream().filter(a->a!=alt).filter(onlyUnnamedElementsInAltPred).count()
                         > 0;
+
+        // if e is a named element it is not optional
+        boolean effectivelyOptionalNamed = e instanceof WithName;
+        if(effectivelyOptionalNamed) return false;
+
+        // ebnf suffix indicates e is optional
+        // if true and not a sub-rule then we can skip further tests since e is definitely effectively optional
+        boolean effectivelyOptionalViaEbnf = (e.ebnfOptional() || e.ebnfZeroMany());
+
+        // ebnf suffix indicates that this element is optional
+        if(effectivelyOptionalViaEbnf) {
+
+            // if the element is a sub-rule we have to check alternatives for named elements since named elements
+            // make sub-rules non-optional, even if the sub-rule element is marked as optional via ebnf
+            if(e instanceof SubRule) {
+                UPRuleBase sre = (UPRuleBase) e;
+
+                for(AlternativeBase a: sre.getAlternatives()) {
+                    boolean onlyUnnamedSiblingsInAlt = onlyUnnamedElementsInAltPred.test(a);
+
+                    if(onlyUnnamedSiblingsInAlt) {
+                        List<UPRuleBase> subRuleElements = a.getElements().stream().
+                                filter(el->el instanceof SubRule).map(el->(UPRuleBase)el).collect(Collectors.toList());
+
+                        for(UPRuleBase r : subRuleElements) {
+                            if(!isEffectivelyOptional((UPElement) r)) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+            } else {
+                // no sub-rule
+                return true;
+            }
+        }
+
 
         // e is not directly optional but could be effectively optional because of the parent
         // sub-rule being optional
@@ -152,8 +182,6 @@ public final class UPRuleUtil {
      * @return {@code true} if this element is a block set; {@code false} otherwise
      */
     public static boolean isBlockSet(UPElement element) {
-
-        System.out.println("E " + element.isLexerRule());
 
         if (!(element instanceof SubRule)) {
             return false;
