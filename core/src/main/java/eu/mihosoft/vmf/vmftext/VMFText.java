@@ -215,8 +215,8 @@ public class VMFText {
 
         walker.walk(matchListenr, tree);
 
-        Path dir = new File("/Users/miho/tmp").toPath();
-        //Path dir = Files.createTempDirectory("vmf-text");
+        //Path dir = new File("/Users/miho/tmp").toPath();
+        Path dir = Files.createTempDirectory("vmf-text");
 
         File grammarOut = new File(dir.toFile(),grammar.getName());
 
