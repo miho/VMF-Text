@@ -185,7 +185,7 @@ public class VMFText {
         System.out.println("Generated Model Classes:");
         System.out.println("------------------------------------------------------");
 
-        classNames.forEach(clsN-> System.out.println("-> type: " + clsN));
+        classNames.forEach(clsN -> System.out.println("-> type: " + clsN));
 
         Class[] classes = classNames.stream().map(clsN -> {
             try {
@@ -215,8 +215,8 @@ public class VMFText {
 
         walker.walk(matchListenr, tree);
 
-        //Path dir = new File("/Users/miho/tmp").toPath();
-        Path dir = Files.createTempDirectory("vmf-text");
+        Path dir = new File("/Users/miho/tmp").toPath();
+        //Path dir = Files.createTempDirectory("vmf-text");
 
         File grammarOut = new File(dir.toFile(),grammar.getName());
 
