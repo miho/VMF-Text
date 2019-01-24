@@ -83,7 +83,7 @@ interface VMFTextSourceVirtualDirectory {
 
 class VMFTextPluginExtension {
     // vmf-text version
-    String vmfVersion     = "0.1.13"
+    String vmfVersion     = "0.2.0.1"
     String antlrVersion   = "4.7.1"
 }
 
@@ -293,7 +293,9 @@ class CompileVMFTextTask extends DefaultTask {
         def grammarsOutOfDate = []
 
         inputs.outOfDate {
-            grammarsOutOfDate.add(it.file)
+            if(it.file.isFile()) {
+                grammarsOutOfDate.add(it.file)
+            }
         }
 
         for(File gF : grammarsOutOfDate) {

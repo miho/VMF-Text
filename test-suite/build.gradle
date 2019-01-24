@@ -18,9 +18,8 @@ plugins {
     id 'com.github.ben-manes.versions' version '0.13.0'
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.10'
-    distributionUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-all.zip"
+wrapper {
+    gradleVersion = '5.1'
 }
 
 apply plugin: 'java'
