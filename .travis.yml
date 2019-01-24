@@ -3,6 +3,7 @@ addons:
   apt:
     packages:
       - ncftp
+      - lftp
 env:
   matrix:
   - TERM=dumb
@@ -45,9 +46,11 @@ script:
 
 after_script:
 - echo "public class Main {public static void main(String[] args){System.out.println(System.getProperty(\"java.version\"));}}" > Main.java && javac Main.java && export JAVA_VERSION_SIMPLE=$(java Main) && echo $JAVA_VERSION_SIMPLE
-- mkdir -p ~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION_SIMPLE
-- cp -r ./test-suite/build/reports/tests ~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION_SIMPLE
-- ncftpput -F -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/ ~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION_SIMPLE
+- export FOLDER_TO_UPLOAD=~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION_SIMPLE
+- mkdir -p $FOLDER_TO_UPLOAD
+- cp -r ./test-suite/build/reports/tests $FOLDER_TO_UPLOAD
+#- ncftpput -F -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/ ~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION_SIMPLE
+- lftp -e "mirror -R $FOLDER_TO_UPLOAD /travis/" -u $FTP_USER,$FTP_PWD vmf-text-tests.mihosoft.eu
 
 #after_failure:
 #- echo "public class Main {public static void main(String[] args){System.out.println(System.getProperty(\"java.version\"));}}" > Main.java && javac Main.java && export JAVA_VERSION_SIMPLE=$(java Main) && echo $JAVA_VERSION_SIMPLE
