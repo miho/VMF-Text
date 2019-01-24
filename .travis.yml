@@ -51,7 +51,7 @@ after_script:
 - cp -r ./test-suite/build/reports/tests ~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION_SIMPLE
 #- ncftpput -F -u $FTP_USER -p $FTP_PWD -R vmf-text-tests.mihosoft.eu /travis/ ~/deployment-folder/$TRAVIS_BRANCH/java-version-$JAVA_VERSION_SIMPLE
 - export FOLDER_TO_UPLOAD=~/deployment-folder/$TRAVIS_BRANCH
-- lftp -e "set ssl:verify-certificate false ; mirror -R $FOLDER_TO_UPLOAD /travis/ ; quit" -u $FTP_USER,$FTP_PWD ftps://vmf-text-tests.mihosoft.eu
+- travis_wait 30 lftp -e "set ssl:verify-certificate false ; mirror -R $FOLDER_TO_UPLOAD /travis/ ; quit" -u $FTP_USER,$FTP_PWD ftps://vmf-text-tests.mihosoft.eu
 
 #after_failure:
 #- echo "public class Main {public static void main(String[] args){System.out.println(System.getProperty(\"java.version\"));}}" > Main.java && javac Main.java && export JAVA_VERSION_SIMPLE=$(java Main) && echo $JAVA_VERSION_SIMPLE
