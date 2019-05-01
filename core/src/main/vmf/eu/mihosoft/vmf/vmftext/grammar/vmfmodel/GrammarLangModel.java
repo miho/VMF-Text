@@ -93,6 +93,8 @@ interface WithType extends LangElement {
 
 @InterfaceOnly
 interface WithName extends LangElement {
+
+    @GetterOnly
     String getName();
 
 
@@ -131,7 +133,7 @@ interface RuleClass extends WithName, CodeElement {
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.NameDelegate")
     String nameWithLower();
 
-    @Contains(opposite = "ruleClasses")
+    @Container(opposite = "ruleClasses")
     GrammarModel getModel();
 
     @Contains(opposite = "parent")
