@@ -16,7 +16,7 @@ public class CodeElementTest {
                 "class MyClass {\n" +
                 "  public void myMethod() {\n" +
                 "    for( int i = 0; i < 10; i++) {\n" +
-                "      System.put.println(\"Hello\");\n" +
+                "      System.out.println(\"Hello\");\n" +
                 "    }\n" +
                 "  }\n" +
                 "}";
