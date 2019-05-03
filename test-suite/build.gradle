@@ -35,6 +35,8 @@ apply plugin: 'eu.mihosoft.vmftext'
 
 sourceCompatibility = '1.8'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+[compileJava, compileTestJava]*.options*.fork = true
+[compileJava, compileTestJava]*.options*.forkOptions*.memoryMaximumSize = '4g'
 
 if (!hasProperty('mainClass')) {
     ext.mainClass = 'eu.mihosoft.vmftext.tutorial.Main'
@@ -62,17 +64,15 @@ dependencies {
 //     vmfVersion = "0.1"
 // }
 
-// fix current working directory on android
 test {
     forkEvery = 1; workingDir = { projectDir }
 
     // set heap size for the test JVM(s)
-    minHeapSize = "512m"
-    maxHeapSize = "2048m"
+    //minHeapSize = "512m"
+    //maxHeapSize = "2048m"
 
     // set JVM arguments for the test JVM(s)
     //jvmArgs '-XX:MaxPermSize=256m'
-
 }
 
 // -------------------------------
