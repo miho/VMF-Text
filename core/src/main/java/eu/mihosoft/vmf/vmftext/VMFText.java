@@ -25,6 +25,8 @@ package eu.mihosoft.vmf.vmftext;
 
 
 import eu.mihosoft.vmf.VMF;
+import eu.mihosoft.vmf.core.VMFEquals;
+import eu.mihosoft.vmf.core.VMFModel;
 import eu.mihosoft.vmf.core.io.*;
 import eu.mihosoft.vmf.vmftext.grammar.*;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Lexer;
@@ -35,6 +37,7 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.tool.ErrorType;
 import org.antlr.v4.tool.Grammar;
+import org.mdkt.compiler.InMemoryJavaCompiler;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -159,19 +162,21 @@ public class VMFText {
 
         List<String> classNames = new ArrayList<>();
 
-        GroovyClassLoader gcl;
-
-        if(getCompileClassLoader()==null) {
-            gcl = new GroovyClassLoader();
-        } else {
-            gcl = new GroovyClassLoader(getCompileClassLoader());
-        }
 
         String modelDefCode = "";
 
         for (Map.Entry<String, MemoryResource> entry : modelGenCode.getMemSet().entrySet()) {
-            modelDefCode += entry.getValue().asString()+"\n";
+
+            modelDefCode += entry.getValue().asString() + "\n";
             classNames.addAll(ModelDefUtil.getNamesOfDefinedInterfaces(entry.getValue().asString()));
+        }
+
+
+        GroovyClassLoader gcl;
+        if(getCompileClassLoader()==null) {
+            gcl = new GroovyClassLoader();
+        } else {
+            gcl = new GroovyClassLoader(getCompileClassLoader());
         }
 
         try {

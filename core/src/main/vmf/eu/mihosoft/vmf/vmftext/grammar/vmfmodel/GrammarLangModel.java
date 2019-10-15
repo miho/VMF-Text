@@ -28,7 +28,9 @@ import eu.mihosoft.vmf.core.*;
 import java.util.List;
 import java.util.Optional;
 
-
+@VMFModel(
+        equalsDefaultImpl=VMFEquals.EqualsType.CONTAINMENT_AND_EXTERNAL
+)
 @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.CheckRulesDelegate")
 interface GrammarModel {
     @Contains(opposite = "model")
@@ -142,7 +144,7 @@ interface RuleClass extends WithName, CodeElement {
     @Contains(opposite = "parent")
     Property[] getCustomProperties();
 
-    @Container(opposite = "childClasses")
+    @Refers(opposite = "childClasses")
     RuleClass getSuperClass();
 
     String[] getSuperInterfaces();
@@ -150,7 +152,7 @@ interface RuleClass extends WithName, CodeElement {
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.StringUtilDelegate")
     String superInterfacesString();
 
-    @Contains(opposite = "superClass")
+    @Refers(opposite = "superClass")
     RuleClass[] getChildClasses();
 
     boolean isRoot();

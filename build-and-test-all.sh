@@ -4,16 +4,16 @@ echo "----------------------------------------"
 echo "BUILDING CORE..."
 echo "----------------------------------------"
 cd core
-./gradlew clean publishtoMavenLocal
+./gradlew clean publishtoMavenLocal --no-daemon
 
 echo "----------------------------------------"
 echo "BUILDING PLUGIN..."
 echo "----------------------------------------"
 cd ../gradle-plugin
-./gradlew clean publishtoMavenLocal
+./gradlew clean publishtoMavenLocal --no-daemon
 
 echo "----------------------------------------"
 echo "TESTING..."
 echo "----------------------------------------"
-cd ../test-suite
-./gradlew clean test
+cd ../test-suite 
+./gradlew clean test --no-daemon

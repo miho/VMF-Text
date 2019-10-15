@@ -26,6 +26,9 @@ package ${packageName};
 // TODO 19.08.2018 get rid of this import to prevent name clashes
 import eu.mihosoft.vmf.core.*;
 
+@VMFModel(
+  equalsDefaultImpl=VMFEquals.EqualsType.CONTAINMENT_AND_EXTERNAL
+)
 interface ${Util.firstToUpper($model.grammarName)}Model {
 #if(${model.hasRootClass()})
 

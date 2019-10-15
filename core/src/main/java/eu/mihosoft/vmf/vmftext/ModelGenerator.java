@@ -144,6 +144,7 @@ public class ModelGenerator {
         }
     }
 
+
     public void generateModelDelegates(GrammarModel model, ResourceSet fileset) {
 
         if(engine==null) {

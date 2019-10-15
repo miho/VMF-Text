@@ -83,7 +83,7 @@ interface VMFTextSourceVirtualDirectory {
 
 class VMFTextPluginExtension {
     // vmf-text version
-    String vmfVersion     = "0.2.6.4"
+    String vmfVersion     = "0.3-SNAPSHOT"
     String antlrVersion   = "4.7.2"
 }
 

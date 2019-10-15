@@ -1,1 +1,18 @@
+pluginManagement {
+
+  resolutionStrategy {
+      eachPlugin {
+          // rewrite plugin request to allow local maven repo snapshot
+          if ('eu.mihosoft.vmf'.equals(requested.id.toString())) {
+              useModule('eu.mihosoft.vmf:vmf-gradle-plugin:'+requested.version)
+          }
+      }
+  }
+
+  repositories {
+      mavenLocal()
+      gradlePluginPortal()
+  }
+}
+
 rootProject.name = 'VMF-Text-Gradle-Plugin'
