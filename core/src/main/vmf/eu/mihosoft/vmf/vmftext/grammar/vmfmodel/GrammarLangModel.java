@@ -24,12 +24,13 @@
 package eu.mihosoft.vmf.vmftext.grammar.vmfmodel;
 
 import eu.mihosoft.vmf.core.*;
+import static eu.mihosoft.vmf.core.VMFEquals.EqualsType.*;
 
 import java.util.List;
 import java.util.Optional;
 
 @VMFModel(
-        equalsDefaultImpl=VMFEquals.EqualsType.CONTAINMENT_AND_EXTERNAL
+        equality=CONTAINMENT_AND_EXTERNAL
 )
 @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.CheckRulesDelegate")
 interface GrammarModel {

@@ -27,7 +27,7 @@ package ${packageName};
 import eu.mihosoft.vmf.core.*;
 
 @VMFModel(
-  equalsDefaultImpl=VMFEquals.EqualsType.CONTAINMENT_AND_EXTERNAL
+  equality=VMFEquals.EqualsType.CONTAINMENT_AND_EXTERNAL
 )
 interface ${Util.firstToUpper($model.grammarName)}Model {
 #if(${model.hasRootClass()})
