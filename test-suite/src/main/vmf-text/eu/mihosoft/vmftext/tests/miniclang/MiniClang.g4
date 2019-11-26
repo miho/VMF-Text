@@ -195,7 +195,7 @@ interface Program {
 @InterfaceOnly
 interface ControlFlowChildNode {
     @DelegateTo(className="eu.mihosoft.vmftext.tests.miniclang.ControlFlowChildNodeDelegate")
-    ControlFlowScope[] parentScopes();
+    java.util.List<ControlFlowScope> parentScopes();
 }
 
 @InterfaceOnly
