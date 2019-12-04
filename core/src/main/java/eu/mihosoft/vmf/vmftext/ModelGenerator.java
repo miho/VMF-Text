@@ -30,9 +30,9 @@ import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.core.io.ResourceSet;
 import eu.mihosoft.vmf.vmftext.grammar.*;
 import eu.mihosoft.vmf.vmftext.grammar.unparser.UnparserCodeGenerator;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
+import eu.mihosoft.ext.velocity.legacy.VelocityContext;
+import eu.mihosoft.ext.velocity.legacy.app.VelocityEngine;
+import eu.mihosoft.ext.velocity.legacy.runtime.RuntimeConstants;
 
 import java.io.File;
 import java.io.IOException;

@@ -25,10 +25,12 @@ package eu.mihosoft.vmf.vmftext;
 
 import eu.mihosoft.vmf.core.io.Resource;
 import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
-import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.exception.ResourceNotFoundException;
-import org.apache.velocity.runtime.RuntimeConstants;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
+import eu.mihosoft.ext.velocity.legacy.app.VelocityEngine;
+import eu.mihosoft.ext.velocity.legacy.exception.ResourceNotFoundException;
+import eu.mihosoft.ext.velocity.legacy.runtime.RuntimeConstants;
+import eu.mihosoft.ext.velocity.legacy.runtime.RuntimeServices;
+import eu.mihosoft.ext.velocity.legacy.runtime.log.LogChute;
+import eu.mihosoft.ext.velocity.legacy.runtime.resource.loader.ClasspathResourceLoader;
 
 import java.io.InputStream;
 
@@ -60,6 +62,7 @@ public final class CodeGenerator {
 
         engine.setProperty(RuntimeConstants.RESOURCE_LOADER, "vmflang");
         engine.setProperty("vmflang.resource.loader.instance", new VMFResourceLoader());
+        VMFTextDefaultLogger.registerVelocityDefaultLogger(engine);
 
         return engine;
     }
@@ -83,4 +86,61 @@ public final class CodeGenerator {
         }
 
     }
+}
+
+/**
+ * Dummy logger to prevent velocity from crashing if it is used in combination with other
+ * log4j configurations. We should consider updating from this old velocity release to 
+ * either a more modern version of velocity or switching to stringtemplates4.
+ */
+class VMFTextDefaultLogger implements LogChute
+{
+
+    public static void registerVelocityDefaultLogger(VelocityEngine engine) {
+        VMFTextDefaultLogger logger = new VMFTextDefaultLogger();
+        engine.setProperty(RuntimeConstants.RUNTIME_LOG_LOGSYSTEM, logger );
+    }
+
+    private VMFTextDefaultLogger() {
+
+    }
+
+    /**
+     *  This init() will be invoked once by the LogManager
+     *  to give you the current RuntimeServices intance
+     */
+    public void init(RuntimeServices rsvc)
+    {
+        // do nothing
+    }
+
+    /**
+     *  This is the method that you implement for Velocity to
+     *  call with log messages.
+     */
+    public void log(int level, String message)
+    {
+        // Logger.getLogger(this.getClass().getName()).
+        //             log(Level.SEVERE, null, message);
+    }
+
+    /**
+     *  This is the method that you implement for Velocity to
+     *  call with log messages.
+     */
+    public void log(int level, String message, Throwable t)
+    {
+        // Logger.getLogger(this.getClass().getName()).
+        // log(Level.SEVERE, message, t);
+    }
+
+    /**
+     *  This is the method that you implement for Velocity to
+     *  check whether a specified log level is enabled.
+     */
+    public boolean isLevelEnabled(int level)
+    {
+        return false;
+    }
+
 }

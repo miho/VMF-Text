@@ -39,8 +39,8 @@ import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4ParserBaseListener;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.apache.velocity.exception.ResourceNotFoundException;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
+import eu.mihosoft.ext.velocity.legacy.exception.ResourceNotFoundException;
+import eu.mihosoft.ext.velocity.legacy.runtime.resource.loader.ClasspathResourceLoader;
 
 public class Main {
 

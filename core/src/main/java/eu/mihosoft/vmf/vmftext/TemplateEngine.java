@@ -23,9 +23,9 @@
  */
 package eu.mihosoft.vmf.vmftext;
 
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
+import eu.mihosoft.ext.velocity.legacy.VelocityContext;
+import eu.mihosoft.ext.velocity.legacy.app.VelocityEngine;
+import eu.mihosoft.ext.velocity.legacy.runtime.RuntimeConstants;
 
 import java.io.IOException;
 import java.io.Writer;

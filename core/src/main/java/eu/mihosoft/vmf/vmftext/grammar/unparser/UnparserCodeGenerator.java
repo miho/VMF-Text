@@ -30,7 +30,7 @@ import eu.mihosoft.vmf.vmftext.StringUtil;
 import eu.mihosoft.vmf.vmftext.TemplateEngine;
 import eu.mihosoft.vmf.vmftext.VMFText;
 import eu.mihosoft.vmf.vmftext.grammar.*;
-import org.apache.velocity.VelocityContext;
+import eu.mihosoft.ext.velocity.legacy.VelocityContext;
 
 import java.io.IOException;
 import java.io.Writer;
