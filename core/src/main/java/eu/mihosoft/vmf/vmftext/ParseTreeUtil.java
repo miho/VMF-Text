@@ -102,7 +102,7 @@ public class ParseTreeUtil {
     }
 
     /**
-     * Indicates whether the specified element context is a string literal.
+     * Indicates whether the specified element context is a string literal / terminal.
      * @param e the element context to check
      * @return {@code true} if the specified element context is a string literal; {@code false} otherwise
      */
@@ -112,7 +112,13 @@ public class ParseTreeUtil {
 
         if(atom==null) return false;
 
-        String atomText = atom.getText();
+        String atomText = atom.getText().trim();
+
+        // detect simple dot (see issue #8)
+        if(".".equals(atomText)) {
+            throw new RuntimeException("Cannot label simple dot, e.g., 'myLabel=.'. See issue #8 for updates and explanations.");
+            //return true;
+        }
 
         // detect literals with not operator
         if(atomText.startsWith("~'")) return true;
