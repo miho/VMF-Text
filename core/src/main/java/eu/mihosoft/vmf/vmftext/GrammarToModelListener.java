@@ -287,12 +287,35 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         }
 
         void run() {
+
+            List<Property> properties = elements.stream().filter(e -> e.labeledElement() != null).
+                filter(e -> e.labeledElement().identifier() != null).
+                map(e -> GrammarToModelListener.elementToProperty(
+                        rules, cls.nameWithUpper(), typeMappings, e)).
+                collect(Collectors.toList());
+
+             // filter duplicate properties
+            List<Property> props = new ArrayList<>(properties);
+            for(Property p1 : props) {
+                for(Property p2 : props) {
+                    if(p1!=p2 && Objects.equals(p1.getName(),p2.getName())) {
+                        properties.remove(p1);
+                    }
+                }
+            }
+
+            // filter duplicate properties
+            props = new ArrayList<>(properties);
+            for(Property p1 : props) {
+                for(Property p2 : cls.getProperties()) {
+                    if(p1!=p2 && Objects.equals(p1.getName(),p2.getName())) {
+                        properties.remove(p1);
+                    }
+                }
+            }
+
             cls.getProperties().addAll(
-                    elements.stream().filter(e -> e.labeledElement() != null).
-                            filter(e -> e.labeledElement().identifier() != null).
-                            map(e -> GrammarToModelListener.elementToProperty(
-                                    rules, cls.nameWithUpper(), typeMappings, e)).
-                            collect(Collectors.toList())
+                properties
             );
         }
     }

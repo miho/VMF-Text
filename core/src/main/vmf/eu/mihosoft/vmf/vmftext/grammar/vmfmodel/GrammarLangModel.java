@@ -167,7 +167,7 @@ interface RuleClass extends WithName, CodeElement {
 }
 
 interface Property extends WithName, WithType, CodeElement {
-    @Container(opposite = "properties")
+    @Container(/*opposite = "properties"*/)
     RuleClass getParent();
 
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.NameDelegate")

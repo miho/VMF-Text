@@ -205,6 +205,7 @@ public class VMFText {
     }
 
     private static File rewriteGrammar(File grammar) throws IOException {
+
         InputStream codeStream = new FileInputStream(grammar);
         CharStream input = CharStreams.fromStream(codeStream);
 
@@ -216,7 +217,7 @@ public class VMFText {
         ParseTreeWalker walker = new ParseTreeWalker();
 
         GrammarToRuleMatcherListener matchListenr = new GrammarToRuleMatcherListener(tokens);
-        //GrammarToRuleMatcherListener.setDebug(true);
+        // GrammarToRuleMatcherListener.setDebug(true);
 
         walker.walk(matchListenr, tree);
 

@@ -41,20 +41,22 @@ public class CheckPropertiesDelegate  implements DelegatedBehavior<RuleClass> {
     }
 
     public void onRuleClassInstantiated() {
-        caller.getProperties().addChangeListener(new CollectionChangeListener<Property, VList<Property>, VListChange<Property>>() {
-            @Override
-            public void onChange(CollectionChangeEvent<Property, VList<Property>, VListChange<Property>> evt) {
+        // We currently handle this per GrammarToModelListener/filter duplicates
+        //
+        // caller.getProperties().addChangeListener(new CollectionChangeListener<Property, VList<Property>, VListChange<Property>>() {
+        //     @Override
+        //     public void onChange(CollectionChangeEvent<Property, VList<Property>, VListChange<Property>> evt) {
 
-                // remove duplicate properties
-                for(Property p1 : evt.added().elements()) {
-                    for(Property p2 : new ArrayList<>(evt.source())) {
-                        if(p1!=p2 && Objects.equals(p1.getName(),p2.getName())) {
-                            evt.source().remove(p1);
-                        }
-                    }
-                }
-            }
-        });
+        //         // remove duplicate properties
+        //         for(Property p1 : evt.added().elements()) {
+        //             for(Property p2 : new ArrayList<>(evt.source())) {
+        //                 if(p1!=p2 && Objects.equals(p1.getName(),p2.getName())) {
+        //                     evt.source().remove(p1);
+        //                 }
+        //             }
+        //         }
+        //     }
+        // });
     }
 
 }
