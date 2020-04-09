@@ -102,7 +102,7 @@ public class ParseTreeUtil {
     }
 
     /**
-     * Indicates whether the specified element context is a string literal / terminal.
+     * Indicates whether the specified element context is a string literal / terminal or a dot (any char) '.'.
      * @param e the element context to check
      * @return {@code true} if the specified element context is a string literal; {@code false} otherwise
      */
@@ -113,17 +113,19 @@ public class ParseTreeUtil {
         if(atom==null) return false;
 
         String atomText = atom.getText().trim();
+        boolean isDot = ".".equals(atomText);
 
         // detect simple dot (see issue #8)
-        if(".".equals(atomText) && isListAssignment(e)) {
+        if(isDot && isListAssignment(e)) {
             throw new RuntimeException("Cannot label simple dot via '+=' assignment, e.g., 'myLabel+=.'. See issue #8 for updates and explanations.\nparent-rule-text: " + (e.getParent()==null?"<null>":e.getParent().getText()));
         }
 
         // detect literals with not operator
         if(atomText.startsWith("~'")) return true;
 
-        return atom.terminal() != null &&
-                atom.terminal().TOKEN_REF() == null;
+        return isDot 
+            || (atom.terminal() != null &&
+                atom.terminal().TOKEN_REF() == null);
     }
 
     /**
