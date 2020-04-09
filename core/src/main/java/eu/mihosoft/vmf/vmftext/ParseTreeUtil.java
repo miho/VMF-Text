@@ -115,9 +115,8 @@ public class ParseTreeUtil {
         String atomText = atom.getText().trim();
 
         // detect simple dot (see issue #8)
-        if(".".equals(atomText)) {
-            throw new RuntimeException("Cannot label simple dot, e.g., 'myLabel=.'. See issue #8 for updates and explanations.");
-            //return true;
+        if(".".equals(atomText) && isListAssignment(e)) {
+            throw new RuntimeException("Cannot label simple dot via '+=' assignment, e.g., 'myLabel+=.'. See issue #8 for updates and explanations.\nparent-rule-text: " + (e.getParent()==null?"<null>":e.getParent().getText()));
         }
 
         // detect literals with not operator
@@ -264,5 +263,15 @@ public class ParseTreeUtil {
      */
     public static boolean isUnlabeledBlockElement(ANTLRv4Parser.ElementContext e) {
         return e.labeledElement()!=null && !isLabeledElement(e) && e.labeledElement().block()!=null;
+    }
+
+    /**
+     * Indicates whether the specified element context is labelled via list-assignment ({@code '+='})
+     * @param e element context to check
+     * @return {@code true} if the specified element context is labelled via list-assignment; {@code false} otherwise
+     */
+    public static boolean isListAssignment(ANTLRv4Parser.ElementContext e) {
+        if(!isLabeledElement(e)) return false;
+        return e.labeledElement().PLUS_ASSIGN()!=null;
     }
 }
