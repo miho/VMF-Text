@@ -110,6 +110,14 @@ public class CodeElementDelegate implements DelegatedBehavior<CodeElement> {
 
     }
 
+    public String asString() {
+        java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+        PrintWriter pw = new PrintWriter(output);
+        new ${packageName}.unparser.${model.grammarName}ModelUnparser().unparse(codeElement,pw);
+        pw.close();
+        return output.toString();
+    }
+
     public eu.mihosoft.vcollections.VList<CodeElement> pathToRoot() {
 
         eu.mihosoft.vcollections.VList<CodeElement> result =

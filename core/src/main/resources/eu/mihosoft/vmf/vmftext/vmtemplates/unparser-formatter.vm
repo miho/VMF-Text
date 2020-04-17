@@ -217,6 +217,11 @@ public interface Formatter {
             public CodeElement clone() {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }
+
+            @Override
+            public String asString() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
         }, RuleType.NONE, "","", "", true, false, "");
     }
 

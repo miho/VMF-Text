@@ -10,7 +10,7 @@ buildscript {
     }
 
     dependencies {
-        classpath (group: 'org.antlr', name: 'antlr4', version: '4.7.2')
+        classpath (group: 'org.antlr', name: 'antlr4', version: '4.8')
 //        classpath group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
     }
 }
@@ -82,7 +82,7 @@ repositories {
 
 dependencies {
    
-    compile (group: 'org.antlr', name: 'antlr4', version: '4.7.2')
+    compile (group: 'org.antlr', name: 'antlr4', version: '4.8')
 
     compile group: 'eu.mihosoft.ext.velocity.legacy', name: 'velocity-legacy', version: '1.7.4'
 
