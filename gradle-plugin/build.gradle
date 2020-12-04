@@ -9,7 +9,7 @@ plugins {
 }
 
 wrapper {
-    gradleVersion = '6.0'
+    gradleVersion = '6.7'
 }
 
 apply plugin: 'groovy'

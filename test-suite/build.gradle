@@ -19,7 +19,7 @@ plugins {
 }
 
 wrapper {
-    gradleVersion = '6.0'
+    gradleVersion = '6.7'
 
     // def jvmOpts = "-Xmx2048m -XX:+CMSClassUnloadingEnabled"
     // inputs.property("jvmOpts", jvmOpts)
