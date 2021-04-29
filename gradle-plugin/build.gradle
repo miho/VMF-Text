@@ -1,6 +1,6 @@
 plugins {
-    id "com.gradle.plugin-publish" version "0.9.10"
-    id 'eu.mihosoft.vmf' version '0.2.7.18'
+    id "com.gradle.plugin-publish" version "0.14.0"
+    //id 'eu.mihosoft.vmf' version '0.2.7.19'
     id 'com.github.hierynomus.license' version '0.14.0'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.4.0'
@@ -9,15 +9,8 @@ plugins {
 }
 
 wrapper {
-    gradleVersion = '6.7'
+    gradleVersion = '7.0'
 }
-
-apply plugin: 'groovy'
-apply from: 'gradle/publishing.gradle'
-
-sourceCompatibility = '11'
-targetCompatibility = '11'
-[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 repositories {
     jcenter()
@@ -25,14 +18,23 @@ repositories {
     mavenLocal()
 }
 
+apply plugin: 'groovy'
+
+apply from: 'gradle/publishing.gradle'
+
+sourceCompatibility = '11'
+targetCompatibility = '11'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+
 dependencies {
-    compile gradleApi()
-    compile localGroovy()
+    implementation gradleApi()
+    implementation localGroovy()
 
-    compile group: 'eu.mihosoft.vmf', name: 'vmf-text', version: '0.2-SNAPSHOT'
+    implementation group: 'eu.mihosoft.vmf', name: 'vmf-text', version: '0.2-SNAPSHOT'
 
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    testCompile gradleTestKit()
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation gradleTestKit()
 }
 
 // The configuration example below shows the minimum required properties

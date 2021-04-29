@@ -1,4 +1,4 @@
-package eu.mihosoft.vmf.vmftext.gradle.plugin
+package eu.mihosoft.vmf.vmftext.gradle.plugin;
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -83,7 +83,7 @@ interface VMFTextSourceVirtualDirectory {
 
 class VMFTextPluginExtension {
     // vmf-text version
-    String vmfVersion     = "0.2.7.11"
+    String vmfVersion     = "0.2.7.19"
     String antlrVersion   = "4.8"
 }
 
@@ -123,7 +123,7 @@ class VMFTextSourceVirtualDirectoryImpl implements VMFTextSourceVirtualDirectory
     }
 }
 
-class VMFTextPlugin implements Plugin<Project> {
+public class VMFTextPlugin implements Plugin<Project> {
 
     private SourceDirectorySetFactory sourceDirectorySetFactory;
 
@@ -155,8 +155,8 @@ class VMFTextPlugin implements Plugin<Project> {
 
         project.dependencies {
             //vmfText    group: 'eu.mihosoft.vmf', name: 'vmf-text',          version: extension.version
-            compile    group: 'eu.mihosoft.vmf', name: 'vmf-runtime',       version: extension.vmfVersion
-            compile    group: 'org.antlr',       name: 'antlr4-runtime',    version: extension.antlrVersion
+            implementation    group: 'eu.mihosoft.vmf', name: 'vmf-runtime',       version: extension.vmfVersion
+            implementation    group: 'org.antlr',       name: 'antlr4-runtime',    version: extension.antlrVersion
         }
 
         // load VMF class (depending on version)
@@ -215,9 +215,9 @@ class VMFTextPlugin implements Plugin<Project> {
                                 vmfTextTask.inputFiles = vmfTextDirectoryDelegate.getVMFText() as FileCollection;
                                 vmfTextTask.outputFolder = outputDirectory;
                                 vmfTextTask.modelOutputDirectory = modelOutputDirectory;
-                                vmfTextTask.sourceSet = sourceSet;
+                                vmfTextTask.sourceSetCompileClassPath = sourceSet.compileClasspath;
                                 vmfTextTask.sourceDirectorySet = sourceDirectorySet;
-                                vmfTextTask.vmfTextClass = vmfTextClass;
+                                // vmfTextTask.vmfTextClass = vmfTextClass;
                             }
                         });
 
@@ -254,12 +254,16 @@ class CompileVMFTextTask extends DefaultTask {
     @OutputDirectory
     File outputFolder;
 
+    @OutputDirectory
     File modelOutputDirectory;
 
-    SourceSet sourceSet;
+    @InputFiles
     SourceDirectorySet sourceDirectorySet;
 
-    Class<?> vmfTextClass;
+    @InputFiles
+    FileCollection sourceSetCompileClassPath;
+
+    // Class<?> vmfTextClass;
 
     @TaskAction
     void vmfTextGenModelSources(IncrementalTaskInputs inputs) {
@@ -298,20 +302,28 @@ class CompileVMFTextTask extends DefaultTask {
             }
         }
 
-        for(File gF : grammarsOutOfDate) {
-            String packageName = this.getPackageNameFromFile(gF);
-            println("  -> processing file: " + gF)
+        def vmfTextClass = eu.mihosoft.vmf.vmftext.VMFText.class;
 
-            this.vmfTextClass.generate(
-                    // grammar file
-                    gF,
-                    // desired package name
-                    packageName,
-                    // desired output directory
-                    outputFolder,
-                    // model output dir for debugging
-                    modelOutputDirectory
-            )
+        for(File gF : grammarsOutOfDate) {
+            
+            try {
+                String packageName = this.getPackageNameFromFile(gF);
+
+                println("  -> processing file: " + gF)
+
+                vmfTextClass.generate(
+                        // grammar file
+                        gF,
+                        // desired package name
+                        packageName,
+                        // desired output directory
+                        outputFolder,
+                        // model output dir for debugging
+                        modelOutputDirectory
+                )
+            } catch (RuntimeException ex) {
+                println("WARNING: " + ex.message)
+            }    
         }
     }
 
@@ -321,15 +333,21 @@ class CompileVMFTextTask extends DefaultTask {
         for(File f : inputFiles) {
 
             String filePath = f.absolutePath;
-            String key = getPackageNameFromFile(f);
+            String key;
+            
+            try {
+                key = getPackageNameFromFile(f); 
 
-            List<String> filesPerPackage = numFilesPerPackageName.get(key);
-            if(filesPerPackage==null) {
-                filesPerPackage = [];
-                numFilesPerPackageName.put(key,filesPerPackage);
+                List<String> filesPerPackage = numFilesPerPackageName.get(key);
+                if(filesPerPackage==null) {
+                    filesPerPackage = [];
+                    numFilesPerPackageName.put(key,filesPerPackage);
+                }
+
+                filesPerPackage.add(filePath);
+            } catch(RuntimeException ex) {
+                println("WARNING: " + ex.message)
             }
-
-            filesPerPackage.add(filePath);
 
         }
 
