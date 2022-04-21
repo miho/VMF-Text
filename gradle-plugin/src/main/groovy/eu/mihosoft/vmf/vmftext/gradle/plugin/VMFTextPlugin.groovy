@@ -83,8 +83,8 @@ interface VMFTextSourceVirtualDirectory {
 
 class VMFTextPluginExtension {
     // vmf-text version
-    String vmfVersion     = "0.2.7.19"
-    String antlrVersion   = "4.8"
+    String vmfVersion     = "0.2.8.4"
+    String antlrVersion   = "4.10.1"
 }
 
 
@@ -322,7 +322,9 @@ class CompileVMFTextTask extends DefaultTask {
                         modelOutputDirectory
                 )
             } catch (RuntimeException ex) {
-                println("WARNING: " + ex.message)
+                if(!ex.message?.startsWith("Cannot detect package name of")) {
+                    println("WARNING: " + ex.message)
+                }
             }    
         }
     }
