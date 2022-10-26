@@ -10,7 +10,7 @@ buildscript {
     }
 
     dependencies {
-        classpath (group: 'org.antlr', name: 'antlr4', version: '4.10.1')
+        classpath (group: 'org.antlr', name: 'antlr4', version: '4.11.1')
 //        classpath group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
     }
 }
@@ -18,7 +18,7 @@ buildscript {
 
 
 plugins {
-    id 'eu.mihosoft.vmf' version '0.2.7.19'
+    id 'eu.mihosoft.vmf' version '0.2.8.6'
     id 'com.github.hierynomus.license' version '0.14.0'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.4.0'
@@ -50,7 +50,7 @@ repositories {
 }
 
 wrapper {
-    gradleVersion = '7.4.2'
+    gradleVersion = '7.5.1'
 }
 
 
@@ -282,7 +282,7 @@ license {
 ext.vmfPluginIntelliJIntegration = true
 idea.module {
         dependencies {
-            implementation group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.2.7.19'
+            implementation group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.2.8.6'
         }
 }
 
