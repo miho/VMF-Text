@@ -65,7 +65,7 @@ Finally, call the `vmfTextGenCode` task to generate the implementation.
 
 ### Requirements
 
-- Java >= 1.8
+- Java: 1.8 <= version <= 11
 - Internet connection (dependencies are downloaded automatically)
 - IDE: [Gradle](http://www.gradle.org/) Plugin (not necessary for command line usage)
 
@@ -90,7 +90,7 @@ Navigate to the [Gradle](http://www.gradle.org/) project (i.e., `path/to/VMF-Tex
 
 ### Requirements
 
-- Java >= 1.8
+- Java: 1.8 <= version <= 11
 - Internet connection (dependencies are downloaded automatically)
 - IDE: [Gradle](http://www.gradle.org/) Plugin (not necessary for command line usage)
 

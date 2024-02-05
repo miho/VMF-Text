@@ -1,6 +1,6 @@
 plugins {
     id "com.gradle.plugin-publish" version "0.14.0"
-    //id 'eu.mihosoft.vmf' version '0.2.8.6'
+    //id 'eu.mihosoft.vmf' version '0.2.8.7'
     id 'com.github.hierynomus.license' version '0.14.0'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.4.0'
@@ -9,7 +9,7 @@ plugins {
 }
 
 wrapper {
-    gradleVersion = '7.5.1'
+    gradleVersion = '7.6.3'
 }
 
 repositories {
@@ -33,7 +33,7 @@ dependencies {
 
     implementation group: 'eu.mihosoft.vmf', name: 'vmf-text', version: '0.2-SNAPSHOT'
 
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation gradleTestKit()
 }
 
