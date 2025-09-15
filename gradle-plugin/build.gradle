@@ -4,7 +4,7 @@ plugins {
     id 'com.github.hierynomus.license' version '0.14.0'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.4.0'
-    id 'com.jfrog.bintray' version '1.8.1'
+//    id 'com.jfrog.bintray' version '1.8.1'
     id 'com.github.ben-manes.versions' version '0.13.0'
 }
 
@@ -13,7 +13,7 @@ wrapper {
 }
 
 repositories {
-    jcenter()
+//    jcenter()
     mavenCentral()
     mavenLocal()
 }
@@ -22,9 +22,21 @@ apply plugin: 'groovy'
 
 apply from: 'gradle/publishing.gradle'
 
-sourceCompatibility = '11'
-targetCompatibility = '11'
+//sourceCompatibility = '11'
+//targetCompatibility = '11'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
+tasks.withType(JavaCompile) {
+    //    options.compilerArgs << "-Xlint:unchecked" << "-Werror"
+    //    options.compilerArgs << "-Xlint:deprecation" << "-Werror"
+    options.release = 11
+}
 
 
 dependencies {
