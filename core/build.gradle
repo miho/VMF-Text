@@ -89,7 +89,7 @@ repositories {
 
 dependencies {
    
-    implementation (group: 'org.antlr', name: 'antlr4', version: '4.10.1')
+    implementation (group: 'org.antlr', name: 'antlr4', version: '4.11.1')
 
     implementation group: 'eu.mihosoft.ext.velocity.legacy', name: 'velocity-legacy', version: '1.7.4'
 
