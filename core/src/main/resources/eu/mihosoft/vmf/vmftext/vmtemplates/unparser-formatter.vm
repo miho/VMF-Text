@@ -510,18 +510,11 @@ public interface Formatter {
                 }
 
                 if(!symbolState) {
-                  // Element is considered absent. We still try to emit the associated hidden text
-                  // to preserve spacing/layout, then consume the element.
-                  int pos = getHiddenTextCounter(e);
-                  if(getHiddenText(e)!=null && pos < getHiddenText(e).size()) {
-                    String ws = getHiddenText(e).get(pos);
-                    w.append(ws);
-                    incHiddenTextCounter(e);
-                  }
+                  // Element is absent. Do NOT consume any hidden text here.
+                  // We let adjacent real tokens handle whitespace reconstruction.
                   ruleInfo.consume();
                   System.out.println("Rule-Info: " + ruleInfo.getGrammarText() + " -> " + ruleInfo.getRuleName());
                   consumeElement = true;
-                  // If the optional element is absent, we handled spacing and should not fall through
                   return;
                 }
                 // If the optional element is present, fall through to the regular hidden-text handling below
