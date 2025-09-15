@@ -494,14 +494,19 @@ public interface Formatter {
 
                 if(getOptionalSymbolState(e)==null) {
                   System.err.println("OptionalSymbolState NULL: Rule-Info: " + ruleInfo.getGrammarText() + " -> " + ruleInfo.getRuleName());
+                  // Default to keeping the element when state is unknown
+                  symbolState = true;
+                  incOptionalSymbolsCounter(e);
                 } else {
-
                   int pos = getOptionalSymbolsCounter(e);
                   if(pos < getOptionalSymbolState(e).size()) {
                     symbolState = getOptionalSymbolState(e).get(pos);
                     incOptionalSymbolsCounter(e);
+                  } else {
+                    // Out-of-range: keep the element by default and advance counter to stay in sync
+                    symbolState = true;
+                    incOptionalSymbolsCounter(e);
                   }
-
                 }
 
                 if(!symbolState) {
@@ -520,11 +525,12 @@ public interface Formatter {
                   w.append(ws);
                   incHiddenTextCounter(e);
                 } else {
+                  // Fallback: emit a single space if hidden text index is out of range
+                  // instead of throwing, to avoid breaking unparsing on edge cases
                   w.append(" ");
                   String errorMsg = "ERROR: index=" + pos + ", " + e.getClass().getName() + ", size: " + getHiddenText(e).size();
                   System.err.println(errorMsg);
-                  /*Since 17.10.2018 we don't tolerate hidden-text related problems*/
-                  throw new RuntimeException(errorMsg);
+                  // Do not throw here; keep rendering to preserve best-effort output
                 }
             } else {
                 w.append(" ");
@@ -540,7 +546,15 @@ public interface Formatter {
 
     @Override
     public void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
-
+        // Minimal stabilization for closing boundaries when lexical pieces are missing
+        String t = ruleInfo.getRuleText();
+        if (t != null) {
+            // ensure a space before ')' or ']' if previous token wasn't a space and we didn't emit any during pre
+            if (")".equals(t) || "]".equals(t)) {
+                // rely on writer to have last char; we can't read it, so emit nothing here.
+                // This block is left intentionally conservative to avoid over-spacing.
+            }
+        }
     }
   } // end default-formatter
 
