@@ -251,6 +251,11 @@ project.tasks.withType(JavaCompile) {
     compileTask -> compileTask.dependsOn('antlr4')
 }
 
+// Ensure sources JAR includes generated VMF sources
+tasks.named('sourcesJar') {
+    dependsOn('vmfGenModelSources')
+}
+
 
 jar {
     manifest {

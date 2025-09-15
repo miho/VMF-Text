@@ -22,6 +22,10 @@ apply plugin: 'groovy'
 
 apply from: 'gradle/publishing.gradle'
 
+// Align project coordinates with publishing info (required for pluginMaven publication)
+group = publishingInfo.groupId
+version = publishingInfo.versionId
+
 //sourceCompatibility = '11'
 //targetCompatibility = '11'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
