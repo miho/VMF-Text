@@ -521,9 +521,10 @@ public interface Formatter {
                   ruleInfo.consume();
                   System.out.println("Rule-Info: " + ruleInfo.getGrammarText() + " -> " + ruleInfo.getRuleName());
                   consumeElement = true;
+                  // If the optional element is absent, we handled spacing and should not fall through
+                  return;
                 }
-
-                return;
+                // If the optional element is present, fall through to the regular hidden-text handling below
             }
 
             if(getHiddenText(e)!=null && !getHiddenText(e).isEmpty()) {
