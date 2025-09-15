@@ -301,13 +301,15 @@ public interface Formatter {
     @Override
     public void done(CodeElement e, boolean success, PrintWriter w) {
 
-      // In case there's another ws we emit it. This is important
-      // in case of white spaces between the last terminal and EOF.
-      int pos = getHiddenTextCounter(e);
-      if(getHiddenText(e)!=null && pos < getHiddenText(e).size()) {
-        String ws = getHiddenText(e).get(pos);
-        w.append(ws);
-      } 
+      // Emit trailing hidden text only for the root element to avoid
+      // introducing extra whitespace between nested elements and following tokens.
+      if (e.getParent()==null) {
+        int pos = getHiddenTextCounter(e);
+        if(getHiddenText(e)!=null && pos < getHiddenText(e).size()) {
+          String ws = getHiddenText(e).get(pos);
+          w.append(ws);
+        }
+      }
 
       // now reset the counter information for reconstructing WS info
       reset(e);
@@ -480,7 +482,10 @@ public interface Formatter {
 
     @Override
     public void pre(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
-        // if(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
+        if(!(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE)) {
+            // Only terminals/lexer rules drive hidden-text consumption
+            return;
+        }
 
             consumeElement = false;
 
@@ -524,20 +529,30 @@ public interface Formatter {
                 int pos = getHiddenTextCounter(e);
                 if(pos < getHiddenText(e).size()) {
                   String ws = getHiddenText(e).get(pos);
+                  // Collapse pure space/tab runs to a single space to avoid drift
+                  if(ws.indexOf('\n')<0 && ws.indexOf('\r')<0) {
+                    boolean onlySpacesOrTabs = true;
+                    for(int ci=0; ci<ws.length(); ci++) {
+                      char ch = ws.charAt(ci);
+                      if(!(ch==' ' || ch=='\t')) { onlySpacesOrTabs = false; break; }
+                    }
+                    if(onlySpacesOrTabs && ws.length()>1) {
+                      ws = " ";
+                    }
+                  }
                   w.append(ws);
                   incHiddenTextCounter(e);
                 } else {
-                  // Fallback: emit a single space if hidden text index is out of range
-                  // instead of throwing, to avoid breaking unparsing on edge cases
-                  w.append(" ");
+                  // Fallback: emit nothing if hidden text index is out of range
+                  // to avoid introducing artificial whitespace
                   String errorMsg = "ERROR: index=" + pos + ", " + e.getClass().getName() + ", size: " + getHiddenText(e).size();
                   System.err.println(errorMsg);
                   // Do not throw here; keep rendering to preserve best-effort output
                 }
             } else {
-                w.append(" ");
+                // No hidden text available -> emit nothing to preserve structure strictly
             }
-        // }
+        
     }
 
     public void render(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w, String s) {

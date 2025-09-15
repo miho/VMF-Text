@@ -701,8 +701,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         private final java.util.Map<ParserRuleContext, java.util.List<String>> ignoredPiecesOfText = new java.util.HashMap<>();
         // the token stream used to access the hidden/ignored pieces of text
         private final TokenStream stream;
-        //previously visited terminal node
-        private TerminalNode prevNode;
+        // previous token index per rule context (across all channels)
+        private final java.util.Map<ParserRuleContext, Integer> prevTokenIndexPerCtx = new java.util.HashMap<>();
     
         // parse rule stack (records inside which rule we currently are)
         private final java.util.Stack<ParserRuleContext> ruleContextStack = new java.util.Stack<>();
@@ -721,51 +721,25 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     
         @Override
         public void visitTerminal(TerminalNode node) {
-    
-            if(prevNode==null) {
-    
-                int start = 0;
-                int stop = node.getSymbol().getStartIndex()-1;
-    
-                if(stop - start > -1) {
-                    String piece = stream.getText(
-                            stream.get(0),
-                            stream.get( Math.max(0, node.getSymbol().getTokenIndex()-1) )
-                    );
-    
-                    getIgnoredPiecesOfText(ruleContextStack.peek()).add(piece);
-    
-                    if(debugOutputEnabled)
-                        System.out.print("{" + piece + "}");
-                }
-                else {
-                    getIgnoredPiecesOfText(ruleContextStack.peek()).add("");
-                }
-    
-                prevNode = node;
-    
-            } else {
-    
-                if(debugOutputEnabled)
-                    System.out.print("[" + stream.getText(prevNode.getSourceInterval()) + "]");
-    
-                int start = prevNode.getSymbol().getStopIndex() + 1;
-                int stop = node.getSymbol().getStartIndex() - 1;
-    
-                if (stop - start > -1) {
-                    String piece = stream.getText(
-                            stream.get(prevNode.getSymbol().getTokenIndex() + 1),
-                            stream.get(node.getSymbol().getTokenIndex() - 1));
-                    getIgnoredPiecesOfText(ruleContextStack.peek()).add(piece);
-    
-                    if(debugOutputEnabled)
-                        System.out.print("{" + piece + "}");
-                } else {
-                    getIgnoredPiecesOfText(ruleContextStack.peek()).add("");
-                }
-    
-                prevNode = node;
+            ParserRuleContext currentCtx = ruleContextStack.peek();
+
+            int currentIndex = node.getSymbol().getTokenIndex();
+            Integer prevIndexObj = prevTokenIndexPerCtx.get(currentCtx);
+            int prevIndex = prevIndexObj==null ? currentCtx.start.getTokenIndex()-1 : prevIndexObj;
+
+            String piece = "";
+            if (currentIndex - 1 >= prevIndex + 1) {
+                org.antlr.v4.runtime.Token startTok = ((org.antlr.v4.runtime.TokenStream)stream).get(prevIndex + 1);
+                org.antlr.v4.runtime.Token stopTok  = ((org.antlr.v4.runtime.TokenStream)stream).get(currentIndex - 1);
+                piece = stream.getText(startTok, stopTok);
             }
+
+            getIgnoredPiecesOfText(currentCtx).add(piece);
+
+            if(debugOutputEnabled)
+                System.out.print("{" + piece + "}");
+
+            prevTokenIndexPerCtx.put(currentCtx, currentIndex);
         }
     
         /**
@@ -792,13 +766,24 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         @Override
         public void enterEveryRule(ParserRuleContext ctx) {
             ruleContextStack.push(ctx);
+            // initialize previous index to just before rule start
+            prevTokenIndexPerCtx.put(ctx, ctx.start.getTokenIndex()-1);
             // System.out.println(" -> ENTER " + ctx.getClass().getSimpleName() + "::" + ctx.getText());
         }
     
         @Override
         public void exitEveryRule(ParserRuleContext ctx) {
-            ParserRuleContext pCtx = ruleContextStack.pop();
-            // System.out.println(" #num-elements: " + getIgnoredPiecesOfText(pCtx).size());
+            ParserRuleContext exitedCtx = ruleContextStack.pop();
+            // After exiting a child rule, advance parent's prev-default index
+            if(!ruleContextStack.isEmpty()) {
+                ParserRuleContext parentCtx = ruleContextStack.peek();
+                int lastDefaultIdx = exitedCtx.stop!=null ? exitedCtx.stop.getTokenIndex() : exitedCtx.start.getTokenIndex();
+                Integer currentPrev = prevTokenIndexPerCtx.get(parentCtx);
+                if(currentPrev==null || currentPrev < lastDefaultIdx) {
+                    prevTokenIndexPerCtx.put(parentCtx, lastDefaultIdx);
+                }
+            }
+            // System.out.println(" #num-elements: " + getIgnoredPiecesOfText(exitedCtx).size());
             // System.out.println(" <- EXIT  " + ctx.getClass().getSimpleName() + "::" + ctx.getText());
         }
     
