@@ -8,7 +8,7 @@ buildscript {
 
 
     repositories {
-        jcenter()
+//        jcenter()
         mavenCentral()
         mavenLocal()
     }
@@ -21,7 +21,7 @@ buildscript {
 
 
 plugins {
-    id 'eu.mihosoft.vmf' version '0.2.8.7'
+    id 'eu.mihosoft.vmf' version '0.2.9.7-SNAPSHOT'
     id 'com.github.hierynomus.license' version '0.14.0'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.4.0'
@@ -32,13 +32,18 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply from: 'gradle/publishing.gradle'
 
-sourceCompatibility = '11'
-targetCompatibility = '11'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
 
 tasks.withType(JavaCompile) {
 //    options.compilerArgs << "-Xlint:unchecked" << "-Werror"
 //    options.compilerArgs << "-Xlint:deprecation" << "-Werror"
+    options.release = 11
 }
 
 tasks.withType(Javadoc) {
@@ -47,12 +52,12 @@ tasks.withType(Javadoc) {
 
 repositories {
     mavenCentral()
-    jcenter()
+//    jcenter()
     mavenLocal()
 }
 
 wrapper {
-    gradleVersion = '7.6.3'
+    gradleVersion = '8.14.1'
 }
 
 
@@ -79,7 +84,7 @@ sourceSets {
 repositories {
     mavenCentral()
     mavenLocal()
-    jcenter()
+//    jcenter()
 }
 
 dependencies {
