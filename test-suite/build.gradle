@@ -19,7 +19,7 @@ plugins {
 }
 
 wrapper {
-    gradleVersion = '7.5.1' // vmf-text-plugin doesn't work with higher version
+    gradleVersion = '9.0.0'
 
     // def jvmOpts = "-Xmx2048m -XX:+CMSClassUnloadingEnabled"
     // inputs.property("jvmOpts", jvmOpts)
@@ -33,8 +33,21 @@ wrapper {
 apply plugin: 'java'
 apply plugin: 'eu.mihosoft.vmftext'
 
-sourceCompatibility = '11'
-targetCompatibility = '11'
+//sourceCompatibility = '11'
+//targetCompatibility = '11'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
+tasks.withType(JavaCompile) {
+    //    options.compilerArgs << "-Xlint:unchecked" << "-Werror"
+    //    options.compilerArgs << "-Xlint:deprecation" << "-Werror"
+    options.release = 11
+}
+
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 [compileJava, compileTestJava]*.options*.fork = true
 [compileJava, compileTestJava]*.options*.forkOptions*.memoryMaximumSize = '4g'
@@ -45,7 +58,7 @@ if (!hasProperty('mainClass')) {
 
 repositories {
     mavenCentral()
-    jcenter()
+//    jcenter()
     mavenLocal()
 }
 

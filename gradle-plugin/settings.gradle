@@ -15,4 +15,4 @@ pluginManagement {
   }
 }
 
-rootProject.name = 'VMF-Text-Gradle-Plugin'
+rootProject.name = 'vmf-text-gradle-plugin'
