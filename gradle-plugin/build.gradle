@@ -1,19 +1,19 @@
 plugins {
-    id "com.gradle.plugin-publish" version "0.14.0"
-    //id 'eu.mihosoft.vmf' version '0.2.8.7'
-    id 'com.github.hierynomus.license' version '0.14.0'
+    id "com.gradle.plugin-publish" version "2.0.0"
+    id 'com.github.hierynomus.license' version '0.16.1'
     id 'maven-publish'
-    id 'net.nemerosa.versioning' version '2.4.0'
-//    id 'com.jfrog.bintray' version '1.8.1'
-    id 'com.github.ben-manes.versions' version '0.13.0'
+    id 'net.nemerosa.versioning' version '3.0.0'
+    id 'com.github.ben-manes.versions' version '0.44.0'
 }
 
+ext.commonProps = new Properties()
+file(new File(projectDir.parentFile,"config/common.properties")).withInputStream { commonProps.load(it) }
+
 wrapper {
-    gradleVersion = '7.6.3'
+    gradleVersion = '9.0.0'
 }
 
 repositories {
-//    jcenter()
     mavenCentral()
     mavenLocal()
 }
@@ -28,11 +28,12 @@ apply from: 'gradle/publishing.gradle'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        // Gradle 8+ runs on JDK 17+, but we target Java 11 bytecode
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
     //    options.compilerArgs << "-Xlint:unchecked" << "-Werror"
     //    options.compilerArgs << "-Xlint:deprecation" << "-Werror"
     options.release = 11
@@ -49,22 +50,40 @@ dependencies {
     testImplementation gradleTestKit()
 }
 
-// The configuration example below shows the minimum required properties
-// configured to publish your plugin to the plugin portal
-pluginBundle {
-    group = ext.publishing.groupId
-    version = ext.publishing.versionId
+// Modern plugin declaration for Plugin Portal/publication
+gradlePlugin {
     website = 'https://github.com/miho/VMF-Text-Gradle-Plugin'
-    vcsUrl = 'https://github.com/miho/VMF-Text-Gradle-Plugin'
-    description = 'Gradle VMF-Text plugin'
-    tags = ['vmf-text', 'language modeling framework']
+    vcsUrl  = 'https://github.com/miho/VMF-Text-Gradle-Plugin'
 
     plugins {
         vmfTextPlugin {
             id = 'eu.mihosoft.vmftext'
+            implementationClass = 'eu.mihosoft.vmf.vmftext.gradle.plugin.VMFTextPlugin'
             displayName = 'Gradle VMF-Text plugin'
+            description = 'Gradle VMF-Text plugin'
+            tags.set(['vmf-text', 'language modeling framework'])
         }
     }
+}
+
+
+license {
+    // Prefer header from sibling 'core'; fallback to 'test-suite'
+    def coreHeader = project.file('../core/config/HEADER')
+    def testSuiteHeader = project.file('../test-suite/config/HEADER')
+    header = coreHeader.exists() ? coreHeader : testSuiteHeader
+    strictCheck = true
+    ignoreFailures = true
+    mapping {
+        java   = 'SLASHSTAR_STYLE'
+        groovy = 'SLASHSTAR_STYLE'
+        fxml   = 'XML_STYLE'
+    }
+}
+
+// required on JDK 17 and later for some test environments
+tasks.withType(Test).configureEach {
+    jvmArgs('--add-opens=java.base/java.lang=ALL-UNNAMED')
 }
 
 

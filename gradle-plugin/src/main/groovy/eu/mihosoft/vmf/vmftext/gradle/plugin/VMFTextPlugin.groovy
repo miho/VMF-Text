@@ -2,36 +2,25 @@ package eu.mihosoft.vmf.vmftext.gradle.plugin;
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Action
 import org.gradle.api.file.FileCollection
+import org.gradle.api.file.SourceDirectorySet
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.provider.Property
+import org.gradle.api.reflect.HasPublicType
+import org.gradle.api.reflect.TypeOf
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.TaskAction
-import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.DefaultTask
+import org.gradle.work.Incremental
+import org.gradle.work.InputChanges
+// removed deprecated ConfigureUtil (Gradle 8+)
 
-
-import org.gradle.api.Plugin;
-import org.gradle.api.internal.*;
-import org.gradle.api.internal.file.*;
-import org.gradle.api.internal.file.collections.*;
-import org.gradle.api.internal.tasks.*;
-import org.gradle.api.internal.plugins.DslObject;
-import org.gradle.api.*;
-import org.codehaus.groovy.runtime.InvokerHelper;
-//
-import groovy.lang.Closure;
-import org.gradle.api.Action;
-import org.gradle.api.file.SourceDirectorySet;
-import org.gradle.api.internal.file.SourceDirectorySetFactory;
-import org.gradle.api.reflect.HasPublicType;
-import org.gradle.api.reflect.TypeOf
-import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
-import org.gradle.util.ConfigureUtil;
 import javax.inject.Inject
-import java.util.stream.Collectors;
-import groovy.grape.Grape;
 
 import static org.gradle.api.reflect.TypeOf.typeOf;
 
@@ -94,9 +83,9 @@ class VMFTextPluginExtension {
 class VMFTextSourceVirtualDirectoryImpl implements VMFTextSourceVirtualDirectory, HasPublicType {
     private final SourceDirectorySet vmfText;
 
-    public VMFTextSourceVirtualDirectoryImpl(String parentDisplayName, SourceDirectorySetFactory sourceDirectorySetFactory) {
+    public VMFTextSourceVirtualDirectoryImpl(String parentDisplayName, ObjectFactory objectFactory) {
         final String displayName = parentDisplayName + " VMF-Text source";
-        vmfText = sourceDirectorySetFactory.create(displayName);
+        vmfText = objectFactory.sourceDirectorySet("vmfText", displayName);
         vmfText.getFilter().include("**/*.g4");
     }
 
@@ -107,7 +96,11 @@ class VMFTextSourceVirtualDirectoryImpl implements VMFTextSourceVirtualDirectory
 
     @Override
     public VMFTextSourceVirtualDirectory vmfText(Closure configureClosure) {
-        ConfigureUtil.configure(configureClosure, getVMFText());
+        if (configureClosure != null) {
+            configureClosure.setDelegate(getVMFText());
+            configureClosure.setResolveStrategy(Closure.DELEGATE_FIRST);
+            configureClosure.call();
+        }
         return this;
     }
 
@@ -125,11 +118,11 @@ class VMFTextSourceVirtualDirectoryImpl implements VMFTextSourceVirtualDirectory
 
 public class VMFTextPlugin implements Plugin<Project> {
 
-    private SourceDirectorySetFactory sourceDirectorySetFactory;
+    private ObjectFactory objectFactory;
 
     @Inject
-    public VMFTextPlugin(SourceDirectorySetFactory sourceDirectorySetFactory) {
-        this.sourceDirectorySetFactory = sourceDirectorySetFactory;
+    public VMFTextPlugin(ObjectFactory objectFactory) {
+        this.objectFactory = objectFactory;
     }
 
     @Override
@@ -141,7 +134,6 @@ public class VMFTextPlugin implements Plugin<Project> {
         project.repositories {
             mavenLocal()
             mavenCentral()
-            jcenter()
         }
 
 //        project.configurations(
@@ -171,20 +163,23 @@ public class VMFTextPlugin implements Plugin<Project> {
         // vmf core classes
         //vmfTextClass.setCompileClassLoader(classLoader);
 
-        project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets().all(
-                new Action<SourceSet>() {
+        project.getPlugins().withType(JavaPlugin.class, new Action<JavaPlugin>() {
+            public void execute(JavaPlugin javaPlugin) {
+                JavaPluginExtension javaExtension = project.getExtensions().getByType(JavaPluginExtension.class);
+                javaExtension.getSourceSets().all(new Action<SourceSet>() {
                     public void execute(final SourceSet sourceSet) {
                         // For each source set we will:
                         //
                         // 1) Add a new 'vmfText' virtual directory mapping
                         final VMFTextSourceVirtualDirectoryImpl vmfTextDirectoryDelegate =
                                 new VMFTextSourceVirtualDirectoryImpl(
-                                        ((DefaultSourceSet) sourceSet).getDisplayName(),
-                                        sourceDirectorySetFactory
+                                        sourceSet.getName(),
+                                        objectFactory
                                 );
-                        new DslObject(sourceSet).getConvention().getPlugins().put(
-                                VMFTextSourceVirtualDirectory.NAME, vmfTextDirectoryDelegate
-                        );
+
+                        // Register as a typed extension on the source set (Gradle 6+ API)
+                        def extensions = sourceSet.getExtensions()
+                        extensions.add(VMFTextSourceVirtualDirectory.NAME, vmfTextDirectoryDelegate)
                         final String srcDir = "src/" + sourceSet.getName() + "/vmf-text";
                         SourceDirectorySet sourceDirectorySet = vmfTextDirectoryDelegate.getVMFText();
                         sourceDirectorySet.srcDir(srcDir);
@@ -203,7 +198,7 @@ public class VMFTextPlugin implements Plugin<Project> {
                                 project.getBuildDir().absolutePath+"/generated-src/vmf-text-modelgen/" + sourceSet.getName();
                         final File modelOutputDirectory = new File(modelOutputDirectoryName);
 
-                        project.getTasks().create(taskName, CompileVMFTextTask.class, new Action<CompileVMFTextTask>() {
+                        def vmfTextTaskProvider = project.getTasks().register(taskName, CompileVMFTextTask.class, new Action<CompileVMFTextTask>() {
                             @Override
                             void execute(CompileVMFTextTask vmfTextTask) {
                                 // 4) Set up convention mapping for default sources (allows user to not have to specify)
@@ -216,30 +211,29 @@ public class VMFTextPlugin implements Plugin<Project> {
                                 vmfTextTask.outputFolder = outputDirectory;
                                 vmfTextTask.modelOutputDirectory = modelOutputDirectory;
                                 vmfTextTask.sourceSetCompileClassPath = sourceSet.compileClasspath;
-                                vmfTextTask.sourceDirectorySet = sourceDirectorySet;
+                                vmfTextTask.sourceDirectorySet.set(sourceDirectorySet);
                                 // vmfTextTask.vmfTextClass = vmfTextClass;
                             }
                         });
 
                         // 5) register fact that vmf-text should be run before compiling
-                        project.tasks.getByName(sourceSet.getCompileJavaTaskName()).dependsOn(taskName)
+                        project.tasks.getByName(sourceSet.getCompileJavaTaskName()).dependsOn(vmfTextTaskProvider)
 
                         final String cleanTaskName = sourceSet.getTaskName("vmfTextClean", "");
 
                         // 6) clean the generated code and vmf model
-                        project.task(cleanTaskName, group: 'vmf-text',
-                                description: 'Cleans generated VMF & Java code.') {
+                        project.tasks.register(cleanTaskName) { task ->
+                            task.group = 'vmf-text'
+                            task.description = 'Cleans generated VMF & Java code.'
                             doLast {
-                                outputDirectory.listFiles().each {
-                                    f -> f.deleteDir()
-                                }
-                                modelOutputDirectory.listFiles().each {
-                                    f -> f.deleteDir()
-                                }
+                                outputDirectory.listFiles()?.each { f -> f.deleteDir() }
+                                modelOutputDirectory.listFiles()?.each { f -> f.deleteDir() }
                             }
                         }
                     }
                 });
+            }
+        });
     }
 }
 
@@ -258,7 +252,8 @@ class CompileVMFTextTask extends DefaultTask {
     File modelOutputDirectory;
 
     @InputFiles
-    SourceDirectorySet sourceDirectorySet;
+    @Incremental
+    final Property<SourceDirectorySet> sourceDirectorySet = project.objects.property(SourceDirectorySet)
 
     @InputFiles
     FileCollection sourceSetCompileClassPath;
@@ -266,7 +261,7 @@ class CompileVMFTextTask extends DefaultTask {
     // Class<?> vmfTextClass;
 
     @TaskAction
-    void vmfTextGenModelSources(IncrementalTaskInputs inputs) {
+    void vmfTextGenModelSources(InputChanges inputs) {
 
 //        // directory set
 //        println(" -> directories:")
@@ -296,9 +291,9 @@ class CompileVMFTextTask extends DefaultTask {
 
         def grammarsOutOfDate = []
 
-        inputs.outOfDate {
-            if(it.file.isFile()) {
-                grammarsOutOfDate.add(it.file)
+        inputs.getFileChanges(sourceDirectorySet).each { change ->
+            if(change.file.isFile() && change.file.name.toLowerCase().endsWith('.g4')) {
+                grammarsOutOfDate.add(change.file)
             }
         }
 
@@ -390,7 +385,7 @@ class CompileVMFTextTask extends DefaultTask {
         // - remove the front part, e.g., '/Users/myname/path/to/project/src/main/vmf-text'
         // - remove the file name from end of the remaining string, e.g., 'MyGrammar.g4'
         // - the result is the package name
-        for (File dir : sourceDirectorySet.srcDirs) {
+        for (File dir : sourceDirectorySet.get().srcDirs) {
 
             String absolutePath = dir.absolutePath;
             String packageName = file.absolutePath;

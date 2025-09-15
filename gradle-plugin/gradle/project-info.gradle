@@ -1,25 +1,23 @@
 // -----------------------------------------------------------------------------
 // publishing information
 // -----------------------------------------------------------------------------
-ext.publishing.artifactId =  'vmf-text-gradle-plugin'
-ext.publishing.groupId    =  'eu.mihosoft.vmf'
-ext.publishing.versionId  =  '0.2-SNAPSHOT'
+ext.publishingInfo.artifactId =  'vmf-text-gradle-plugin'
+ext.publishingInfo.groupId    =  'eu.mihosoft.vmf'
+ext.publishingInfo.versionId  =  '0.2-SNAPSHOT'
 
-ext.publishing.developerName         = 'Michael Hoffer'
-ext.publishing.developerAlias        = 'miho'
-ext.publishing.developerEmail        = 'info@michaelhoffer.de'
-ext.publishing.inceptionYear         = '2018'
+ext.publishingInfo.developerName         = 'Michael Hoffer'
+ext.publishingInfo.developerAlias        = 'miho'
+ext.publishingInfo.developerEmail        = 'info@michaelhoffer.de'
+ext.publishingInfo.inceptionYear         = '2018'
 
-ext.publishing.bintray.repo          = 'VMF'
-ext.publishing.bintray.userOrg       = 'miho'
-ext.publishing.bintray.name          = 'VMF-Text-Gradle-Plugin'
+ext.publishingInfo.desc                  = 'VMF-Text Gradle Plugin'
+ext.publishingInfo.license               = 'Apache-2.0'
+ext.publishingInfo.licenseUrl            = 'https://github.com/miho/VMF-Text/blob/master/LICENSE'
+ext.publishingInfo.labels                = ['vmf', 'modeling', 'language model', 'antlr', 'parser', 'unparser', 'vrl', 'modeling framework']
+ext.publishingInfo.websiteUrl            = 'https://github.com/miho/VMF-Text'
+ext.publishingInfo.issueTrackerUrl       = 'https://github.com/miho/VMF-Text/issues'
+ext.publishingInfo.vcsUrl                = 'https://github.com/miho/VMF-Text.git'
 
-ext.publishing.desc                  = 'VMF-Text Gradle Plugin'
-ext.publishing.license               = 'Apache-2.0'
-ext.publishing.licenseUrl            = 'https://github.com/miho/VMF-Text/blob/master/LICENSE'
-ext.publishing.labels                = ['vmf', 'modeling', 'language model', 'antlr', 'parser', 'unparser', 'vrl', 'modeling framework']
-ext.publishing.websiteUrl            = 'https://github.com/miho/VMF-Text'
-ext.publishing.issueTrackerUrl       = 'https://github.com/miho/VMF-Text/issues'
-ext.publishing.vcsUrl                = 'https://github.com/miho/VMF-Text.git'
+ext.publishingInfo.gitHubMavenRepo       = "https://maven.pkg.github.com/miho/vmf-text"
 
-ext.publishing.pomName               =  ext.publishing.artifactId
+ext.publishingInfo.pomName               =  ext.publishingInfo.artifactId
