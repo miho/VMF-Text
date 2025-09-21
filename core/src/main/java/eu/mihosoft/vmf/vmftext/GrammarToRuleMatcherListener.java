@@ -35,11 +35,11 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
 
     private TokenStream stream;
 
-    private Deque<String> currentRuleNames = new ArrayDeque<>();
+    private final Deque<String> currentRuleNames = new ArrayDeque<>();
     private UPElement currentElement = null;
     private ANTLRv4Parser.LabeledAltContext currentAlt = null;
-    private Deque<UPRuleBase> currentRules = new ArrayDeque<>();
-    private Deque<AlternativeBase> currentAlts = new ArrayDeque<>();
+    private final Deque<UPRuleBase> currentRules = new ArrayDeque<>();
+    private final Deque<AlternativeBase> currentAlts = new ArrayDeque<>();
 
     private final UnparserModel model = UnparserModel.newInstance();
 

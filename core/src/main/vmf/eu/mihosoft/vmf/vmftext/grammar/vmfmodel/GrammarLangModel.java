@@ -41,6 +41,9 @@ interface GrammarModel {
 
     String getPackageName();
 
+    @Contains(opposite = "model")
+    Options getOptions();
+
     @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.GetRootClassDelegate")
     boolean hasRootClass();
 
@@ -58,6 +61,13 @@ interface GrammarModel {
 
     @Contains(opposite = "model")
     CustomRule[] getCustomRules();
+}
+
+interface Options {
+    @Container(opposite = "options")
+    GrammarModel getModel();
+
+    String getSuperClassName();
 }
 
 interface CustomRule extends WithText {
