@@ -966,3 +966,45 @@ fragment Letter:
     | ~[\u0000-\u007F\uD800-\uDBFF]   // covers all characters above 0x7F which are not a surrogate
     | [\uD800-\uDBFF] [\uDC00-\uDFFF] // covers UTF-16 surrogate pairs encodings for U+10000 to U+10FFFF
 ;
+
+
+/*<!vmf-text!>
+
+TypeMap() {
+  HEX_FLOAT_LITERAL    -> java.lang.Double via (
+    'java.lang.Double.parseDouble(entry.getText())',
+    'java.lang.Double.toHexString(entry)'
+  )
+  FLOAT_LITERAL -> java.lang.Double  via 'java.lang.Double.parseDouble(entry.getText())'
+
+  (rule: VOID    -> type: java.lang.Boolean) = {
+      toType:   '"void".equals(entry.getText())',
+      toString: '"void"',
+      default:  'false'
+  }
+}
+
+*/
+
+
+/*<!vmf-text!>
+
+interface PackageDeclaration {
+
+    @DelegateTo(className="eu.mihosoft.vmftext.tests.java24.PackageDeclarationDelegate")
+    void defPackageNameFromString(String packageName);
+
+    @DelegateTo(className="eu.mihosoft.vmftext.tests.java24.PackageDeclarationDelegate")
+    String packageNameAsString();
+
+}
+
+interface MethodDeclaration {
+
+    @DelegateTo(className="eu.mihosoft.vmftext.tests.java24.MethodDeclarationDelegate")
+    boolean returnsVoid();
+
+}
+
+
+*/
