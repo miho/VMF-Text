@@ -45,6 +45,29 @@ public class MultipleParserRulesTest {
     }
 
     @Test
+    public void testLeadingAndInterRuleHiddenTextPayloads() {
+        String code = " \t2\t +   3\r\n 45 +\t12";
+
+        MultipleParserRulesModel model = new MultipleParserRulesModelParser().parse(code);
+
+        @SuppressWarnings("unchecked")
+        List<String> firstRuleHiddenText = (List<String>) ((Map<String,Object>) model.getRoot().
+                getRules().get(0).getPayload()).get("vmf-text:ignored-pieces-of-text");
+
+        @SuppressWarnings("unchecked")
+        List<String> secondRuleHiddenText = (List<String>) ((Map<String,Object>) model.getRoot().
+                getRules().get(1).getPayload()).get("vmf-text:ignored-pieces-of-text");
+
+        Assert.assertEquals(" \t", firstRuleHiddenText.get(0));
+        Assert.assertEquals("\r\n ", secondRuleHiddenText.get(0));
+
+        MultipleParserRulesModelUnparser unparser = new MultipleParserRulesModelUnparser();
+        String newCode = unparser.unparse(model);
+
+        Assert.assertEquals(code, newCode);
+    }
+
+    @Test
     public void testModelChanges() {
         // the code to reproduce
         String code = "" +

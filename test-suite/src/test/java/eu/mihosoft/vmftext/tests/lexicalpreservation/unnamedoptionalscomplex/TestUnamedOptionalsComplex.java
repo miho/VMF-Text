@@ -76,4 +76,31 @@ public class TestUnamedOptionalsComplex {
         System.setErr(prev);
     }
 
+    @Test
+    public void testNestedUnnamedOptionalsPresenceMatrix() {
+        assertRoundTrip("r1, r2");
+        assertRoundTrip("r1 (), r2");
+        assertRoundTrip("r1, r2 (test123), r3 (), r4, r5 ()");
+        assertRoundTrip("r1 (), r2 (test123), r3 (abc), r4 (def), r5 (a b c)");
+    }
+
+    private void assertRoundTrip(String code) {
+        NestedUnnamedModel model = new NestedUnnamedModelParser().parse(code);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream prev = System.err;
+        System.setErr(ps);
+
+        String newCode = new NestedUnnamedModelUnparser().unparse(model);
+
+        String errors = baos.toString();
+
+        System.out.flush();
+        System.setErr(prev);
+
+        Assert.assertTrue("No error must be reported.\n -> Output:\n" + errors, errors.isEmpty());
+        Assert.assertEquals(code, newCode);
+    }
+
 }

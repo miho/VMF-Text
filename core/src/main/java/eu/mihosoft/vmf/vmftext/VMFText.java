@@ -249,6 +249,15 @@ public class VMFText {
 
             boolean parentIsBlockSet = false;
 
+            // Optional sub-rules are represented by the optionality of their
+            // contained terminals/lexer symbols. Recording an additional state
+            // for the sub-rule itself desynchronizes formatter consumption when
+            // the sub-rule contains optional named/list properties that do not
+            // render a terminal for the empty case, e.g. ('(' names+=ID* ')')?.
+            if(upElement instanceof SubRule) {
+                return;
+            }
+
             if(upElement.getParentAlt().getParentRule() instanceof SubRule) {
                 if(UPRuleUtil.isBlockSet((UPElement) upElement.getParentAlt().getParentRule())) {
                     parentIsBlockSet = true;

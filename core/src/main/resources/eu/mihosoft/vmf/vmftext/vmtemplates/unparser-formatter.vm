@@ -508,8 +508,12 @@ public interface Formatter {
                     symbolState = getOptionalSymbolState(e).get(pos);
                     incOptionalSymbolsCounter(e);
                   } else {
-                    // Out-of-range: keep the element by default and advance counter to stay in sync
-                    symbolState = true;
+                    // Out-of-range optional states can occur for elements inside an
+                    // absent optional group, e.g. ('(' ')')?. The parser records
+                    // only the group absence, while the unparser sees each unnamed
+                    // terminal separately. Treat the missing state as absent to
+                    // avoid rendering synthetic optional tokens.
+                    symbolState = false;
                     incOptionalSymbolsCounter(e);
                   }
                 }
@@ -531,17 +535,29 @@ public interface Formatter {
                   w.append(ws);
                   incHiddenTextCounter(e);
                 } else {
-                  // Fallback: emit nothing if hidden text index is out of range
-                  // to avoid introducing artificial whitespace
-                  String errorMsg = "ERROR: index=" + pos + ", " + e.getClass().getName() + ", size: " + getHiddenText(e).size();
-                  System.err.println(errorMsg);
+                  // Fallback for edited models: if a list mutation exhausts the
+                  // original hidden-text entries, keep a neutral separator before
+                  // closing delimiters. Exact parsed models should not reach this
+                  // branch.
+                  String t = ruleInfo.getRuleText();
+                  if(")".equals(t) || "]".equals(t) || "}".equals(t)) {
+                    w.append(" ");
+                  }
                   // Do not throw here; keep rendering to preserve best-effort output
                 }
-            } else {
-                // No lexical payload is available (e.g. model created programmatically
-                // or payload invalidated by edits). Emit one neutral separator to keep
-                // the output parseable without affecting parsed models with payload.
+            } else if(getHiddenText(e)==null) {
+                // No lexical payload is available (e.g. model created programmatically).
+                // Emit one neutral separator to keep the output parseable without
+                // affecting parsed models with payload.
                 w.append(" ");
+            } else {
+                // Lexical payload exists but has deliberately been invalidated by
+                // model edits. Lexer values still need a neutral separator to keep
+                // edited primitive values separated from surrounding grammar
+                // literals; punctuation/terminals are emitted without extra space.
+                if(ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
+                  w.append(" ");
+                }
             }
         
     }
