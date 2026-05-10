@@ -33,7 +33,7 @@ version = publishingInfo.versionId
 java {
     toolchain {
         // Gradle 8+ runs on JDK 17+, but we target Java 11 bytecode
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 

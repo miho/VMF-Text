@@ -38,7 +38,7 @@ apply plugin: 'eu.mihosoft.vmftext'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
