@@ -23,14 +23,17 @@
  */
 package eu.mihosoft.vmftext.tests.preventmultioccurrences;
 
-import eu.mihosoft.vmf.runtime.core.VIterator;
+import eu.mihosoft.vcollections.VList;
+import eu.mihosoft.vmf.runtime.core.Property;
+import eu.mihosoft.vmf.runtime.core.VObject;
 import eu.mihosoft.vmftext.tests.expressionlang.ExpressionLangModel;
 import eu.mihosoft.vmftext.tests.expressionlang.NumberExpr;
 import eu.mihosoft.vmftext.tests.expressionlang.PlusMinusOpExpr;
 import eu.mihosoft.vmftext.tests.expressionlang.Prog;
 import org.junit.Assert;
 
-import java.util.stream.Collectors;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 public class Test {
     @org.junit.Test
@@ -44,19 +47,67 @@ public class Test {
 
         model.setRoot(Prog.newBuilder().withExpression(operator).build());
 
-        boolean multipleOccurrences1 = model.vmf().content().stream(VIterator.IterationStrategy.UNIQUE_PROPERTY)
-                .collect(Collectors.groupingBy(System::identityHashCode, Collectors.counting())).
-                        values().stream().filter(n->n>1).count()>0;
+        boolean multipleOccurrences1 = containsMultipleOccurrencesExcludingParents(model);
 
         operator.setLeft(operator);
 
-        boolean multipleOccurrences2 = model.vmf().content().stream(VIterator.IterationStrategy.UNIQUE_PROPERTY)
-                .collect(Collectors.groupingBy(System::identityHashCode, Collectors.counting())).
-                        values().stream().filter(n->n>1).count()>0;
+        boolean multipleOccurrences2 = containsMultipleOccurrencesExcludingParents(model);
 
         Assert.assertTrue("The model does not contain multiple occurrences of the same instance", !multipleOccurrences1);
 
         Assert.assertTrue("The model does contain multiple occurrences of the same instance", multipleOccurrences2);
 
+    }
+
+    private boolean containsMultipleOccurrencesExcludingParents(VObject root) {
+        Map<VObject, Integer> occurrences = new IdentityHashMap<>();
+        collectOccurrences(root, occurrences, new IdentityHashMap<>());
+
+        return occurrences.values().stream().anyMatch(n -> n > 1);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void collectOccurrences(
+            VObject current,
+            Map<VObject, Integer> occurrences,
+            Map<VObject, Boolean> activePath) {
+
+        if(current == null) {
+            return;
+        }
+
+        occurrences.put(current, occurrences.getOrDefault(current, 0) + 1);
+
+        // We have counted the repeated reference. Stop here to avoid infinite
+        // recursion on self-referential/cyclic graphs.
+        if(activePath.containsKey(current)) {
+            return;
+        }
+
+        activePath.put(current, Boolean.TRUE);
+
+        for(Property property : current.vmf().reflect().properties()) {
+            if("parent".equals(property.getName())) {
+                continue;
+            }
+
+            if(property.getType().isListType()) {
+                Object value = property.get();
+                if(value instanceof VList) {
+                    for(Object element : (VList<Object>) value) {
+                        if(element instanceof VObject) {
+                            collectOccurrences((VObject) element, occurrences, activePath);
+                        }
+                    }
+                }
+            } else if(property.getType().isModelType()) {
+                Object value = property.get();
+                if(value instanceof VObject) {
+                    collectOccurrences((VObject) value, occurrences, activePath);
+                }
+            }
+        }
+
+        activePath.remove(current);
     }
 }
