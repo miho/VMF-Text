@@ -5,7 +5,8 @@
 The `lexical-preservation-take-2` branch now builds against the current VMF
 snapshot after publishing VMF locally. The focused lexical preservation test
 suite passes, including new regression coverage for leading/inter-rule hidden
-text and nested unnamed optionals.
+text and nested unnamed optionals. The complete VMF-Text test suite also passes
+on the current JDK 21-based VM.
 
 ## What changed
 
@@ -37,10 +38,12 @@ cd test-suite
   --tests "eu.mihosoft.vmftext.tests.lexicalpreservation.*" --no-daemon
 ```
 
-The complete suite currently has one remaining failure in
-`preventmultioccurrences`, caused by changed/current VMF traversal behavior for
-self-referential containment. That failure is not caused by lexical preservation
-logic.
+The complete suite now passes:
+
+```bash
+cd test-suite
+./gradlew test --no-daemon
+```
 
 ## Assessment of the current approach
 
