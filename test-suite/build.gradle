@@ -65,7 +65,7 @@ repositories {
 dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: 'org.mdkt.compiler', name: 'InMemoryJavaCompiler', version: '1.3.0'
-    testImplementation group: 'org.codehaus.groovy', name: 'groovy', version: '3.0.8'
+    testImplementation group: 'org.apache.groovy', name: 'groovy', version: '4.0.21'
 
     testImplementation group: 'eu.mihosoft.vtcc', name: 'vtcc', version: '2018.2.3'
     testImplementation group: 'eu.mihosoft.vtcc.tccdist', name: 'tcc-dist', version: '2018.2.3'
