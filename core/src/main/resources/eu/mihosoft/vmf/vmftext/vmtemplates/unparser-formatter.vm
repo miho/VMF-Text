@@ -518,7 +518,6 @@ public interface Formatter {
                   // Element is absent. Do NOT consume any hidden text here.
                   // We let adjacent real tokens handle whitespace reconstruction.
                   ruleInfo.consume();
-                  System.out.println("Rule-Info: " + ruleInfo.getGrammarText() + " -> " + ruleInfo.getRuleName());
                   consumeElement = true;
                   return;
                 }
@@ -529,17 +528,6 @@ public interface Formatter {
                 int pos = getHiddenTextCounter(e);
                 if(pos < getHiddenText(e).size()) {
                   String ws = getHiddenText(e).get(pos);
-                  // Collapse pure space/tab runs to a single space to avoid drift
-                  if(ws.indexOf('\n')<0 && ws.indexOf('\r')<0) {
-                    boolean onlySpacesOrTabs = true;
-                    for(int ci=0; ci<ws.length(); ci++) {
-                      char ch = ws.charAt(ci);
-                      if(!(ch==' ' || ch=='\t')) { onlySpacesOrTabs = false; break; }
-                    }
-                    if(onlySpacesOrTabs && ws.length()>1) {
-                      ws = " ";
-                    }
-                  }
                   w.append(ws);
                   incHiddenTextCounter(e);
                 } else {
@@ -550,7 +538,10 @@ public interface Formatter {
                   // Do not throw here; keep rendering to preserve best-effort output
                 }
             } else {
-                // No hidden text available -> emit nothing to preserve structure strictly
+                // No lexical payload is available (e.g. model created programmatically
+                // or payload invalidated by edits). Emit one neutral separator to keep
+                // the output parseable without affecting parsed models with payload.
+                w.append(" ");
             }
         
     }

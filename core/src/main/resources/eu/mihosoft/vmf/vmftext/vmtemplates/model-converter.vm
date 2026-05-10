@@ -741,6 +741,17 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
             prevTokenIndexPerCtx.put(currentCtx, currentIndex);
         }
+
+        private int previousDefaultTokenIndexBefore(int tokenIndex) {
+            for(int i = tokenIndex - 1; i >= 0; i--) {
+                org.antlr.v4.runtime.Token token = stream.get(i);
+                if(token.getChannel() == org.antlr.v4.runtime.Token.DEFAULT_CHANNEL) {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
     
         /**
          * Returns the ignored/hidden pieces of text of the specified rule context.
@@ -766,8 +777,11 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         @Override
         public void enterEveryRule(ParserRuleContext ctx) {
             ruleContextStack.push(ctx);
-            // initialize previous index to just before rule start
-            prevTokenIndexPerCtx.put(ctx, ctx.start.getTokenIndex()-1);
+            // initialize previous index to the previous default-channel token.
+            // Hidden-channel tokens may occur directly before ctx.start; treating
+            // ctx.start-1 as the previous token would skip those hidden pieces
+            // and lose leading/inter-rule whitespace during lexical preservation.
+            prevTokenIndexPerCtx.put(ctx, previousDefaultTokenIndexBefore(ctx.start.getTokenIndex()));
             // System.out.println(" -> ENTER " + ctx.getClass().getSimpleName() + "::" + ctx.getText());
         }
     
