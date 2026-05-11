@@ -119,7 +119,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         if(sourceText != null) {
             try {
                 ${Util.firstToUpper($model.grammarName)}Model reparsedModel = parseStrictForSourceBundle(sourceText);
-                if(reparsedModel != null && reparsedModel.equals(storedModel)) {
+                if(semanticModelsMatch(reparsedModel, storedModel)) {
                     return reparsedModel;
                 }
             } catch(RuntimeException ex) {
@@ -148,6 +148,34 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             }
         });
         return strictParser.parse(sourceText);
+    }
+
+    private boolean semanticModelsMatch(${Util.firstToUpper($model.grammarName)}Model reparsedModel,
+                                        ${Util.firstToUpper($model.grammarName)}Model storedModel) {
+        if(reparsedModel == null || storedModel == null) {
+            return false;
+        }
+
+        if(!reparsedModel.equals(storedModel)) {
+            return false;
+        }
+
+        // VMF equality is the primary semantic test. The canonical unparse with
+        // lexical preservation disabled is an additional guard against stale
+        // source text for grammars whose equality does not fully account for all
+        // primitive/external values.
+        try {
+            return canonicalSemanticText(reparsedModel).equals(canonicalSemanticText(storedModel));
+        } catch(RuntimeException ex) {
+            return false;
+        }
+    }
+
+    private String canonicalSemanticText(${Util.firstToUpper($model.grammarName)}Model model) {
+        ${modelPackageName}.unparser.${Util.firstToUpper($model.grammarName)}ModelUnparser unparser =
+                new ${modelPackageName}.unparser.${Util.firstToUpper($model.grammarName)}ModelUnparser();
+        unparser.setFormatter(${modelPackageName}.unparser.Formatter.newDefaultFormatterWithoutLexicalPreservation());
+        return unparser.unparse(model);
     }
 
     public void clearVMFTextLexicalPayload(${Util.firstToUpper($model.grammarName)}Model model) {
