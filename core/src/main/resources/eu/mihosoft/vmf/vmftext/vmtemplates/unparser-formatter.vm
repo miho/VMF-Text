@@ -33,6 +33,7 @@ import eu.mihosoft.vmf.runtime.core.VMF;
 import ${modelPackageName}.ReadOnlyCodeElement;
 import ${modelPackageName}.CodeElement;
 import ${modelPackageName}.CodeRange;
+import ${modelPackageName}.LexicalInfo;
 
 /**
  * Text formatting interface.
@@ -180,6 +181,16 @@ public interface Formatter {
 
             @Override
             public Object getPayload() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public void setLexicalInfo(LexicalInfo lexicalInfo) {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public LexicalInfo getLexicalInfo() {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }
 
@@ -434,6 +445,10 @@ public interface Formatter {
     }
     private java.util.List<String> getHiddenText(CodeElement e) {
 
+        if(e.getLexicalInfo()!=null) {
+          return e.getLexicalInfo().getIgnoredPiecesOfText();
+        }
+
         if(e.getPayload()==null) {
           return null;
         }
@@ -448,6 +463,10 @@ public interface Formatter {
     }
 
     private java.util.List<Boolean> getOptionalSymbolState(CodeElement e) {
+
+        if(e.getLexicalInfo()!=null) {
+          return e.getLexicalInfo().getOptionalSymbols();
+        }
 
         if(e.getPayload()==null) {
           return null;

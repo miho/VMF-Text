@@ -197,6 +197,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             }
 
             e.setPayload(replacement);
+            e.setLexicalInfo(null);
         });
     }
 
@@ -349,8 +350,23 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
             ParserRuleContext eCtx = (ParserRuleContext)payload.get("vmf-text:antlr4-rule-ctx");
                        
-            payload.put("vmf-text:ignored-pieces-of-text", ignoredPiecesOfTextListener.getIgnoredPiecesOfText(eCtx));
-            payload.put("vmf-text:optionalSymbols", getOptionalSymbolList(eCtx) );
+            java.util.List<String> ignoredPiecesOfText = ignoredPiecesOfTextListener.getIgnoredPiecesOfText(eCtx);
+            java.util.List<Boolean> optionalSymbols = getOptionalSymbolList(eCtx);
+
+            payload.put("vmf-text:ignored-pieces-of-text", ignoredPiecesOfText);
+            payload.put("vmf-text:optionalSymbols", optionalSymbols );
+
+            LexicalInfo lexicalInfo = e.getLexicalInfo();
+            if(lexicalInfo == null) {
+                lexicalInfo = LexicalInfo.newInstance();
+                e.setLexicalInfo(lexicalInfo);
+            }
+            lexicalInfo.getIgnoredPiecesOfText().clear();
+            lexicalInfo.getIgnoredPiecesOfText().addAll(ignoredPiecesOfText);
+            lexicalInfo.getOptionalSymbols().clear();
+            lexicalInfo.getOptionalSymbols().addAll(optionalSymbols);
+            lexicalInfo.setOriginalRange(e.getCodeRange());
+            lexicalInfo.setGrammarElementPath(eCtx.getClass().getSimpleName());
 
         } // end for each code element
     }

@@ -16,8 +16,13 @@ and (optionally) configure VMF-Text:
 vmfText {
     vmfVersion   = '0.1.1'   // runtime version
     antlrVersion = '4.7.1' // runtime version
+    autoLabel    = false     // opt-in inferred labels for unlabeled grammar refs
 }
 ```
+
+`autoLabel` is disabled by default. When enabled, VMF-Text deterministically
+labels unlabeled parser-rule and token references before generating the VMF
+model. Explicit ANTLR labels always take precedence.
 
 ## Building the VMF-Text Gradle Plugin
 

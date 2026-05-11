@@ -33,12 +33,16 @@ source-preserving persistence. During development these can be run separately:
 ```bash
 ./gradlew test --tests "eu.mihosoft.vmftext.tests.lexicalpreservation.*"
 ./gradlew test --tests "eu.mihosoft.vmftext.tests.sourcebundle.*"
+./gradlew test --tests "eu.mihosoft.vmftext.tests.autolabel.*"
+./gradlew test --tests "eu.mihosoft.vmftext.tests.lexicalmetadata.*"
 ```
 
 Source-bundle tests exercise the generated `toSourceBundle()` and
 `restoreFromSourceBundle()` parser helpers. They verify that matching source
 text restores exact comments/whitespace, while mismatched or corrupted source
-falls back to the stored semantic model and remains parseable.
+falls back to the stored semantic model and remains parseable. Auto-label tests
+cover metadata-enabled inferred labels for unlabeled grammars. Lexical metadata
+tests verify the typed `LexicalInfo` mirror and payload fallback behavior.
 
 ### Viewing the Report
 

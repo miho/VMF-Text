@@ -90,6 +90,49 @@ comments/whitespace are recovered when the source still corresponds to the
 model, while semantic model edits or corrupted source text fall back safely to
 parseable generated text.
 
+## Automatic Labels
+
+Curated grammars can still use explicit ANTLR labels to define the cleanest
+public VMF API. For exploratory or imported grammars, VMF-Text also provides an
+opt-in auto-labeling prototype. It is disabled by default and can be enabled
+globally from Gradle:
+
+```gradle
+vmfText {
+    autoLabel = true
+}
+```
+
+or per grammar via VMF-Text metadata:
+
+```antlr
+/*<!vmf-text!>
+AutoLabel(enabled=true)
+*/
+```
+
+Explicit labels always win. Unlabeled parser-rule and token references receive
+deterministic names based on grammar order; repeated elements become list
+properties; duplicate names receive stable numeric suffixes. String literals
+remain syntax and are not exposed as semantic properties. During generation,
+VMF-Text prints an auto-label report that maps grammar element paths to inferred
+property names.
+
+## Typed Lexical Metadata
+
+Parsed `CodeElement`s now expose typed lexical metadata via `getLexicalInfo()`.
+The typed mirror currently contains ignored text pieces, optional-symbol states,
+the original code range and a grammar element identifier. The existing raw
+payload map remains available for compatibility, but the default formatter reads
+typed lexical info first and falls back to the payload map if needed.
+
+The typed metadata is ignored for semantic equality. This allows two models with
+the same language semantics but different source trivia to compare as semantic
+models, while source-preserving workflows can still serialize or inspect the
+lexical information explicitly. For semantic-only JSON/schema workflows, treat
+`CodeElement.getPayload()` as internal VMF-Text state and prefer source bundles
+or typed `LexicalInfo` for source-preserving persistence.
+
 ## Building VMF-Text (Core)
 
 ### Requirements

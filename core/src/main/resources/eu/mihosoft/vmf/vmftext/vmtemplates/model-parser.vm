@@ -51,6 +51,20 @@ interface CodeLocation {
   int getCharPosInLine();
 }
 
+interface LexicalInfo {
+  @eu.mihosoft.vmf.core.IgnoreEquals
+  String[] getIgnoredPiecesOfText();
+
+  @eu.mihosoft.vmf.core.IgnoreEquals
+  Boolean[] getOptionalSymbols();
+
+  @eu.mihosoft.vmf.core.IgnoreEquals
+  String getGrammarElementPath();
+
+  @eu.mihosoft.vmf.core.IgnoreEquals
+  CodeRange getOriginalRange();
+}
+
 @eu.mihosoft.vmf.core.InterfaceOnly
 @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
 interface CodeElement {
@@ -69,6 +83,10 @@ interface CodeElement {
 
   @eu.mihosoft.vmf.core.IgnoreEquals
   Object getPayload();
+
+  @eu.mihosoft.vmf.core.IgnoreEquals
+  @eu.mihosoft.vmf.core.Contains
+  LexicalInfo getLexicalInfo();
 
   @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
   String asString();
