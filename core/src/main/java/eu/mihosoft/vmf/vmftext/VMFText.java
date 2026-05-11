@@ -84,19 +84,51 @@ public class VMFText {
     }
 
     public static void generate(File grammar, String packageName, File outputDir) {
-        generate(grammar, packageName, new FileResourceSet(outputDir));
+        generate(grammar, packageName, new FileResourceSet(outputDir), GenerationOptions.defaults());
+    }
+
+    public static void generate(File grammar, String packageName, File outputDir, GenerationOptions options) {
+        generate(grammar, packageName, new FileResourceSet(outputDir), options);
     }
 
     public static void generate(File grammar, String packageName, File outputDir, File modelOutputDir) {
-        generate(grammar, packageName, new FileResourceSet(outputDir),new FileResourceSet(modelOutputDir));
+        generate(grammar, packageName, new FileResourceSet(outputDir),new FileResourceSet(modelOutputDir), GenerationOptions.defaults());
+    }
+
+    public static void generate(File grammar, String packageName, File outputDir, File modelOutputDir, GenerationOptions options) {
+        generate(grammar, packageName, new FileResourceSet(outputDir),new FileResourceSet(modelOutputDir), options);
     }
 
     public static void generate(File grammar, String packageName, ResourceSet outputDir) {
-        generate(grammar, packageName, outputDir,null);
+        generate(grammar, packageName, outputDir,null, GenerationOptions.defaults());
+    }
+
+    public static void generate(File grammar, String packageName, ResourceSet outputDir, GenerationOptions options) {
+        generate(grammar, packageName, outputDir,null, options);
     }
 
     public static void generate(File grammar, String packageName, ResourceSet outputDir, ResourceSet modelOutputDir) {
+        generate(grammar, packageName, outputDir, modelOutputDir, GenerationOptions.defaults());
+    }
 
+    public static void generate(File grammar, String packageName, ResourceSet outputDir, ResourceSet modelOutputDir,
+                                GenerationOptions options) {
+
+        if(options == null) {
+            options = GenerationOptions.defaults();
+        }
+
+        // Apply optional auto-labeling before all other grammar rewrites. Metadata
+        // inside VMF-Text comments can enable auto-labeling per grammar, while the
+        // GenerationOptions flag can enable it globally (e.g. from Gradle).
+        try {
+            List<String> comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
+            if(options.isAutoLabel() || GrammarMetaInformationUtil.isAutoLabelEnabled(comments)) {
+                grammar = AutoLabeler.rewrite(grammar, options.isEmitAutoLabelReport());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // rewrite grammar
         try {

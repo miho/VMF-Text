@@ -118,6 +118,24 @@ public final class GrammarMetaInformationUtil {
         return mappings;
     }
 
+    public static boolean isAutoLabelEnabled(List<String> comments) {
+        if(comments == null) {
+            return false;
+        }
+
+        return comments.stream().anyMatch(GrammarMetaInformationUtil::isAutoLabelEnabled);
+    }
+
+    public static boolean isAutoLabelEnabled(String code) {
+        if(code == null) {
+            return false;
+        }
+
+        String normalized = code.replaceAll("\\s+", "");
+        return normalized.contains("AutoLabel(enabled=true)")
+                || normalized.contains("AutoLabel(true)");
+    }
+
     public static List<String> extractVMFTextCommentsFromCode(String code) throws IOException {
 
         List<String> result = new ArrayList<>();

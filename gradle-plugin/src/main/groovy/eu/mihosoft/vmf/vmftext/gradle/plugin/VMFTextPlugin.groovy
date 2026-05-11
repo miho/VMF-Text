@@ -74,6 +74,7 @@ class VMFTextPluginExtension {
     // vmf-text version
     String vmfVersion     = "0.2.9.7-SNAPSHOT"
     String antlrVersion   = "4.11.1"
+    boolean autoLabel     = false
 }
 
 
@@ -212,6 +213,7 @@ public class VMFTextPlugin implements Plugin<Project> {
                                 vmfTextTask.modelOutputDirectory = modelOutputDirectory;
                                 vmfTextTask.sourceSetCompileClassPath = sourceSet.compileClasspath;
                                 vmfTextTask.sourceDirectorySet.set(sourceDirectorySet);
+                                vmfTextTask.autoLabel = extension.autoLabel;
                                 // vmfTextTask.vmfTextClass = vmfTextClass;
                             }
                         });
@@ -257,6 +259,9 @@ class CompileVMFTextTask extends DefaultTask {
 
     @InputFiles
     FileCollection sourceSetCompileClassPath;
+
+    @org.gradle.api.tasks.Input
+    boolean autoLabel;
 
     // Class<?> vmfTextClass;
 
@@ -306,6 +311,9 @@ class CompileVMFTextTask extends DefaultTask {
 
                 println("  -> processing file: " + gF)
 
+                def generationOptions = new eu.mihosoft.vmf.vmftext.GenerationOptions()
+                        .setAutoLabel(autoLabel)
+
                 vmfTextClass.generate(
                         // grammar file
                         gF,
@@ -314,7 +322,8 @@ class CompileVMFTextTask extends DefaultTask {
                         // desired output directory
                         outputFolder,
                         // model output dir for debugging
-                        modelOutputDirectory
+                        modelOutputDirectory,
+                        generationOptions
                 )
             } catch (RuntimeException ex) {
                 if(!ex.message?.startsWith("Cannot detect package name of")) {
