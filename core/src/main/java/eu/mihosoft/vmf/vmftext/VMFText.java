@@ -139,6 +139,9 @@ public class VMFText {
             // generate parser
             generator.generateModelParser(model, outputDir);
 
+            // generate source bundle persistence helper
+            generator.generateSourceBundle(model, outputDir);
+
             // generate model unparser
             UnparserModel unparserModel = conversionResult.unparserModel;
             generator.generateModelUnparser(model, unparserModel, grammar, outputDir);

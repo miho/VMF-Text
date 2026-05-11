@@ -81,6 +81,97 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         this.errorHandler = errorHandler;
     }
 
+    /**
+     * Creates a source bundle that stores a semantic model together with the
+     * source text it was parsed from. The bundle can later be restored via
+     * {@link #restoreFromSourceBundle(${Util.firstToUpper($model.grammarName)}SourceBundle)}.
+     */
+    public ${Util.firstToUpper($model.grammarName)}SourceBundle toSourceBundle(${Util.firstToUpper($model.grammarName)}Model model, String sourceText) {
+        return ${Util.firstToUpper($model.grammarName)}SourceBundle.fromModelAndSource(model, sourceText);
+    }
+
+    /**
+     * Restores a model from a source bundle. If the bundled source reparses
+     * successfully and the reparsed semantic model equals the stored model, the
+     * reparsed model is returned so that fresh lexical preservation payload is
+     * available. Otherwise the stored semantic model is returned after VMF-Text
+     * lexical payload has been cleared to avoid using stale formatting metadata.
+     */
+    public ${Util.firstToUpper($model.grammarName)}Model restoreFromSourceBundle(${Util.firstToUpper($model.grammarName)}SourceBundle bundle) {
+        return restoreFromSourceBundle(bundle, true);
+    }
+
+    /**
+     * Restores a model from a source bundle with optional lexical-payload
+     * clearing on fallback.
+     */
+    public ${Util.firstToUpper($model.grammarName)}Model restoreFromSourceBundle(${Util.firstToUpper($model.grammarName)}SourceBundle bundle, boolean clearLexicalPayloadOnFallback) {
+        if(bundle == null) {
+            throw new IllegalArgumentException("Source bundle must not be null.");
+        }
+
+        ${Util.firstToUpper($model.grammarName)}Model storedModel = bundle.getModel();
+        if(storedModel == null) {
+            throw new IllegalArgumentException("Source bundle does not contain a model.");
+        }
+
+        String sourceText = bundle.getSourceText();
+        if(sourceText != null) {
+            try {
+                ${Util.firstToUpper($model.grammarName)}Model reparsedModel = parseStrictForSourceBundle(sourceText);
+                if(reparsedModel != null && reparsedModel.equals(storedModel)) {
+                    return reparsedModel;
+                }
+            } catch(RuntimeException ex) {
+                // Source text is no longer parseable for this grammar. Fall back
+                // to the stored semantic model below.
+            }
+        }
+
+        if(clearLexicalPayloadOnFallback) {
+            clearVMFTextLexicalPayload(storedModel);
+        }
+        return storedModel;
+    }
+
+    private ${Util.firstToUpper($model.grammarName)}Model parseStrictForSourceBundle(String sourceText) {
+        ${Util.firstToUpper($model.grammarName)}ModelParser strictParser = new ${Util.firstToUpper($model.grammarName)}ModelParser();
+        strictParser.setConsoleOutputDisabled(true);
+        strictParser.setErrorHandler(new org.antlr.v4.runtime.BailErrorStrategy());
+        strictParser.getErrorListeners().add(new org.antlr.v4.runtime.BaseErrorListener() {
+            @Override
+            public void syntaxError(org.antlr.v4.runtime.Recognizer<?, ?> recognizer, Object offendingSymbol,
+                                    int line, int charPositionInLine, String msg,
+                                    org.antlr.v4.runtime.RecognitionException e) {
+                throw new RuntimeException("Cannot restore source bundle because source text is not parseable at "
+                        + line + ":" + charPositionInLine + ": " + msg, e);
+            }
+        });
+        return strictParser.parse(sourceText);
+    }
+
+    public void clearVMFTextLexicalPayload(${Util.firstToUpper($model.grammarName)}Model model) {
+        if(model == null || model.getRoot() == null) {
+            return;
+        }
+
+        model.getRoot().vmf().content().stream(CodeElement.class).forEach(e -> {
+            Object payloadObject = e.getPayload();
+            java.util.Map<String,Object> replacement = new java.util.HashMap<>();
+
+            if(payloadObject instanceof java.util.Map) {
+                java.util.Map<?,?> payload = (java.util.Map<?,?>) payloadObject;
+                payload.forEach((key,value) -> {
+                    if(!(key instanceof String) || !((String)key).startsWith("vmf-text:")) {
+                        replacement.put(String.valueOf(key), value);
+                    }
+                });
+            }
+
+            e.setPayload(replacement);
+        });
+    }
+
     public ${Util.firstToUpper($model.grammarName)}Model parse(InputStream codeStream) throws IOException {
 
         CharStream input = CharStreams.fromStream(codeStream);

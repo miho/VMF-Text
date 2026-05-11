@@ -84,6 +84,18 @@ public class ModelGenerator {
         mergeTemplate("model-converter", engine, context, out);
     }
 
+    private static void generateSourceBundle(
+            Writer out, VelocityEngine engine, String packageName, GrammarModel model, String vmfTextVersion) throws IOException {
+        VelocityContext context = new VelocityContext();
+        context.put("model", model);
+        context.put("TEMPLATE_PATH",TEMPLATE_PATH);
+        context.put("packageName", packageName);
+        context.put("vmfTextVersion", vmfTextVersion);
+        context.put("Util", StringUtil.class);
+
+        mergeTemplate("source-bundle", engine, context, out);
+    }
+
 
 
     /**
@@ -139,6 +151,29 @@ public class ModelGenerator {
 
             generateModelParser(w, engine, model.getPackageName(),
                     model.getPackageName()+".parser", model);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void generateSourceBundle(GrammarModel model, ResourceSet fileset) {
+
+        if(engine==null) {
+            engine = createDefaultEngine();
+        }
+
+        String vmfTextVersion = VMFText.class.getPackage().getImplementationVersion();
+        if(vmfTextVersion==null || vmfTextVersion.trim().isEmpty()) {
+            vmfTextVersion = "unknown";
+        }
+
+        try (Resource resource =
+                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
+                             model.getPackageName()+"."+model.getGrammarName() + "SourceBundle"));
+
+             Writer w = resource.open()) {
+
+            generateSourceBundle(w, engine, model.getPackageName(), model, vmfTextVersion);
         } catch (IOException e) {
             e.printStackTrace();
         }

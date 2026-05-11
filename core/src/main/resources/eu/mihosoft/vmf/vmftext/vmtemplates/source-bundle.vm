@@ -1,0 +1,139 @@
+#*
+ * Copyright 2017-2018 Michael Hoffer <info@michaelhoffer.de>. All rights reserved.
+ * Copyright 2017-2018 Goethe Center for Scientific Computing, University Frankfurt. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * If you use this software for scientific research then please cite the following publication(s):
+ *
+ * M. Hoffer, C. Poliwoda, & G. Wittum. (2013). Visual reflection library:
+ * a framework for declarative GUI programming on the Java platform.
+ * Computing and Visualization in Science, 2013, 16(4),
+ * 181–192. http://doi.org/10.1007/s00791-014-0230-y
+ *#
+package ${packageName};
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/**
+ * Stores a semantic VMF-Text model together with the original source text that
+ * produced it. Use {@link ${packageName}.parser.${model.grammarName}ModelParser#restoreFromSourceBundle(${model.grammarName}SourceBundle)}
+ * to restore a source-preserving model when the source text still matches the
+ * stored semantic model, or to fall back to the stored model otherwise.
+ */
+public class ${model.grammarName}SourceBundle {
+
+    public static final String GRAMMAR_NAME = "${model.grammarName}";
+    public static final String VMF_TEXT_VERSION = "${vmfTextVersion}";
+
+    private ${model.grammarName}Model model;
+    private String sourceText;
+    private String grammarName = GRAMMAR_NAME;
+    private String vmfTextVersion = VMF_TEXT_VERSION;
+    private String checksum;
+    private Map<String,String> metadata = new LinkedHashMap<>();
+
+    public ${model.grammarName}SourceBundle() {
+        // bean constructor for serialization frameworks
+    }
+
+    public ${model.grammarName}SourceBundle(${model.grammarName}Model model, String sourceText) {
+        this(model, sourceText, GRAMMAR_NAME, VMF_TEXT_VERSION, checksum(sourceText), new LinkedHashMap<>());
+    }
+
+    public ${model.grammarName}SourceBundle(${model.grammarName}Model model, String sourceText,
+                                            String grammarName, String vmfTextVersion, String checksum,
+                                            Map<String,String> metadata) {
+        this.model = model;
+        this.sourceText = sourceText;
+        this.grammarName = grammarName;
+        this.vmfTextVersion = vmfTextVersion;
+        this.checksum = checksum;
+        this.metadata = metadata == null ? new LinkedHashMap<>() : new LinkedHashMap<>(metadata);
+    }
+
+    public static ${model.grammarName}SourceBundle fromModelAndSource(${model.grammarName}Model model, String sourceText) {
+        return new ${model.grammarName}SourceBundle(model, sourceText);
+    }
+
+    public ${model.grammarName}Model getModel() {
+        return model;
+    }
+
+    public void setModel(${model.grammarName}Model model) {
+        this.model = model;
+    }
+
+    public String getSourceText() {
+        return sourceText;
+    }
+
+    public void setSourceText(String sourceText) {
+        this.sourceText = sourceText;
+        this.checksum = checksum(sourceText);
+    }
+
+    public String getGrammarName() {
+        return grammarName;
+    }
+
+    public void setGrammarName(String grammarName) {
+        this.grammarName = grammarName;
+    }
+
+    public String getVmfTextVersion() {
+        return vmfTextVersion;
+    }
+
+    public void setVmfTextVersion(String vmfTextVersion) {
+        this.vmfTextVersion = vmfTextVersion;
+    }
+
+    public String getChecksum() {
+        return checksum;
+    }
+
+    public void setChecksum(String checksum) {
+        this.checksum = checksum;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata == null ? new LinkedHashMap<>() : new LinkedHashMap<>(metadata);
+    }
+
+    public static String checksum(String text) {
+        if(text == null) {
+            return null;
+        }
+
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder(hash.length * 2);
+            for(byte b : hash) {
+                result.append(String.format("%02x", b));
+            }
+            return result.toString();
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available.", ex);
+        }
+    }
+}
