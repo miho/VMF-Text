@@ -61,6 +61,35 @@ TypeMap() {
 
 Finally, call the `vmfTextGenCode` task to generate the implementation.
 
+## Source-Preserving Persistence
+
+VMF-Text now generates a small source bundle helper for every grammar. A source
+bundle stores the semantic VMF model together with the original source text and
+basic provenance metadata such as grammar name, VMF-Text version and a SHA-256
+source checksum.
+
+```java
+Java8ModelParser parser = new Java8ModelParser();
+Java8Model model = parser.parse(sourceText);
+
+Java8SourceBundle bundle = parser.toSourceBundle(model, sourceText);
+Java8Model restored = parser.restoreFromSourceBundle(bundle);
+```
+
+Restore follows a conservative source-preserving policy:
+
+1. reparse the bundled source text with the generated grammar;
+2. compare the reparsed model with the stored semantic model;
+3. return the reparsed model, including fresh lexical-preservation payload, only
+   if the semantic models match;
+4. otherwise return the stored semantic model after clearing stale VMF-Text
+   lexical payload so the normal formatter fallback is used.
+
+This makes source bundles useful for editor and persistence workflows: exact
+comments/whitespace are recovered when the source still corresponds to the
+model, while semantic model edits or corrupted source text fall back safely to
+parseable generated text.
+
 ## Building VMF-Text (Core)
 
 ### Requirements

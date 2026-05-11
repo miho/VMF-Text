@@ -25,6 +25,21 @@ Navigate to the [Gradle](http://www.gradle.org/) project (e.g., `path/to/VMF-Tex
 
     gradlew test
 
+### Focused Lexical Preservation and Source-Bundle Checks
+
+The suite includes focused regression tests for lexical preservation and
+source-preserving persistence. During development these can be run separately:
+
+```bash
+./gradlew test --tests "eu.mihosoft.vmftext.tests.lexicalpreservation.*"
+./gradlew test --tests "eu.mihosoft.vmftext.tests.sourcebundle.*"
+```
+
+Source-bundle tests exercise the generated `toSourceBundle()` and
+`restoreFromSourceBundle()` parser helpers. They verify that matching source
+text restores exact comments/whitespace, while mismatched or corrupted source
+falls back to the stored semantic model and remains parseable.
+
 ### Viewing the Report
 
 An HTML version of the test report is located in the build folder `build/reports/tests/test/index.html`.
