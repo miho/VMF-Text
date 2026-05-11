@@ -8,7 +8,7 @@ import eu.mihosoft.vmftext.tests.json.unparser.JSONModelUnparser;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.HashMap;
+import java.util.Map;
 
 public class TypedLexicalInfoTest {
 
@@ -31,7 +31,11 @@ public class TypedLexicalInfoTest {
         JSONModel model = new JSONModelParser().parse(source);
 
         model.getRoot().vmf().content().stream(CodeElement.class).
-                forEach(element -> element.setPayload(new HashMap<String,Object>()));
+                map(CodeElement::getPayload).
+                filter(payload -> payload instanceof Map).
+                map(payload -> (Map<?,?>) payload).
+                forEach(payload -> payload.keySet().removeIf(key ->
+                        key instanceof String && ((String) key).startsWith("vmf-text:")));
 
         Assert.assertEquals(source, new JSONModelUnparser().unparse(model));
     }

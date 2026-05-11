@@ -261,6 +261,13 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 }
             }
         }
+
+        if(e!=null && e.getLexicalInfo()!=null) {
+            java.util.List<String> ignoredPiecesOfText = e.getLexicalInfo().getIgnoredPiecesOfText();
+            if(!ignoredPiecesOfText.isEmpty() && ignoredPiecesOfText.get(0).isEmpty()) {
+                ignoredPiecesOfText.set(0, " ");
+            }
+        }
     }
 
     private void registerIgnoredPiecesOfTextChangeListener(CodeElement element) {
@@ -308,6 +315,9 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                         (java.util.Map<String,Object>)element.getPayload();
                 // replace ignored pieces of text info
                 payload.put("vmf-text:ignored-pieces-of-text", new java.util.ArrayList<>());
+                if(element.getLexicalInfo()!=null) {
+                    element.getLexicalInfo().getIgnoredPiecesOfText().clear();
+                }
             }
         }, false);
     }
