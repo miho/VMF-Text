@@ -647,7 +647,7 @@ componentPatternList :
     ;
 
 componentPattern :
-    pattern
+    nestedPattern=pattern
     ;
 
 lambdaExpression:params=lambdaParameters '->' body=lambdaBody;
