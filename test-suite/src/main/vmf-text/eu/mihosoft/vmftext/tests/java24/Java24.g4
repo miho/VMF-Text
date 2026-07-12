@@ -418,23 +418,23 @@ localVariableDeclaration
     ;
 
 identifier
-    : IDENTIFIER
-    | MODULE
-    | OPEN
-    | REQUIRES
-    | EXPORTS
-    | OPENS
-    | TO
-    | USES
-    | PROVIDES
-    | WHEN
-    | WITH
-    | TRANSITIVE
-    | YIELD
-    | SEALED
-    | PERMITS
-    | RECORD
-    | VAR
+    : text=IDENTIFIER
+    | text=MODULE
+    | text=OPEN
+    | text=REQUIRES
+    | text=EXPORTS
+    | text=OPENS
+    | text=TO
+    | text=USES
+    | text=PROVIDES
+    | text=WHEN
+    | text=WITH
+    | text=TRANSITIVE
+    | text=YIELD
+    | text=SEALED
+    | text=PERMITS
+    | text=RECORD
+    | text=VAR
     ;
 
 typeIdentifier // Identifiers that are not restricted for type declarations

@@ -22,7 +22,6 @@
  * 181–192. http://doi.org/10.1007/s00791-014-0230-y
  */
 package eu.mihosoft.vmftext.tests.java24;
-import eu.mihosoft.vcollections.VList;
 import eu.mihosoft.vmf.runtime.core.DelegatedBehavior;
 import eu.mihosoft.vmftext.tests.java24.PackageDeclaration;
 import eu.mihosoft.vmftext.tests.java24.QualifiedName;
@@ -40,12 +39,15 @@ public class PackageDeclarationDelegate implements DelegatedBehavior<eu.mihosoft
     }
 
     public String packageNameAsString() {
-        return caller.getPackageName().getElement().stream().collect(Collectors.joining("."));
+        return caller.getPackageName().getElement().stream().
+                map(Identifier::getText).collect(Collectors.joining("."));
     }
 
     public void defPackageNameFromString(String packageName) {
         eu.mihosoft.vmftext.tests.java24.QualifiedName name = QualifiedName.newBuilder().
-                withElement(VList.newInstance(Arrays.asList(packageName.split("\\.")))).build();
+                withElement(Arrays.stream(packageName.split("\\.")).
+                        map(text -> Identifier.newBuilder().withText(text).build()).
+                        collect(Collectors.toList())).build();
 
         caller.setPackageName(name);
     }
