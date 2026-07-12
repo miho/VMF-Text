@@ -18,20 +18,20 @@ public class IdentifierStringTest {
         Java24Model model = parser.parse("package module.record.open;\nclass A { }\n");
 
         Assert.assertEquals("module.record.open",
-                model.getRoot().getPackageDecl().packageNameAsString());
+                model.getRoot().getNormalUnit().getPackageDecl().packageNameAsString());
     }
 
     @Test
     public void defPackageNameFromStringSurvivesUnparseReparse() {
         Java24Model model = parser.parse("package before.pkg;\nclass A { }\n");
-        model.getRoot().getPackageDecl().defPackageNameFromString("after.pkg.v2");
+        model.getRoot().getNormalUnit().getPackageDecl().defPackageNameFromString("after.pkg.v2");
 
         Assert.assertEquals("after.pkg.v2",
-                model.getRoot().getPackageDecl().packageNameAsString());
+                model.getRoot().getNormalUnit().getPackageDecl().packageNameAsString());
 
         Java24Model reparsed = parser.parse(unparser.unparse(model));
         Assert.assertEquals("after.pkg.v2",
-                reparsed.getRoot().getPackageDecl().packageNameAsString());
+                reparsed.getRoot().getNormalUnit().getPackageDecl().packageNameAsString());
     }
 
     @Test

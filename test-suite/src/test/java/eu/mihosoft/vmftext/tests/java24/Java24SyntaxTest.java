@@ -52,7 +52,7 @@ public class Java24SyntaxTest {
         Java24Model model = assertExactRoundTrip(source);
 
         Assert.assertEquals(1, model.vmf().content().stream(RecordDeclaration.class).count());
-        Assert.assertEquals(2, model.vmf().content().stream(SwitchRule.class).count());
+        Assert.assertEquals(2, model.vmf().content().stream(PatternSwitchRule.class).count());
         Assert.assertEquals(1, model.vmf().content().stream(TextBlockLiteral.class).count());
     }
 

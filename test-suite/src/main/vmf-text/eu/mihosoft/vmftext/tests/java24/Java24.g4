@@ -38,9 +38,13 @@ options {
     superClass = JavaParserBase;
 }
 
-compilationUnit:packageDecl=packageDeclaration? (imports+=importDeclaration | ';')* (typeDeclarations+=typeDeclaration | ';')* EOF
+compilationUnit:normalUnit=ordinaryCompilationUnit EOF
     | modularUnit=modularCompilationUnit EOF
     | compactUnit=compactCompilationUnit EOF
+    ;
+
+ordinaryCompilationUnit
+    : packageDecl=packageDeclaration? (imports+=importDeclaration | ';')* (typeDeclarations+=typeDeclaration | ';')*
     ;
 
 modularCompilationUnit
@@ -410,7 +414,8 @@ recordComponentList
     ;
 
 recordComponent
-    : annotations+=annotation* type=typeType (annotations+=annotation* ELLIPSIS)? name=identifier
+    : annotations+=annotation* type=typeType name=identifier                                            # regularRecordComponent
+    | annotations+=annotation* type=typeType varargAnnotations+=annotation* ELLIPSIS name=identifier  # varArgRecordComponent
     ;
 
 recordBody
@@ -661,12 +666,14 @@ switchExpression
     ;
 
 switchLabeledRule
-    : CASE (
-	expressionLst = expressionList
-	| NULL_LITERAL (',' DEFAULT)?
-	| casePatterns+=casePattern (',' casePatterns+=casePattern)* when=guard?
-	) (ARROW | COLON) switchRuleOutcome                 # SwitchRule
-    | DEFAULT (ARROW | COLON) switchRuleOutcome         # DefaultSwitchRule
+    : CASE expressions=expressionList separator=(ARROW | COLON) outcome=switchRuleOutcome
+                                                               # expressionSwitchRule
+    | CASE nullCase=NULL_LITERAL (',' defaultCase=DEFAULT)? separator=(ARROW | COLON) outcome=switchRuleOutcome
+                                                               # nullSwitchRule
+    | CASE patterns+=casePattern (',' patterns+=casePattern)* when=guard?
+      separator=(ARROW | COLON) outcome=switchRuleOutcome       # patternSwitchRule
+    | DEFAULT separator=(ARROW | COLON) outcome=switchRuleOutcome
+                                                               # defaultSwitchRule
     ;
 
 guard 
