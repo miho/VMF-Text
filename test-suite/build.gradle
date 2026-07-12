@@ -48,18 +48,6 @@ tasks.withType(JavaCompile) {
     options.release = 11
 }
 
-sourceSets {
-    test {
-        java {
-            // Test.java targets model APIs the WIP java24 grammar does not
-            // generate yet (literal hierarchy, alt-labeled declarators, see
-            // "java24 not fully working" commits), excluded until the java24
-            // grammar work is complete
-            exclude 'eu/mihosoft/vmftext/tests/java24/Test.java'
-        }
-    }
-}
-
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 [compileJava, compileTestJava]*.options*.fork = true
 [compileJava, compileTestJava]*.options*.forkOptions*.memoryMaximumSize = '4g'

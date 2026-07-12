@@ -95,7 +95,8 @@ public class Test {
         System.out.println("PARSED");
 
         model.vmf().content().stream().filter(e -> e instanceof eu.mihosoft.vmftext.tests.java24.ClassDeclaration).map(e -> (eu.mihosoft.vmftext.tests.java24.ClassDeclaration) e).
-                filter(cls -> "Java8RungeKutta".equals(cls.getClassName())).forEach(cls -> cls.setClassName(cls.getClassName() + "Out"));
+                filter(cls -> "Java8RungeKutta".equals(cls.getClassName().getText())).
+                forEach(cls -> cls.setClassName(identifier(cls.getClassName().getText() + "Out")));
 
         Java24ModelUnparser unparser = new Java24ModelUnparser();
 
@@ -191,20 +192,12 @@ public class Test {
 
 
         eu.mihosoft.vmftext.tests.java24.VariableDeclarator varDecl = VariableDeclaratorWithExprInit.newBuilder().
-                withVarName("myVar1").withInitializer(
-                eu.mihosoft.vmftext.tests.java24.LiteralExpr.newBuilder().withLit(
-                        eu.mihosoft.vmftext.tests.java24.FloatLiteral.newBuilder().withFloatValue(2.5).build()
-                ).build()
-        ).build();
+                withVarName(identifier("myVar1")).withInitializer(floatLiteral(2.5)).build();
 
         fieldDecl.getVarDecls().add(varDecl);
 
         eu.mihosoft.vmftext.tests.java24.VariableDeclarator varDecl1 = VariableDeclaratorWithExprInit.newBuilder().
-                withVarName("myVar2").withInitializer(
-                eu.mihosoft.vmftext.tests.java24.LiteralExpr.newBuilder().withLit(
-                        eu.mihosoft.vmftext.tests.java24.FloatLiteral.newBuilder().withFloatValue(2.6).build()
-                ).build()
-        ).build();
+                withVarName(identifier("myVar2")).withInitializer(floatLiteral(2.6)).build();
 
         fieldDecl.getVarDecls().add(varDecl1);
 
@@ -235,20 +228,12 @@ public class Test {
                 eu.mihosoft.vmftext.tests.java24.DoubleType.newBuilder().build()).build());
 
         eu.mihosoft.vmftext.tests.java24.VariableDeclarator varDecl = VariableDeclaratorWithExprInit.newBuilder().
-                withVarName("myVar1").withInitializer(
-                eu.mihosoft.vmftext.tests.java24.LiteralExpr.newBuilder().withLit(
-                        eu.mihosoft.vmftext.tests.java24.FloatLiteral.newBuilder().withFloatValue(2.5).build()
-                ).build()
-        ).build();
+                withVarName(identifier("myVar1")).withInitializer(floatLiteral(2.5)).build();
 
         fieldDecl.getVarDecls().add(varDecl);
 
         eu.mihosoft.vmftext.tests.java24.VariableDeclarator varDecl1 = VariableDeclaratorWithExprInit.newBuilder().
-                withVarName("myVar2").withInitializer(
-                eu.mihosoft.vmftext.tests.java24.LiteralExpr.newBuilder().withLit(
-                        eu.mihosoft.vmftext.tests.java24.FloatLiteral.newBuilder().withFloatValue(2.6).build()
-                ).build()
-        ).build();
+                withVarName(identifier("myVar2")).withInitializer(floatLiteral(2.6)).build();
 
         fieldDecl.getVarDecls().add(varDecl1);
 
@@ -258,7 +243,7 @@ public class Test {
         clsBody.getDeclarations().add(clsBodyDecl);
 
         cDecl.setBody(clsBody);
-        cDecl.setClassName("MyClass");
+        cDecl.setClassName(identifier("MyClass"));
 
         eu.mihosoft.vmftext.tests.java24.ClassDeclaration cDeclFromParser = parser.parseClassDeclaration(
                 "class MyClass { private double myVar1 = 2.5, myVar2 = 2.6;}");
@@ -293,20 +278,12 @@ public class Test {
                 DoubleType.newBuilder().build()).build());
 
         eu.mihosoft.vmftext.tests.java24.VariableDeclarator varDecl = VariableDeclaratorWithExprInit.newBuilder().
-                withVarName("myVar1").withInitializer(
-                eu.mihosoft.vmftext.tests.java24.LiteralExpr.newBuilder().withLit(
-                        eu.mihosoft.vmftext.tests.java24.FloatLiteral.newBuilder().withFloatValue(2.5).build()
-                ).build()
-        ).build();
+                withVarName(identifier("myVar1")).withInitializer(floatLiteral(2.5)).build();
 
         fieldDecl.getVarDecls().add(varDecl);
 
         VariableDeclarator varDecl1 = VariableDeclaratorWithExprInit.newBuilder().
-                withVarName("myVar2").withInitializer(
-                LiteralExpr.newBuilder().withLit(
-                        eu.mihosoft.vmftext.tests.java24.FloatLiteral.newBuilder().withFloatValue(2.6).build()
-                ).build()
-        ).build();
+                withVarName(identifier("myVar2")).withInitializer(floatLiteral(2.6)).build();
 
         fieldDecl.getVarDecls().add(varDecl1);
 
@@ -316,7 +293,7 @@ public class Test {
         clsBody.getDeclarations().add(clsBodyDecl);
 
         cDecl.setBody(clsBody);
-        cDecl.setClassName("MyClass");
+        cDecl.setClassName(identifier("MyClass"));
         tDecl.setClassDecl(cDecl);
 
         unit.getTypeDeclarations().add(tDecl);
@@ -442,13 +419,13 @@ public class Test {
                     BlockStatement statement =
                             parser.parseBlockStatement(
                                     "System.out.println(\"> entering '"
-                                            + m.getMethodName() + "()'\");"
+                                            + m.getMethodName().getText() + "()'\");"
                             );
                     m.getBody().getMethodBlock().getStatements().add(0,statement);
                 });
 
         long numInstrumentationCalls = model.vmf().content().stream(MethodCall.class).filter(
-                mC->"println".equals(mC.getMethodName())).count();
+                mC->mC.getMethodName() != null && "println".equals(mC.getMethodName().getText())).count();
 
         // the instrumentation is expected to add 5 method calls
         Assert.assertEquals(5, numInstrumentationCalls);
@@ -465,6 +442,16 @@ public class Test {
 
         Assert.assertEquals(model, transformedModel);
 
+    }
+
+    private static Identifier identifier(String text) {
+        return Identifier.newBuilder().withText(text).build();
+    }
+
+    private static Expression floatLiteral(double value) {
+        return LiteralExpr.newBuilder().withLit(
+                FloatLiteral.newBuilder().withFloatValue(value).build()
+        ).build();
     }
 
 

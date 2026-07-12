@@ -39,11 +39,16 @@ options {
 }
 
 compilationUnit:packageDecl=packageDeclaration? (imports+=importDeclaration | ';')* (typeDeclarations+=typeDeclaration | ';')* EOF
-    | modularCompulationUnit EOF
+    | modularCompilationUnit EOF
+    | compactCompilationUnit EOF
     ;
 
-modularCompulationUnit
+modularCompilationUnit
     : imports+=importDeclaration* moduleDecl=moduleDeclaration
+    ;
+
+compactCompilationUnit
+    : imports+=importDeclaration* declarations+=classBodyDeclaration+
     ;
 
 packageDeclaration
@@ -51,7 +56,8 @@ packageDeclaration
     ;
 
 importDeclaration
-    : IMPORT importStatic=STATIC? packageOrClassName=qualifiedName starImport=DOT_STAR? ';'
+    : IMPORT MODULE moduleName=qualifiedName ';'                                                       # moduleImportDeclaration
+    | IMPORT importStatic=STATIC? packageOrClassName=qualifiedName starImport=DOT_STAR? ';'            # typeImportDeclaration
     ;
 
 typeDeclaration:typeModifiers+=classOrInterfaceModifier* (
@@ -64,7 +70,7 @@ typeDeclaration:typeModifiers+=classOrInterfaceModifier* (
 
 modifier:typeModifier=classOrInterfaceModifier
     | nativeModifier=NATIVE
-    | syncronizedModifier=SYNCHRONIZED
+    | synchronizedModifier=SYNCHRONIZED
     | transientModifier=TRANSIENT
     | volatileModifier=VOLATILE;
 
@@ -170,7 +176,7 @@ compactConstructorDeclaration
     : modifiers+=modifier* constructorName=identifier constructorBody = block
     ;
 
-fieldDeclaration:fieldType=typeType varDecls+=variableDeclarators ';'
+fieldDeclaration:fieldType=typeType varDecls+=variableDeclarator (',' varDecls+=variableDeclarator)* ';'
     ;
 
 interfaceBodyDeclaration
@@ -215,7 +221,11 @@ variableDeclarators
     : varDecls+=variableDeclarator (',' varDecls+=variableDeclarator)*
     ;
 
-variableDeclarator:varName=variableDeclaratorId ('=' initializer=variableInitializer)?;
+variableDeclarator
+    : varName=identifier arrayDims+=ARRAY_BRACKETS*                                       # variableDeclaratorWithoutInit
+    | varName=identifier arrayDims+=ARRAY_BRACKETS* '=' initializer=expression            # variableDeclaratorWithExprInit
+    | varName=identifier arrayDims+=ARRAY_BRACKETS* '=' initializer=arrayInitializer      # variableDeclaratorWithArrayInit
+    ;
 
 variableDeclaratorId:varName=identifier arrayDims+=ARRAY_BRACKETS*;
 
@@ -228,7 +238,7 @@ arrayInitializer
 
 classType:
     (
-      ( mackageName=pkgName '.' annotations+=annotation* )? types+=typeIdentifier typeArgs+=typeArguments?
+      ( packageName=pkgName '.' annotations+=annotation* )? types+=typeIdentifier typeArgs+=typeArguments?
     )+ ( '.' annotations+=annotation* types+=typeIdentifier typeArgs+=typeArguments? )*
     ;
 
@@ -236,8 +246,10 @@ pkgName:
     elementNames+=identifier ('.' elementNames+=identifier)*
     ;
 
-typeArgument:type=typeType
-    | annotations+=annotation* '?' ((EXTENDS | superType=SUPER) extendsOrSuperType=typeType)?;
+typeArgument
+    : type=typeType                                                                 # concreteTypeArgument
+    | annotations+=annotation* '?' ((EXTENDS | superType=SUPER) extendsOrSuperType=typeType)? # wildcardTypeArgument
+    ;
 
 qualifiedNameList
     : name+=qualifiedName (',' name+=qualifiedName)*
@@ -245,7 +257,8 @@ qualifiedNameList
 
 formalParameters
     : '(' (
-       ( receiverParam=receiverParameter | param+=formalParameter ) (',' paramList+=formalParameterList)*
+       receiverParam=receiverParameter (',' params+=formalParameter)*
+       | params+=formalParameter (',' params+=formalParameter)*
     )? ')'
     ;
 
@@ -274,21 +287,23 @@ qualifiedName
     : element+=identifier ('.' element+=identifier)*
     ;
 
-literal:decimalValue     =  integerLiteral
-    | floatValue         =  floatLiteral
-    | charValue          =  CHAR_LITERAL
-    | stringValue        =  STRING_LITERAL
-    | boolValue          =  BOOL_LITERAL
-    | nullValue          =  NULL_LITERAL
-    | textBlockValue     =  TEXT_BLOCK;
-
-integerLiteral:decimalValue=DECIMAL_LITERAL
-    | hexValue=HEX_LITERAL
-    | octValue=OCT_LITERAL
-    | ninaryValue=BINARY_LITERAL;
-
-floatLiteral:floatValue=FLOAT_LITERAL
-    | hexValue=HEX_FLOAT_LITERAL;
+literal
+    : (
+        decimalValue=DECIMAL_LITERAL
+        | hexValue=HEX_LITERAL
+        | octValue=OCT_LITERAL
+        | binaryValue=BINARY_LITERAL
+      )                                               # integerLiteral
+    | (
+        floatValue=FLOAT_LITERAL
+        | hexValue=HEX_FLOAT_LITERAL
+      )                                               # floatLiteral
+    | charValue=CHAR_LITERAL                          # charLiteral
+    | stringValue=STRING_LITERAL                      # stringLiteral
+    | boolValue=BOOL_LITERAL                          # booleanLiteral
+    | NULL_LITERAL                                    # nullLiteral
+    | textBlockValue=TEXT_BLOCK                       # textBlockLiteral
+    ;
 
 // ANNOTATIONS
 //altAnnotationQualifiedName
@@ -310,11 +325,11 @@ annotationFieldValue:
 	| name=identifier '=' value=annotationVal
 	;
 
-annotationVal:
-	expressionValue=expression //conditionalExpression
-	| annotationValue=annotation
-	| '{' ( values+=annotationVal ( ',' values+=annotationVal )* )? commaAfterLastValue=','? '}'
-	;
+annotationVal
+    : expressionValue=expression                                                       # annotationExpressionValue
+    | annotationValue=annotation                                                       # nestedAnnotationValue
+    | '{' (values+=annotationVal (',' values+=annotationVal)*)? commaAfterLastValue=','? '}' # annotationArrayValue
+    ;
 
 //elementValuePairs
 //    : elementValuePair (',' elementValuePair)*
@@ -383,11 +398,11 @@ requiresModifier
     ;
 
 recordDeclaration
-    : RECORD name=identifier typePArams=typeParameters? header=recordHeader (IMPLEMENTS typeLst=typeList)? body=recordBody
+    : RECORD name=identifier typeParams=typeParameters? header=recordHeader (IMPLEMENTS implementedTypes=typeList)? body=recordBody
     ;
 
 recordHeader
-    : '(' compnentList=recordComponentList? ')'
+    : '(' componentList=recordComponentList? ')'
     ;
 
 recordComponentList
@@ -438,18 +453,18 @@ identifier
     ;
 
 typeIdentifier // Identifiers that are not restricted for type declarations
-    : IDENTIFIER
-    | MODULE
-    | OPEN
-    | REQUIRES
-    | EXPORTS
-    | OPENS
-    | TO
-    | USES
-    | PROVIDES
-    | WITH
-    | TRANSITIVE
-    | SEALED
+    : text=IDENTIFIER
+    | text=MODULE
+    | text=OPEN
+    | text=REQUIRES
+    | text=EXPORTS
+    | text=OPENS
+    | text=TO
+    | text=USES
+    | text=PROVIDES
+    | text=WITH
+    | text=TRANSITIVE
+    | text=SEALED
     ;
 
 localTypeDeclaration:modifiers+=classOrInterfaceModifier* (classDecl=classDeclaration | interfaceDecl=interfaceDeclaration | recordDecl=recordDeclaration | enumDecl=enumDeclaration);
@@ -537,9 +552,15 @@ methodCall:(methodName=identifier | thisExpr=THIS | superExpr=SUPER) args=argume
 expression
     // Expression order in accordance with https://introcs.cs.princeton.edu/java/11precedence/
     // Level 16, Primary, array and member access
-    : primary                                                       #PrimaryExpression
-    | expression '[' expression ']'                                 #SquareBracketExpression
-    | expression bop = '.' (
+    : '(' expressn=expression ')'                                    # ParenExpression
+    | THIS                                                           # ThisExpr
+    | SUPER                                                          # SuperExpr
+    | lit=literal                                                    # LiteralExpr
+    | name=identifier                                                # IdentifierExpr
+    | type=typeTypeOrVoid '.' CLASS                                  # ClassLiteralExpr
+    | typeArgs=nonWildcardTypeArguments (invocationSuffix=explicitGenericInvocationSuffix | THIS args=arguments) # ExplicitGenericInvocationExpr
+    | array=expression '[' index=expression ']'                      #SquareBracketExpression
+    | target=expression bop = '.' (
         name=identifier
         | call=methodCall
         | thisExpr=THIS
@@ -549,11 +570,11 @@ expression
     )                                                               #MemberReferenceExpression
     // Method calls and method references are part of primary, and hence level 16 precedence
     | call=methodCall                                                    #MethodCallExpression
-    | expr=expression '::' typeArgs=typeArguments? name=identifier       #MethodReferenceExpression
-    | typeType '::' (typeArgs=typeArguments? name=identifier | NEW)               #MethodReferenceExpression
-    | classType '::' typeArgs=typeArguments? NEW                             #MethodReferenceExpression
+    | expr=expression '::' typeArgs=typeArguments? name=identifier       # ExpressionMethodReference
+    | type=typeType '::' (typeArgs=typeArguments? name=identifier | NEW) # TypeMethodReference
+    | type=classType '::' typeArgs=typeArguments? NEW                    # ClassConstructorReference
     
-    | switchExpression                                              #ExpressionSwitch
+    | switchExpr=switchExpression                                   #ExpressionSwitch
 
     // Level 15 Post-increment/decrement operators
     | expr=expression postfix = ('++' | '--')                            #PostIncrementDecrementOperatorExpression
@@ -567,26 +588,28 @@ expression
 
     // Level 12 to 1, Remaining operators
     // Level 12, Multiplicative operators
-    | left=expression bop = ('*' | '/' | '%') right=expression           #BinaryOperatorExpression
+    | left=expression bop = ('*' | '/' | '%') right=expression           # MultiplicativeExpression
     // Level 11, Additive operators
-    | left=expression bop = ('+' | '-') right=expression                 #BinaryOperatorExpression
+    | left=expression bop = ('+' | '-') right=expression                 # AdditiveExpression
     // Level 10, Shift operators
-    | left=expression ('<' '<' | '>' '>' '>' | '>' '>') right=expression #BinaryOperatorExpression
+    | left=expression '<' '<' right=expression                           # LeftShiftExpression
+    | left=expression '>' '>' right=expression                           # SignedRightShiftExpression
+    | left=expression '>' '>' '>' right=expression                       # UnsignedRightShiftExpression
     // Level 9, Relational operators
-    | left=expression bop = ('<=' | '>=' | '>' | '<') right=expression   #BinaryOperatorExpression
-    | expr=expression bop = INSTANCEOF (type=typeType | pattrn=pattern)        #InstanceOfOperatorExpression
+    | left=expression bop = ('<=' | '>=' | '>' | '<') right=expression   # RelationalExpression
+    | expr=expression bop = INSTANCEOF (type=typeType | instancePattern=pattern)        #InstanceOfOperatorExpression
     // Level 8, Equality Operators
-    | left=expression bop = ('==' | '!=') right=expression               #BinaryOperatorExpression
+    | left=expression bop = ('==' | '!=') right=expression               # EqualityExpression
     // Level 7, Bitwise AND
-    | left=expression bop = '&' right=expression                         #BinaryOperatorExpression
+    | left=expression bop = '&' right=expression                         # BitwiseAndExpression
     // Level 6, Bitwise XOR
-    | left=expression bop = '^' right=expression                         #BinaryOperatorExpression
+    | left=expression bop = '^' right=expression                         # BitwiseXorExpression
     // Level 5, Bitwise OR
-    | left=expression bop = '|' right=expression                         #BinaryOperatorExpression
+    | left=expression bop = '|' right=expression                         # BitwiseOrExpression
     // Level 4, Logic AND
-    | left=expression bop = '&&' right=expression                        #BinaryOperatorExpression
+    | left=expression bop = '&&' right=expression                        # LogicalAndExpression
     // Level 3, Logic OR
-    | left=expression bop = '||' right=expression                        #BinaryOperatorExpression
+    | left=expression bop = '||' right=expression                        # LogicalOrExpression
     // Level 2, Ternary
     | <assoc = right> expression bop = '?' expression ':' expression #TernaryExpression
     // Level 1, Assignment
@@ -603,7 +626,7 @@ expression
         | '>>>='
         | '<<='
         | '%='
-    ) assignExpr=expression                                        #BinaryOperatorExpression
+    ) assignExpr=expression                                        # AssignmentExpression
 
     // Level 0, Lambda Expression
     | expr=lambdaExpression                                        #ExpressionLambda
@@ -633,15 +656,6 @@ lambdaParameters:name=identifier                                # simpleIdentifi
 lambdaBody:lambdaExpr=expression
     | lambdaBlock=block;
 
-primary:'(' expressn=expression ')'                                                         # ParenExpression
-    | THIS                                                                                  # ThisExpr
-    | SUPER                                                                                 # SuperExpr
-    | lit=literal                                                                           # LiteralExpr
-    | identifier                                                                            # IdentifierExpr
-    | type=typeTypeOrVoid '.' CLASS                                                         # ClassLiteralExpr
-    | typeArgs=nonWildcardTypeArguments (invokationSuffix=explicitGenericInvocationSuffix | THIS args=arguments) # ExplicitGenericInvocationExpr
-    ;
-
 switchExpression
     : SWITCH '(' expressn=expression ')' '{' rules+=switchLabeledRule* '}'
     ;
@@ -660,7 +674,7 @@ guard
     ;
 
 casePattern
-    : casePattrn=pattern
+    : nestedPattern=pattern
     ;
 
 switchRuleOutcome
@@ -708,7 +722,8 @@ typeList
     ;
 
 typeType
-    : ann=annotation? (objectType=classOrInterfaceType | simpleType=primitiveType) arrayDims+=ARRAY_BRACKETS*
+    : annotations+=annotation* (objectType=classOrInterfaceType | simpleType=primitiveType)
+      (arrayAnnotations+=annotation* arrayDims+=ARRAY_BRACKETS)*
     ;
 
 primitiveType
@@ -729,7 +744,7 @@ typeArguments
 superSuffix:args=arguments
     | '.' typeArgs=typeArguments? name=identifier args=arguments?;
 
-explicitGenericInvocationSuffix:SUPER superSuffx=superSuffix
+explicitGenericInvocationSuffix:SUPER suffix=superSuffix
     | name=identifier args=arguments;
 
 arguments
