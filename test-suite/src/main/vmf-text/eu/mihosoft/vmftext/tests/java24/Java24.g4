@@ -393,7 +393,7 @@ moduleDirective
     | EXPORTS name=qualifiedName (TO targets+=qualifiedName (',' targets+=qualifiedName)* )? ';'        # exportsDirective
     | OPENS name=qualifiedName (TO targets+=qualifiedName (',' targets+=qualifiedName)* )? ';'          # opensDirective
     | USES name=qualifiedName ';'                                                                       # usesDirective
-    | PROVIDES name=qualifiedName WITH with=qualifiedName (',' with=qualifiedName)* ';'                 # providesDirective
+    | PROVIDES name=qualifiedName WITH implementations+=qualifiedName (',' implementations+=qualifiedName)* ';' # providesDirective
     ;
 
 requiresModifier
@@ -638,8 +638,8 @@ expression
     ;
 
 pattern
-    : modifiers+=variableModifier* type=typeType annotations+=annotation* varDecl=variableDeclarator
-    | type=typeType '(' patternList=componentPatternList? ')'
+    : modifiers+=variableModifier* type=typeType annotations+=annotation* varDecl=variableDeclarator # typePattern
+    | type=typeType '(' patternList=componentPatternList? ')'                                        # recordPattern
     ;
 
 componentPatternList :
