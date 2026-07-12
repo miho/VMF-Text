@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 ext.publishingInfo.artifactId =  'vmf-text-gradle-plugin'
 ext.publishingInfo.groupId    =  'eu.mihosoft.vmf'
-ext.publishingInfo.versionId  =  '0.2.0'
+ext.publishingInfo.versionId  =  '0.2.1-SNAPSHOT'
 
 ext.publishingInfo.developerName         = 'Michael Hoffer'
 ext.publishingInfo.developerAlias        = 'miho'

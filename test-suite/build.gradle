@@ -6,7 +6,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.0'
+        classpath 'eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.1-SNAPSHOT'
         //classpath fileTree(dir: '../gradle-plugin/build/libs/', include: '*.jar')
     }
 }
