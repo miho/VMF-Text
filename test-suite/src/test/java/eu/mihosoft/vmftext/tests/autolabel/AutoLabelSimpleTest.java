@@ -18,11 +18,15 @@ public class AutoLabelSimpleTest {
 
         Statement first = model.getRoot().getStatementNodes().get(0);
         Assert.assertEquals("x", first.getIdentifier());
-        Assert.assertEquals("1", first.getValueNode().getIntValue());
+        Assert.assertTrue("Unlabeled alternatives become typed sub classes.",
+                first.getValueNode() instanceof ValueAlt1);
+        Assert.assertEquals("1", ((ValueAlt1) first.getValueNode()).getIntValue());
 
         Statement second = model.getRoot().getStatementNodes().get(1);
         Assert.assertEquals("y", second.getIdentifier());
-        Assert.assertEquals("x", second.getValueNode().getIdentifier());
+        Assert.assertTrue("Unlabeled alternatives become typed sub classes.",
+                second.getValueNode() instanceof ValueAlt2);
+        Assert.assertEquals("x", ((ValueAlt2) second.getValueNode()).getIdentifier());
 
         String unparsed = new AutoLabelSimpleModelUnparser().unparse(model);
         Assert.assertEquals(source, unparsed);
