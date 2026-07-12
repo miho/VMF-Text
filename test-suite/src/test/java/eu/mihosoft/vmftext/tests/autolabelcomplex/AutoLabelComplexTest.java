@@ -73,6 +73,52 @@ public class AutoLabelComplexTest {
     }
 
     @Test
+    public void mixedOperatorsRoundTripInOrder() {
+        String source = "x = 1 + 2 - 3;\n";
+
+        AutoLabelComplexModelParser parser = new AutoLabelComplexModelParser();
+        AutoLabelComplexModel model = parser.parse(source);
+
+        Expression expression = ((StatementAlt1) model.getRoot().getStatementNodes().get(0))
+                .getAssignmentNode().getExpressionNode();
+        Assert.assertEquals("both operators are captured", 2, expression.getOperators().size());
+        Assert.assertEquals("+", expression.getOperators().get(0));
+        Assert.assertEquals("-", expression.getOperators().get(1));
+
+        String unparsed = new AutoLabelComplexModelUnparser().unparse(model);
+        Assert.assertEquals("mixed operators unparse in their original positions",
+                source, unparsed);
+        Assert.assertEquals(model, parser.parse(unparsed));
+    }
+
+    @Test
+    public void altTypedRulesNumberElementNamesPerAlternative() {
+        // FactorAlt3 ('(' expression ')') and FactorAlt4 ('[' ... ']') are
+        // separate types, so each starts its name numbering fresh: the leading
+        // expression of FactorAlt4 is 'expressionNode', not 'expressionNode2'.
+        String source = "x = [1, 2];\n";
+
+        AutoLabelComplexModelParser parser = new AutoLabelComplexModelParser();
+        AutoLabelComplexModel model = parser.parse(source);
+
+        Factor factor = ((StatementAlt1) model.getRoot().getStatementNodes().get(0))
+                .getAssignmentNode().getExpressionNode().getTermNode().getFactorNode();
+        Assert.assertTrue("array factor -> FactorAlt4", factor instanceof FactorAlt4);
+        FactorAlt4 arrayFactor = (FactorAlt4) factor;
+
+        Assert.assertEquals("1", ((FactorAlt1) arrayFactor.getExpressionNode()
+                .getTermNode().getFactorNode()).getIntValue());
+        Assert.assertEquals("repeated expressions are collected into a list",
+                1, arrayFactor.getExpressionNodes().size());
+        Assert.assertEquals("the ',' separator is captured",
+                1, arrayFactor.getSymbols().size());
+
+        String unparsed = new AutoLabelComplexModelUnparser().unparse(model);
+        Assert.assertEquals(source, unparsed);
+        Assert.assertEquals(model, parser.parse(unparsed));
+    }
+
+    @Test
     public void multiTokenBlocksAreCapturedElementWise() {
         // ('[' ']')* is not a token set, so it must not receive a single block
         // label (ANTLR rejects that with error 130); instead each literal is

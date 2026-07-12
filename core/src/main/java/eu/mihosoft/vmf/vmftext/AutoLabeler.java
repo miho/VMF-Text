@@ -49,6 +49,11 @@ import java.util.Set;
  * labels <em>some</em> of its alternatives (which ANTLR would reject) has the
  * remaining alternatives labeled automatically so the grammar stays valid.
  * String literals outside of repeated blocks are left unchanged.</p>
+ *
+ * <p>Duplicate element names receive stable numeric suffixes. The numbering is
+ * scoped to the generated type: in rules whose alternatives become separate
+ * typed sub classes each top-level alternative numbers its names
+ * independently, everywhere else names are unique per rule.</p>
  */
 final class AutoLabeler {
 
@@ -131,6 +136,10 @@ final class AutoLabeler {
         private int currentRuleIndex = -1;
         private int currentAltIndex;
         private int currentElementIndex;
+        // true while inside a rule whose top-level alternatives each become
+        // their own typed sub class: element names are then numbered per
+        // alternative instead of per rule.
+        private boolean altTypedRule;
 
         AutoLabelListener(CommonTokenStream tokens, TokenStreamRewriter rewriter, Set<String> reservedNamesLower) {
             this.tokens = tokens;
@@ -146,11 +155,15 @@ final class AutoLabeler {
             currentElementIndex = 0;
             nameCountsInRule.clear();
 
-            // reserve the names of manually labeled elements so auto-generated
-            // element labels never collide with the manual ones.
-            seedManualElementLabels(ctx);
+            altTypedRule = labelAlternatives(ctx);
 
-            labelAlternatives(ctx);
+            if(!altTypedRule) {
+                // reserve the names of manually labeled elements so auto-generated
+                // element labels never collide with the manual ones. (Alt-typed
+                // rules seed per top-level alternative instead, see
+                // enterAlternative.)
+                seedManualElementLabels(ctx);
+            }
         }
 
         /**
@@ -163,30 +176,45 @@ final class AutoLabeler {
          * labels are filled in so the grammar becomes valid while keeping the
          * manual labels intact. For fully unlabeled rules the labels are only
          * added when there are at least two non-empty alternatives.</p>
+         *
+         * @return {@code true} if every top-level alternative carries its own
+         *         distinct label after this pass, i.e. each alternative becomes
+         *         a separate typed sub class with its own element-name
+         *         namespace
          */
-        private void labelAlternatives(ANTLRv4Parser.ParserRuleSpecContext ctx) {
+        private boolean labelAlternatives(ANTLRv4Parser.ParserRuleSpecContext ctx) {
             if(ctx.ruleBlock() == null || ctx.ruleBlock().ruleAltList() == null) {
-                return;
+                return false;
             }
 
             List<ANTLRv4Parser.LabeledAltContext> alts = ctx.ruleBlock().ruleAltList().labeledAlt();
 
             if(alts.size() < 2) {
-                return;
+                return false;
             }
 
             int labeledCount = 0;
             boolean hasEmptyUnlabeled = false;
+            boolean duplicateManualLabels = false;
+            Set<String> manualLabels = new HashSet<>();
             for(ANTLRv4Parser.LabeledAltContext alt : alts) {
                 if(alt.identifier() != null) {
                     labeledCount++;
+                    if(!manualLabels.add(alt.identifier().getText())) {
+                        duplicateManualLabels = true;
+                    }
                 } else if(isEmptyAlternative(alt)) {
                     hasEmptyUnlabeled = true;
                 }
             }
 
+            // the same manual label on several alternatives merges them into a
+            // single type, so element names must stay unique across the whole
+            // rule in that case.
+            boolean altTyped = !duplicateManualLabels;
+
             if(labeledCount == alts.size()) {
-                return; // fully manual labeling: nothing to complete
+                return altTyped; // fully manual labeling: nothing to complete
             }
 
             boolean completingManualLabels = labeledCount > 0;
@@ -196,7 +224,7 @@ final class AutoLabeler {
             // sub class). When completing manual labels we must label every
             // alternative (including empty ones) to keep the grammar valid.
             if(!completingManualLabels && hasEmptyUnlabeled) {
-                return;
+                return false;
             }
 
             for(int i = 0; i < alts.size(); i++) {
@@ -219,6 +247,8 @@ final class AutoLabeler {
                 entriesByRule.computeIfAbsent(currentRuleName, key -> new LinkedHashMap<>())
                         .put("/r" + currentRuleIndex + "/alt" + (i + 1), "# " + label);
             }
+
+            return altTyped;
         }
 
         private boolean isEmptyAlternative(ANTLRv4Parser.LabeledAltContext alt) {
@@ -255,6 +285,15 @@ final class AutoLabeler {
         public void enterAlternative(ANTLRv4Parser.AlternativeContext ctx) {
             currentAltIndex++;
             currentElementIndex = 0;
+
+            // each top-level alternative of an alt-typed rule is its own type,
+            // so it gets a fresh element-name namespace seeded with its own
+            // manual labels. Nested block alternatives (parent is not a
+            // labeledAlt) share the namespace of their top-level alternative.
+            if(altTypedRule && ctx.getParent() instanceof ANTLRv4Parser.LabeledAltContext) {
+                nameCountsInRule.clear();
+                seedManualElementLabels(ctx);
+            }
         }
 
         @Override
