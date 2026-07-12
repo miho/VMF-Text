@@ -25,7 +25,7 @@ public abstract class JavaParserBase extends Parser {
         int count = rcs.size();
         for (int c = 0; c < count; ++c) {
             Java24Parser.RecordComponentContext rc = rcs.get(c);
-            if (rc.ELLIPSIS() != null && c + 1 < count)
+            if (rc instanceof Java24Parser.VarArgRecordComponentContext && c + 1 < count)
                 return false;
         }
         return true;
