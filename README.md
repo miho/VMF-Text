@@ -109,12 +109,35 @@ AutoLabel(enabled=true)
 */
 ```
 
-Explicit labels always win. Unlabeled parser-rule and token references receive
-deterministic names based on grammar order; repeated elements become list
-properties; duplicate names receive stable numeric suffixes. String literals
-remain syntax and are not exposed as semantic properties. During generation,
-VMF-Text prints an auto-label report that maps grammar element paths to inferred
-property names.
+Explicit labels always win and mix consistently with auto-labeling. Unlabeled
+parser-rule and token references receive deterministic names based on grammar
+order; duplicate names receive stable numeric suffixes. Generated element names
+never collide with manually chosen labels (a hand-written `identifier=` label
+keeps its name, and an auto-labeled sibling becomes `identifier2`). If a rule
+labels only *some* of its alternatives with `#` (which ANTLR rejects on its own,
+since alternative labeling is all-or-none), the remaining alternatives are
+labeled automatically so the grammar stays valid while the manual labels are
+preserved.
+
+Auto-labeling also handles the structural idioms found in default (unlabeled)
+ANTLR4 grammars:
+
+- elements that can occur more than once become list properties. This includes
+  elements nested inside a repeated block, so `term (('+' | '-') term)*` exposes
+  the repeated `term`s as a list instead of collapsing them.
+- parser rules with two or more unlabeled top-level alternatives receive
+  deterministic `# <Rule>AltN` alternative labels, so each alternative becomes
+  its own typed sub class (e.g. `factor : INT | IDENTIFIER | '(' expr ')'`
+  yields `FactorAlt1`, `FactorAlt2`, `FactorAlt3` extending `Factor`).
+- unnamed operator/separator literals inside a repeated block (such as the
+  `('+' | '-')` in `(('+' | '-') term)*` or the `','` in `(',' item)*`) are
+  captured as ordered list properties so the exact text is reproduced when
+  unparsing instead of being dropped.
+
+Isolated string literals outside of repeated blocks remain syntax and are not
+exposed as semantic properties. During generation, VMF-Text prints an auto-label
+report that maps grammar element paths to inferred property and alternative
+names.
 
 ## Typed Lexical Metadata
 
