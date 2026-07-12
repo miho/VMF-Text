@@ -310,17 +310,19 @@ final class AutoLabeler {
         }
 
         /**
-         * Labels an unlabeled block that only contains terminals (e.g. an
-         * operator group like {@code ('+' | '-')}) as a single {@code +=} list
-         * element when it can occur more than once. Blocks that contain rule
-         * references are left untouched so their references are labeled
-         * individually as typed properties.
+         * Labels an unlabeled block that forms a token set (e.g. an operator
+         * group like {@code ('+' | '-')}) as a single {@code +=} list element
+         * when it can occur more than once. ANTLR only permits labels on
+         * blocks whose alternatives are single tokens, so all other blocks
+         * (multi-token alternatives like {@code ('[' ']')} or blocks with rule
+         * references) are left untouched and their elements are labeled
+         * individually instead.
          */
         private void labelLiteralBlockElement(ANTLRv4Parser.ElementContext ctx, int elementIndex) {
             ANTLRv4Parser.EbnfContext ebnf = ctx.ebnf();
 
             boolean repeated = isStarOrPlus(blockSuffix(ebnf)) || isRepeated(ctx);
-            if(!repeated || !isTerminalOnlyBlock(ebnf.block())) {
+            if(!repeated || !isTokenSetBlock(ebnf.block())) {
                 return;
             }
 
@@ -357,21 +359,28 @@ final class AutoLabeler {
             return ebnf.blockSuffix() == null ? null : ebnf.blockSuffix().ebnfSuffix();
         }
 
-        private boolean isTerminalOnlyBlock(ANTLRv4Parser.BlockContext block) {
-            return !containsRuleRef(block);
-        }
-
-        private boolean containsRuleRef(ParserRuleContext ctx) {
-            if(ctx instanceof ANTLRv4Parser.RulerefContext) {
-                return true;
+        /**
+         * A block can carry a label only if ANTLR considers it a token set:
+         * every alternative consists of exactly one unsuffixed terminal
+         * (token reference or string literal). Anything else labeled as a unit
+         * is rejected by ANTLR with "label assigned to a block which is not a
+         * set" (error 130).
+         */
+        private boolean isTokenSetBlock(ANTLRv4Parser.BlockContext block) {
+            if(block.altList() == null || block.optionsSpec() != null || !block.ruleAction().isEmpty()) {
+                return false;
             }
-            for(int i = 0; i < ctx.getChildCount(); i++) {
-                if(ctx.getChild(i) instanceof ParserRuleContext
-                        && containsRuleRef((ParserRuleContext) ctx.getChild(i))) {
-                    return true;
+            for(ANTLRv4Parser.AlternativeContext alt : block.altList().alternative()) {
+                if(alt.elementOptions() != null || alt.element().size() != 1) {
+                    return false;
+                }
+                ANTLRv4Parser.ElementContext element = alt.element().get(0);
+                if(element.ebnfSuffix() != null || element.atom() == null
+                        || element.atom().terminal() == null) {
+                    return false;
                 }
             }
-            return false;
+            return true;
         }
 
         private String referencedRuleName(ANTLRv4Parser.AtomContext atom) {
@@ -425,13 +434,24 @@ final class AutoLabeler {
 
         private String uniqueName(String baseName) {
             int count = nameCountsInRule.getOrDefault(baseName, 0) + 1;
-            nameCountsInRule.put(baseName, count);
+            String candidate = count == 1 ? baseName : baseName + count;
 
-            if(count == 1) {
-                return baseName;
+            // a suffixed candidate may still collide with a name that is
+            // already taken, e.g. a manual 'identifier2' label next to an
+            // auto-labeled 'identifier': bump the counter until it is free.
+            while(count > 1 && nameCountsInRule.containsKey(candidate)) {
+                count++;
+                candidate = baseName + count;
             }
 
-            return baseName + count;
+            nameCountsInRule.put(baseName, count);
+            if(count > 1) {
+                // reserve the suffixed name itself so a later base name equal
+                // to it (e.g. base 'identifier2' after 'identifier2' was
+                // generated from base 'identifier') cannot produce it again.
+                nameCountsInRule.putIfAbsent(candidate, 1);
+            }
+            return candidate;
         }
 
         private String toPropertyBaseName(String referencedName) {

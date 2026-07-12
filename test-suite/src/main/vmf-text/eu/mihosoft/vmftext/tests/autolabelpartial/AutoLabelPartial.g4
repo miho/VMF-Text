@@ -4,10 +4,11 @@ program
     : entry* EOF
     ;
 
-// fully unlabeled alternatives -> both labeled automatically
+// fully unlabeled alternatives -> all labeled automatically
 entry
     : element
     | pair
+    | triple
     ;
 
 // partial manual alternative labels: only the first alternative is labeled by
@@ -23,6 +24,13 @@ element
 // auto label must be disambiguated instead of clashing.
 pair
     : '(' identifier=INT ':' IDENTIFIER ')'
+    ;
+
+// manual labels occupy both the base name and its first numeric suffix: the
+// auto label for the unlabeled IDENTIFIER must skip 'identifier2' and use
+// 'identifier3' instead of silently colliding with the manual label.
+triple
+    : '<' identifier=INT identifier2=INT IDENTIFIER '>'
     ;
 
 IDENTIFIER : [a-zA-Z_][a-zA-Z0-9_]* ;

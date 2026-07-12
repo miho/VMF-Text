@@ -73,6 +73,32 @@ public class AutoLabelComplexTest {
     }
 
     @Test
+    public void multiTokenBlocksAreCapturedElementWise() {
+        // ('[' ']')* is not a token set, so it must not receive a single block
+        // label (ANTLR rejects that with error 130); instead each literal is
+        // captured as its own ordered list property.
+        String source = "d[][];\n";
+
+        AutoLabelComplexModelParser parser = new AutoLabelComplexModelParser();
+        AutoLabelComplexModel model = parser.parse(source);
+
+        Statement statement = model.getRoot().getStatementNodes().get(0);
+        Assert.assertTrue("dims alternative -> StatementAlt4",
+                statement instanceof StatementAlt4);
+        Dims dims = ((StatementAlt4) statement).getDimsNode();
+
+        Assert.assertEquals("d", dims.getIdentifier());
+        Assert.assertEquals("each '[' is captured in order",
+                2, dims.getSymbols().size());
+        Assert.assertEquals("each ']' is captured in order",
+                2, dims.getSymbols2().size());
+
+        String unparsed = new AutoLabelComplexModelUnparser().unparse(model);
+        Assert.assertEquals("repeated bracket pairs round-trip", source, unparsed);
+        Assert.assertEquals(model, parser.parse(unparsed));
+    }
+
+    @Test
     public void parsedModelRoundTrips() {
         AutoLabelComplexModelParser parser = new AutoLabelComplexModelParser();
         AutoLabelComplexModel model = parser.parse(SOURCE);

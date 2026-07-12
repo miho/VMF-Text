@@ -132,7 +132,10 @@ ANTLR4 grammars:
 - unnamed operator/separator literals inside a repeated block (such as the
   `('+' | '-')` in `(('+' | '-') term)*` or the `','` in `(',' item)*`) are
   captured as ordered list properties so the exact text is reproduced when
-  unparsing instead of being dropped.
+  unparsing instead of being dropped. Token-set groups like `('+' | '-')` are
+  captured as one list; multi-token groups like `('[' ']')*` are captured
+  element-wise (one ordered list per literal), since ANTLR only allows a
+  single label on blocks that form a token set.
 
 Isolated string literals outside of repeated blocks remain syntax and are not
 exposed as semantic properties. During generation, VMF-Text prints an auto-label

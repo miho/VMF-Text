@@ -43,13 +43,25 @@ public class AutoLabelPartialTest {
     }
 
     @Test
+    public void generatedNameSkipsManuallyTakenSuffix() {
+        AutoLabelPartialModelParser parser = new AutoLabelPartialModelParser();
+        Triple triple = parser.parseTriple("<1 2 foo>");
+
+        // manual labels occupy the base name and its first numeric suffix
+        Assert.assertEquals("1", triple.getIdentifier());
+        Assert.assertEquals("2", triple.getIdentifier2());
+        // the auto label must skip 'identifier2' instead of colliding with it
+        Assert.assertEquals("foo", triple.getIdentifier3());
+    }
+
+    @Test
     public void mixedLabelingRoundTrips() {
-        String source = "foo 42 (7 : bar)";
+        String source = "foo 42 (7 : bar) <1 2 baz>";
 
         AutoLabelPartialModelParser parser = new AutoLabelPartialModelParser();
         AutoLabelPartialModel model = parser.parse(source);
 
-        Assert.assertEquals(3, model.getRoot().getEntryNodes().size());
+        Assert.assertEquals(4, model.getRoot().getEntryNodes().size());
 
         AutoLabelPartialModelUnparser unparser = new AutoLabelPartialModelUnparser();
         String unparsed = unparser.unparse(model);

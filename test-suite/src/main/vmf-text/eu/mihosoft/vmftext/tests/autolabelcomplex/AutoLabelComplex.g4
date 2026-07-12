@@ -8,6 +8,7 @@ statement
     : assignment
     | ifStatement
     | block
+    | dims
     ;
 
 assignment
@@ -35,6 +36,12 @@ factor
     | IDENTIFIER
     | '(' expression ')'
     | '[' expression (',' expression)* ']'
+    ;
+
+// a repeated multi-token block is not a token set, so it must not receive a
+// single block label (ANTLR error 130); its literals are captured element-wise
+dims
+    : IDENTIFIER ('[' ']')* ';'
     ;
 
 IDENTIFIER : [a-zA-Z_][a-zA-Z0-9_]* ;
