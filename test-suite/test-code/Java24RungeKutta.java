@@ -1,5 +1,3 @@
-import static java.lang.StringTemplate.STR;
-
 /*
  * RungeKutta.java by Richard J. Davies
  * from `Introductory Java for Scientists and Engineers'
@@ -11,10 +9,8 @@ import static java.lang.StringTemplate.STR;
  * for the D.E. dy/dx = x * sqrt(1 + y*y)
  * with initial value y=0 at x=0.
  *
- * Note: String Templates (STR) are a preview feature in Java 24.
- * To compile and run, use:
- * javac --release 24 --enable-preview Java24RungeKutta.java
- * java --enable-preview Java24RungeKutta
+ * String templates were withdrawn after Java 22, so this Java 24 version
+ * combines text blocks with String.formatted().
  */
 public class Java24RungeKutta {
     // The number of steps to use in the interval (Public API)
@@ -52,12 +48,12 @@ public class Java24RungeKutta {
             yEuler += h * deriv(x, yEuler);
         }
 
-        // Use a text block (Java 15+) and a string template (Java 21+) for clean output.
+        // Use a text block (Java 15+) for clean output.
         // The original code had a typo "Euclid's method" which has been corrected to "Euler's method".
-        System.out.println(STR."""
+        System.out.println("""
         Using the Euler method, the value at x=1 is:
-        \{yEuler}
-        """);
+        %s
+        """.formatted(yEuler));
 
 
         // --- Computation by 4th order Runge-Kutta ---
@@ -75,10 +71,10 @@ public class Java24RungeKutta {
             yRk4 += (k1 + 2 * k2 + 2 * k3 + k4) / 6.0;
         }
 
-        System.out.println(STR."""
+        System.out.println("""
         Using 4th order Runge-Kutta, the value at x=1 is:
-        \{yRk4}
-        """);
+        %s
+        """.formatted(yRk4));
 
         // Update the public static field to maintain the original API's behavior.
         value = yRk4;
@@ -88,9 +84,9 @@ public class Java24RungeKutta {
         // The exact solution is sinh(x^2 / 2). At x=1, this is sinh(0.5).
         // Using Math.sinh() is more descriptive than the exponential form.
         var yExact = Math.sinh(0.5);
-        System.out.println(STR."""
+        System.out.println("""
         The exact analytical value is:
-        \{yExact}
-        """);
+        %s
+        """.formatted(yExact));
     }
 }

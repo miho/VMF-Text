@@ -39,8 +39,8 @@ options {
 }
 
 compilationUnit:packageDecl=packageDeclaration? (imports+=importDeclaration | ';')* (typeDeclarations+=typeDeclaration | ';')* EOF
-    | modularCompilationUnit EOF
-    | compactCompilationUnit EOF
+    | modularUnit=modularCompilationUnit EOF
+    | compactUnit=compactCompilationUnit EOF
     ;
 
 modularCompilationUnit
@@ -633,7 +633,7 @@ expression
     ;
 
 pattern
-    : modifiers+=variableModifier* type=typeType annotations+=annotation* varDecls=variableDeclarators
+    : modifiers+=variableModifier* type=typeType annotations+=annotation* varDecl=variableDeclarator
     | type=typeType '(' patternList=componentPatternList? ')'
     ;
 
@@ -679,7 +679,7 @@ casePattern
 
 switchRuleOutcome
     : switchBlock=block
-    | statements+=blockStatement* // is *-operator correct??? I don't think so. https://docs.oracle.com/javase/specs/jls/se24/html/jls-14.html#jls-BlockStatements
+    | statements+=blockStatement+
     ;
 
 classOrInterfaceType

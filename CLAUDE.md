@@ -12,14 +12,10 @@ coding agents and live in AGENTS.md:
 - Focused lexical preservation tests:
   `cd test-suite && sh ./gradlew test --tests "eu.mihosoft.vmftext.tests.lexicalpreservation.*" --no-daemon`
 
-## Known WIP
+## Known limitations
 
-- The java24 grammar port is unfinished: `test-suite/src/test/java/eu/mihosoft/vmftext/tests/java24/Test.java`
-  targets model APIs the grammar does not generate yet (literal hierarchy,
-  alt-labeled declarators) and is excluded from test compilation in
-  `test-suite/build.gradle`. Do not "fix" the exclusion without finishing the
-  grammar work; `IdentifierStringTest` in the same package covers what already
-  works.
+- Java string templates are intentionally unsupported because the preview
+ feature was withdrawn after Java 22 and is not part of Java 24.
 - Lexical preservation is exact for parsed models; programmatically edited
   values fall back to conservative separators (see
   `LEXICAL_PRESERVATION_ASSESSMENT.md`).
