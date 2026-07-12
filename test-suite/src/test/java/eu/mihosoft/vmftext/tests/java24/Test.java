@@ -257,11 +257,13 @@ public class Test {
         Java24ModelUnparser unparser = new Java24ModelUnparser();
 
         eu.mihosoft.vmftext.tests.java24.CompilationUnit unit = CompilationUnit.newInstance();
+        OrdinaryCompilationUnit normalUnit = OrdinaryCompilationUnit.newInstance();
+        unit.setNormalUnit(normalUnit);
 
         eu.mihosoft.vmftext.tests.java24.PackageDeclaration pDecl = eu.mihosoft.vmftext.tests.java24.PackageDeclaration.newInstance();
         pDecl.defPackageNameFromString("eu.mihosoft.v123");
 
-        unit.setPackageDecl(pDecl);
+        normalUnit.setPackageDecl(pDecl);
 
         eu.mihosoft.vmftext.tests.java24.TypeDeclaration tDecl = TypeDeclaration.newInstance();
         eu.mihosoft.vmftext.tests.java24.ClassDeclaration cDecl = ClassDeclaration.newInstance();
@@ -296,7 +298,7 @@ public class Test {
         cDecl.setClassName(identifier("MyClass"));
         tDecl.setClassDecl(cDecl);
 
-        unit.getTypeDeclarations().add(tDecl);
+        normalUnit.getTypeDeclarations().add(tDecl);
 
         System.out.println(unparser.unparse(unit));
 
