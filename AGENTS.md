@@ -7,8 +7,9 @@ VMF-Text is a Java/Gradle framework that turns a labeled ANTLR4 grammar into a
 clean (un)parsing/transformation API (built on the separate VMF modeling
 framework). It is a library/CLI-style framework, not a running server or GUI.
 
-Three Gradle subprojects build in a strict order because each publishes a
-`0.2-SNAPSHOT` artifact to the local Maven repo that the next one consumes:
+Three Gradle subprojects build in a strict order because each publishes an
+artifact (version in `config/common.properties`) to the local Maven repo that
+the next one consumes:
 1. `core` → `publishToMavenLocal` (produces `eu.mihosoft.vmf:vmf-text`)
 2. `gradle-plugin` → `publishToMavenLocal` (consumes `vmf-text`, produces `vmf-text-gradle-plugin`)
 3. `test-suite` → `test` (consumes `vmf-text-gradle-plugin` to generate + test grammars)
@@ -18,25 +19,23 @@ Standard build/test commands are already documented in `README.md`,
 full chain above. Always use the Gradle wrapper (`./gradlew`, Gradle 9.0.0); CI
 uses `--no-daemon`. If you hit `Permission denied`, invoke it as `sh ./gradlew`.
 
-### Critical upstream dependency (not on Maven Central)
-`core` depends on unreleased snapshots of the sibling VMF project:
-`eu.mihosoft.vmf:vmf`, `:vmf-runtime`, and `:vmf-gradle-plugin`, version
-`0.2.9.7-SNAPSHOT`. Maven Central only publishes VMF up to a released
-`0.2.9.6`, so these snapshots must exist in `~/.m2`. They are built from
-`github.com/miho/VMF` (its `master` branch's `config/common.properties` sets
-`publication.version=0.2.9.7-SNAPSHOT`). CI builds them from source on every
-run (see `.github/workflows/ci.yml`). If they are missing locally (nothing
-under `~/.m2/repository/eu/mihosoft/vmf/vmf/0.2.9.7-SNAPSHOT/`), rebuild them:
+### Upstream dependency: VMF
+`core` depends on the sibling VMF project (`eu.mihosoft.vmf:vmf`,
+`:vmf-runtime`, and the `eu.mihosoft.vmf` Gradle plugin =
+`:vmf-gradle-plugin`). Since VMF `0.2.10` these are released on Maven Central,
+so a plain checkout builds without any extra steps. Only when developing
+against an unreleased VMF `-SNAPSHOT` (bumped in `core/build.gradle`) does VMF
+have to be built from source first:
 
 ```
 git clone --depth 1 https://github.com/miho/VMF.git ~/deps/VMF
 cd ~/deps/VMF && sh ./gradlew clean publishToMavenLocal --no-daemon
 ```
+(VMF pins JDK 11/17 toolchains for that source build.)
 
 ### JDK toolchains
-Gradle 9 itself runs on JDK 17+, but the projects pin Java toolchains that must
-be installed locally (no toolchain auto-download is configured):
-- VMF `core` → JDK 11, VMF `gradle-plugin` → JDK 17
+Gradle 9 itself runs on JDK 17+, but the projects pin a Java toolchain that
+must be installed locally (no toolchain auto-download is configured):
 - VMF-Text `core`, `gradle-plugin`, `test-suite` → JDK 21
 
 If a build fails with "Cannot find a Java installation ... matching
@@ -46,8 +45,8 @@ If a build fails with "Cannot find a Java installation ... matching
 
 ### CI
 `.github/workflows/ci.yml` runs on every push and pull request: it builds the
-VMF snapshot from source, then the full chain above, and runs the complete
-test suite. Keep it green — there is no other automated gate.
+full chain above against the released VMF from Maven Central and runs the
+complete test suite. Keep it green — there is no other automated gate.
 
 ### Non-obvious gotchas
 - No cross-project hot reload: subprojects talk to each other only through

@@ -48,7 +48,7 @@ dependencies {
     implementation gradleApi()
     implementation localGroovy()
 
-    implementation group: 'eu.mihosoft.vmf', name: 'vmf-text', version: '0.2-SNAPSHOT'
+    implementation group: 'eu.mihosoft.vmf', name: 'vmf-text', version: '0.2.0'
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation gradleTestKit()
@@ -56,8 +56,8 @@ dependencies {
 
 // Modern plugin declaration for Plugin Portal/publication
 gradlePlugin {
-    website = 'https://github.com/miho/VMF-Text-Gradle-Plugin'
-    vcsUrl  = 'https://github.com/miho/VMF-Text-Gradle-Plugin'
+    website = 'https://github.com/miho/VMF-Text'
+    vcsUrl  = 'https://github.com/miho/VMF-Text'
 
     plugins {
         vmfTextPlugin {
