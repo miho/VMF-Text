@@ -1,11 +1,9 @@
 # VMF-Text [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=VMF-Text:%20The%20new%20framework%20for%20grammar-based%20language%20modeling!&url=https://github.com/miho/VMF-Text&via=mihosoft&hashtags=vmftext,vmf,antlr4,java,mdd,developers)
 
-[ ![Download](https://api.bintray.com/packages/miho/VMF/VMF-Text/images/download.svg) ](https://bintray.com/miho/VMF/VMF-Text/_latestVersion)
-[![Build Status](https://travis-ci.org/miho/VMF-Text.svg?branch=master)](https://travis-ci.org/miho/VMF-Text)
-[![Build status](https://ci.appveyor.com/api/projects/status/vh9eu5fmhhgqo21b/branch/master?svg=true)](https://ci.appveyor.com/project/miho/vmf-text/branch/master)
+[![CI](https://github.com/miho/VMF-Text/actions/workflows/ci.yml/badge.svg)](https://github.com/miho/VMF-Text/actions/workflows/ci.yml)
 [![Join the chat at https://gitter.im/VMF_/Lobby](https://badges.gitter.im/VMF_/Lobby.svg)](https://gitter.im/VMF_/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-VMF-Text is a novel framework for grammar-based language modeling on the Java Platform (it works with Java 8, 9, 10 and 11): give it a labeled [ANTLR4](https://github.com/antlr/antlr4) grammar and it will generate a rich and clean API (using on [VMF](https://github.com/miho/VMF)) for (un)parsing and transforming custom textual languages. **The complete API is derived from just a single ANTLR4 grammar file!**
+VMF-Text is a novel framework for grammar-based language modeling on the Java Platform (it runs on Java 11 and later): give it a labeled [ANTLR4](https://github.com/antlr/antlr4) grammar and it will generate a rich and clean API (based on [VMF](https://github.com/miho/VMF)) for (un)parsing and transforming custom textual languages. **The complete API is derived from just a single ANTLR4 grammar file!**
 
 <img src="resources/img/vmf-text-01.jpg">
 
@@ -137,7 +135,7 @@ or typed `LexicalInfo` for source-preserving persistence.
 
 ### Requirements
 
-- Java: 1.8 <= version <= 11
+- JDK 21 (build toolchain; the published artifacts run on Java 11+)
 - Internet connection (dependencies are downloaded automatically)
 - IDE: [Gradle](http://www.gradle.org/) Plugin (not necessary for command line usage)
 
@@ -162,7 +160,7 @@ Navigate to the [Gradle](http://www.gradle.org/) project (i.e., `path/to/VMF-Tex
 
 ### Requirements
 
-- Java: 1.8 <= version <= 11
+- JDK 21 (build toolchain; the published artifacts run on Java 11+)
 - Internet connection (dependencies are downloaded automatically)
 - IDE: [Gradle](http://www.gradle.org/) Plugin (not necessary for command line usage)
 

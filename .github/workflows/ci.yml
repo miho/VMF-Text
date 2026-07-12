@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out VMF-Text
+        uses: actions/checkout@v4
+
+      - name: Check out VMF (snapshot dependency, not on Maven Central)
+        uses: actions/checkout@v4
+        with:
+          repository: miho/VMF
+          path: .vmf-upstream
+
+      # VMF pins JDK 11/17 toolchains, VMF-Text pins JDK 21; none of the
+      # builds auto-download toolchains, so all three must be installed.
+      - name: Set up JDKs 11, 17 and 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            11
+            17
+            21
+
+      - name: Make toolchain JDKs visible to Gradle
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.java.installations.fromEnv=JAVA_HOME_11_X64,JAVA_HOME_17_X64,JAVA_HOME_21_X64" >> ~/.gradle/gradle.properties
+
+      - name: Set up Gradle (caching + wrapper validation)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Publish VMF snapshot to Maven local
+        working-directory: .vmf-upstream
+        run: sh ./gradlew publishToMavenLocal --no-daemon
+
+      - name: Publish vmf-text core to Maven local
+        working-directory: core
+        run: sh ./gradlew publishToMavenLocal --no-daemon
+
+      - name: Publish vmf-text Gradle plugin to Maven local
+        working-directory: gradle-plugin
+        run: sh ./gradlew publishToMavenLocal --no-daemon
+
+      - name: Run test suite
+        working-directory: test-suite
+        run: sh ./gradlew test --no-daemon
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            test-suite/build/reports/tests/test
+            test-suite/build/test-results/test

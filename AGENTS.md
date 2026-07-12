@@ -1,6 +1,6 @@
 # AGENTS.md
 
-## Cursor Cloud specific instructions
+## Instructions for coding agents (Cursor Cloud, Claude Code, and others)
 
 ### What this project is
 VMF-Text is a Java/Gradle framework that turns a labeled ANTLR4 grammar into a
@@ -24,9 +24,9 @@ uses `--no-daemon`. If you hit `Permission denied`, invoke it as `sh ./gradlew`.
 `0.2.9.7-SNAPSHOT`. Maven Central only publishes VMF up to a released
 `0.2.9.6`, so these snapshots must exist in `~/.m2`. They are built from
 `github.com/miho/VMF` (its `master` branch's `config/common.properties` sets
-`publication.version=0.2.9.7-SNAPSHOT`) and are already present in this
-environment's Maven repo. If they are ever missing (nothing under
-`~/.m2/repository/eu/mihosoft/vmf/vmf/0.2.9.7-SNAPSHOT/`), rebuild them:
+`publication.version=0.2.9.7-SNAPSHOT`). CI builds them from source on every
+run (see `.github/workflows/ci.yml`). If they are missing locally (nothing
+under `~/.m2/repository/eu/mihosoft/vmf/vmf/0.2.9.7-SNAPSHOT/`), rebuild them:
 
 ```
 git clone --depth 1 https://github.com/miho/VMF.git ~/deps/VMF
@@ -39,9 +39,15 @@ be installed locally (no toolchain auto-download is configured):
 - VMF `core` → JDK 11, VMF `gradle-plugin` → JDK 17
 - VMF-Text `core`, `gradle-plugin`, `test-suite` → JDK 21
 
-JDK 11, 17, and 21 are all installed (`/usr/lib/jvm`). If a build fails with
-"Cannot find a Java installation ... matching {languageVersion=NN}", install
-that JDK (e.g. `sudo apt-get install -y openjdk-<NN>-jdk`).
+If a build fails with "Cannot find a Java installation ... matching
+{languageVersion=NN}", install that JDK (e.g. on Debian/Ubuntu
+`sudo apt-get install -y openjdk-<NN>-jdk`) or make it visible to Gradle via
+`org.gradle.java.installations.fromEnv` (this is how CI does it).
+
+### CI
+`.github/workflows/ci.yml` runs on every push and pull request: it builds the
+VMF snapshot from source, then the full chain above, and runs the complete
+test suite. Keep it green — there is no other automated gate.
 
 ### Non-obvious gotchas
 - No cross-project hot reload: subprojects talk to each other only through
