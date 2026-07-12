@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
-    private GrammarModel model = GrammarModel.newInstance();
+    private final GrammarModel model = GrammarModel.newInstance();
 
     private RuleClass currentRule;
 
@@ -255,6 +255,34 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         model.setGrammarName(ctx.identifier().getText());
 
         super.enterGrammarSpec(ctx);
+    }
+
+    @Override
+    public void enterOptionsSpec(ANTLRv4Parser.OptionsSpecContext ctx) {
+        System.out.println("------------------------------------------------------");
+        System.out.println("Enter OptionsSpec");
+        System.out.println("------------------------------------------------------");
+
+        model.setOptions(Options.newBuilder().build());
+
+        super.enterOptionsSpec(ctx);
+    }
+
+    @Override
+    public void enterOption(ANTLRv4Parser.OptionContext ctx) {
+        System.out.println("------------------------------------------------------");
+        System.out.println("Enter Option");
+        System.out.println("------------------------------------------------------");
+
+        var optionsName = ctx.identifier().getText();
+
+        if("superClass".equals(optionsName)) {
+            var superClassName = ctx.optionValue().getText();
+            System.out.println(" -> setting superClass: " + superClassName);
+            model.getOptions().setSuperClassName(superClassName);
+        } else {
+            System.out.println(" -> ignoring option: " + optionsName);
+        }
     }
 
     @Override
