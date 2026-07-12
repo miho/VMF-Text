@@ -79,6 +79,12 @@ public class UnparserCodeGenerator {
         w.append("import ").append(gModel.getGrammarName()).append(";\n");
         w.append('\n');
 
+        if(gModel.getOptions()!=null && gModel.getOptions().getSuperClassName()!=null) {
+            w.append("options {").append('\n');
+            w.append("  superClass=").append(gModel.getOptions().getSuperClassName()).append(";\n");
+            w.append("}").append('\n');
+        }
+
         for(UPRule rule :rules) {
             String ruleName = StringUtil.firstToLower(rule.getName());
             generateAltGrammarCode(gModel, model, rules, rule, ruleName, w);

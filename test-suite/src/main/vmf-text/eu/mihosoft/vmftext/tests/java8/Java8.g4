@@ -412,7 +412,7 @@ localTypeDeclaration
 
 statement
     : blockLabel=block                                                                           # blockStmnt
-    | ASSERT expressions+=expression (':' xpressions+=expression)? ';'                           # assertStmnt
+    | ASSERT expressions+=expression (':' expressions+=expression)? ';'                          # assertStmnt
     | IF check=parExpression ifStatement+=statement (ELSE elseStatement=statement)?              # ifElseStmnt
     | FOR '(' control=forControl ')' forStatement=statement                                      # forStmnt
     | WHILE control=parExpression whileStatement=statement                                       # whileStmnt

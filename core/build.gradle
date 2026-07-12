@@ -14,7 +14,7 @@ buildscript {
     }
 
     dependencies {
-        classpath (group: 'org.antlr', name: 'antlr4', version: '4.11.1')
+        classpath (group: 'org.antlr', name: 'antlr4', version: '4.13.2')
 //        classpath group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
     }
 }
