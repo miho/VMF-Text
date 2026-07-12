@@ -43,8 +43,12 @@ import java.util.Set;
  *       alternative becomes its own typed sub class.</li>
  * </ul>
  *
- * <p>Explicit labels, alternative labels and string literals are left
- * unchanged.</p>
+ * <p>Manual labeling always wins and mixes consistently with auto-labeling:
+ * explicitly labeled elements and alternatives are kept unchanged, generated
+ * element names never collide with manually chosen ones, and a rule that only
+ * labels <em>some</em> of its alternatives (which ANTLR would reject) has the
+ * remaining alternatives labeled automatically so the grammar stays valid.
+ * String literals outside of repeated blocks are left unchanged.</p>
  */
 final class AutoLabeler {
 
@@ -142,14 +146,23 @@ final class AutoLabeler {
             currentElementIndex = 0;
             nameCountsInRule.clear();
 
+            // reserve the names of manually labeled elements so auto-generated
+            // element labels never collide with the manual ones.
+            seedManualElementLabels(ctx);
+
             labelAlternatives(ctx);
         }
 
         /**
          * Adds deterministic {@code # AltLabel} labels to a rule's top-level
-         * alternatives when there are at least two of them and none is already
-         * labeled. Empty alternatives are not labeled (ANTLR requires all-or-
-         * none labeling), so such rules are left untouched.
+         * alternatives.
+         *
+         * <p>Manual alternative labels always win and are preserved. When a rule
+         * mixes manually labeled and unlabeled alternatives (which ANTLR rejects
+         * on its own, because alternative labeling is all-or-none), the missing
+         * labels are filled in so the grammar becomes valid while keeping the
+         * manual labels intact. For fully unlabeled rules the labels are only
+         * added when there are at least two non-empty alternatives.</p>
          */
         private void labelAlternatives(ANTLRv4Parser.ParserRuleSpecContext ctx) {
             if(ctx.ruleBlock() == null || ctx.ruleBlock().ruleAltList() == null) {
@@ -162,22 +175,67 @@ final class AutoLabeler {
                 return;
             }
 
+            int labeledCount = 0;
+            boolean hasEmptyUnlabeled = false;
             for(ANTLRv4Parser.LabeledAltContext alt : alts) {
                 if(alt.identifier() != null) {
-                    return; // explicit alternative labels always win
-                }
-                if(alt.alternative() == null || alt.alternative().element().isEmpty()) {
-                    return; // do not label empty alternatives
+                    labeledCount++;
+                } else if(isEmptyAlternative(alt)) {
+                    hasEmptyUnlabeled = true;
                 }
             }
 
-            int altNumber = 0;
-            for(ANTLRv4Parser.LabeledAltContext alt : alts) {
-                altNumber++;
-                String label = uniqueAltLabel(currentRuleName, altNumber);
-                rewriter.insertAfter(alt.alternative().stop, " # " + label);
+            if(labeledCount == alts.size()) {
+                return; // fully manual labeling: nothing to complete
+            }
+
+            boolean completingManualLabels = labeledCount > 0;
+
+            // For fully unlabeled rules we stay conservative and skip rules that
+            // contain an empty alternative (labeling it would introduce an empty
+            // sub class). When completing manual labels we must label every
+            // alternative (including empty ones) to keep the grammar valid.
+            if(!completingManualLabels && hasEmptyUnlabeled) {
+                return;
+            }
+
+            for(int i = 0; i < alts.size(); i++) {
+                ANTLRv4Parser.LabeledAltContext alt = alts.get(i);
+                if(alt.identifier() != null) {
+                    continue; // keep the manual label
+                }
+
+                String label = uniqueAltLabel(currentRuleName, i + 1);
+
+                if(isEmptyAlternative(alt)) {
+                    // an empty alternative has no tokens of its own; its context
+                    // starts at the following separator, so inserting before it
+                    // places the label right after the empty alternative.
+                    rewriter.insertBefore(alt.start, "# " + label + " ");
+                } else {
+                    rewriter.insertAfter(alt.alternative().stop, " # " + label);
+                }
+
                 entriesByRule.computeIfAbsent(currentRuleName, key -> new LinkedHashMap<>())
-                        .put("/r" + currentRuleIndex + "/alt" + altNumber, "# " + label);
+                        .put("/r" + currentRuleIndex + "/alt" + (i + 1), "# " + label);
+            }
+        }
+
+        private boolean isEmptyAlternative(ANTLRv4Parser.LabeledAltContext alt) {
+            return alt.alternative() == null || alt.alternative().element().isEmpty();
+        }
+
+        private void seedManualElementLabels(ParserRuleContext ctx) {
+            if(ctx instanceof ANTLRv4Parser.LabeledElementContext) {
+                ANTLRv4Parser.LabeledElementContext le = (ANTLRv4Parser.LabeledElementContext) ctx;
+                if(le.identifier() != null) {
+                    nameCountsInRule.putIfAbsent(le.identifier().getText(), 1);
+                }
+            }
+            for(int i = 0; i < ctx.getChildCount(); i++) {
+                if(ctx.getChild(i) instanceof ParserRuleContext) {
+                    seedManualElementLabels((ParserRuleContext) ctx.getChild(i));
+                }
             }
         }
 

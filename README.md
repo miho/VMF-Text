@@ -109,9 +109,15 @@ AutoLabel(enabled=true)
 */
 ```
 
-Explicit labels always win. Unlabeled parser-rule and token references receive
-deterministic names based on grammar order; duplicate names receive stable
-numeric suffixes.
+Explicit labels always win and mix consistently with auto-labeling. Unlabeled
+parser-rule and token references receive deterministic names based on grammar
+order; duplicate names receive stable numeric suffixes. Generated element names
+never collide with manually chosen labels (a hand-written `identifier=` label
+keeps its name, and an auto-labeled sibling becomes `identifier2`). If a rule
+labels only *some* of its alternatives with `#` (which ANTLR rejects on its own,
+since alternative labeling is all-or-none), the remaining alternatives are
+labeled automatically so the grammar stays valid while the manual labels are
+preserved.
 
 Auto-labeling also handles the structural idioms found in default (unlabeled)
 ANTLR4 grammars:
