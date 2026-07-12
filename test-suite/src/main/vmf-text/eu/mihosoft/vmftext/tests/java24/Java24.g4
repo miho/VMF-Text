@@ -570,7 +570,7 @@ expression
         | call=methodCall
         | thisExpr=THIS
         | NEW typeArgs=nonWildcardTypeArguments? inner=innerCreator
-        | SUPER superSffx=superSuffix
+        | SUPER superSuffixValue=superSuffix
         | invocation=explicitGenericInvocation
     )                                                               #MemberReferenceExpression
     // Method calls and method references are part of primary, and hence level 16 precedence
