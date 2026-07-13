@@ -61,6 +61,13 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         //
     }
 
+    /**
+     * Maps each converted {@link CodeElement} to its ANTLR rule context during
+     * conversion. Cleared after lexical metadata has been attached.
+     */
+    private final java.util.IdentityHashMap<CodeElement, ParserRuleContext> conversionRuleContexts =
+            new java.util.IdentityHashMap<>();
+
     private final List<ANTLRErrorListener> errorListeners = new ArrayList<>();
     private ANTLRErrorStrategy errorHandler;
     private boolean consoleOutputDisabled;
@@ -184,19 +191,6 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         }
 
         model.getRoot().vmf().content().stream(CodeElement.class).forEach(e -> {
-            Object payloadObject = e.getPayload();
-            java.util.Map<String,Object> replacement = new java.util.HashMap<>();
-
-            if(payloadObject instanceof java.util.Map) {
-                java.util.Map<?,?> payload = (java.util.Map<?,?>) payloadObject;
-                payload.forEach((key,value) -> {
-                    if(!(key instanceof String) || !((String)key).startsWith("vmf-text:")) {
-                        replacement.put(String.valueOf(key), value);
-                    }
-                });
-            }
-
-            e.setPayload(replacement);
             e.setLexicalInfo(null);
         });
     }
@@ -238,34 +232,13 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     }
 
     private void addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(CodeElement e) {
-        // add ws to the ignored-pieces-of-text info 
-        // (if present and no space already in front of it)
-        if(e!=null && e.getPayload() instanceof java.util.Map) {
-
-            // payload object
-            final java.util.Map<String,Object> payload =
-                    (java.util.Map<String,Object>)e.getPayload();
-
-            // if ignored-pieces-of-text info is present we add the ws char       
-            if(payload.containsKey("vmf-text:ignored-pieces-of-text")) {
-
-                List<String> ignoredPiecesOfText =
-                        (List<String>) payload.get("vmf-text:ignored-pieces-of-text");
-                
-                if(ignoredPiecesOfText.isEmpty()) {
-                    // TODO 17.10.2018 is it correct to not add a whitespace if the ignoredPiecesOfText is empty?
-                    // it actually should but more testing might help
-                    //ignoredPiecesOfText.add(" ");
-                } else if(ignoredPiecesOfText.get(0).isEmpty()) {
-                    ignoredPiecesOfText.set(0," ");
-                }
-            }
-        }
-
         if(e!=null && e.getLexicalInfo()!=null) {
-            java.util.List<String> ignoredPiecesOfText = e.getLexicalInfo().getIgnoredPiecesOfText();
-            if(!ignoredPiecesOfText.isEmpty() && ignoredPiecesOfText.get(0).isEmpty()) {
-                ignoredPiecesOfText.set(0, " ");
+            java.util.List<TriviaPiece> triviaPieces = e.getLexicalInfo().getTriviaPieces();
+            if(!triviaPieces.isEmpty()) {
+                TriviaPiece first = triviaPieces.get(0);
+                if(first.getText().isEmpty()) {
+                    first.setText(" ");
+                }
             }
         }
     }
@@ -278,6 +251,12 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
             // ignore changes to parent (irrelevant for hidden text)
             if("parent".equals(evt.propertyName())) {
+                return;
+            }
+
+            // ignore typed lexical-metadata mutations (e.g. whitespace padding for
+            // newly inserted model elements must not invalidate existing trivia)
+            if("lexicalInfo".equals(evt.propertyName())) {
                 return;
             }
 
@@ -310,13 +289,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                             forEach(codeElement -> addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(codeElement));
                 }
             } else {
-                // payload object
-                final java.util.Map<String,Object> payload =
-                        (java.util.Map<String,Object>)element.getPayload();
-                // replace ignored pieces of text info
-                payload.put("vmf-text:ignored-pieces-of-text", new java.util.ArrayList<>());
                 if(element.getLexicalInfo()!=null) {
-                    element.getLexicalInfo().getIgnoredPiecesOfText().clear();
+                    element.getLexicalInfo().getTriviaPieces().clear();
                 }
             }
         }, false);
@@ -352,13 +326,13 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         // go over each code element
         for(CodeElement e : codeElement) {
 
-            // register listener to clear ignored-pieces-of-text info if terminal/lexer properties do change
+            // register listener to clear trivia info if terminal/lexer properties do change
             registerIgnoredPiecesOfTextChangeListener(e);
 
-            // payload object
-            final java.util.Map<String,Object> payload = (java.util.Map<String,Object>)e.getPayload();
-
-            ParserRuleContext eCtx = (ParserRuleContext)payload.get("vmf-text:antlr4-rule-ctx");
+            ParserRuleContext eCtx = conversionRuleContexts.get(e);
+            if(eCtx == null) {
+                continue;
+            }
                        
             java.util.List<String> ignoredPiecesOfText = ignoredPiecesOfTextListener.getIgnoredPiecesOfText(eCtx);
             java.util.List<String> optionalStateEntries = getOptionalStateEntryList(eCtx);
@@ -371,17 +345,18 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                     optionalStateEntry.substring(optionalStateEntry.lastIndexOf('=')+1)));
             }
 
-            payload.put("vmf-text:ignored-pieces-of-text", ignoredPiecesOfText);
-            payload.put("vmf-text:optionalSymbols", optionalSymbols );
-            payload.put("vmf-text:optionalStates", optionalStateEntries );
-
             LexicalInfo lexicalInfo = e.getLexicalInfo();
             if(lexicalInfo == null) {
                 lexicalInfo = LexicalInfo.newInstance();
                 e.setLexicalInfo(lexicalInfo);
             }
-            lexicalInfo.getIgnoredPiecesOfText().clear();
-            lexicalInfo.getIgnoredPiecesOfText().addAll(ignoredPiecesOfText);
+            lexicalInfo.getTriviaPieces().clear();
+            for(String piece : ignoredPiecesOfText) {
+                lexicalInfo.getTriviaPieces().add(TriviaPiece.newBuilder().
+                        withText(piece).
+                        withKind(classifyTriviaKind(piece)).
+                        build());
+            }
             lexicalInfo.getOptionalSymbols().clear();
             lexicalInfo.getOptionalSymbols().addAll(optionalSymbols);
             lexicalInfo.getOptionalStates().clear();
@@ -396,22 +371,33 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             lexicalInfo.setGrammarElementPath(eCtx.getClass().getSimpleName());
 
         } // end for each code element
+
+        conversionRuleContexts.clear();
+    }
+
+    private static String classifyTriviaKind(String piece) {
+        if(piece == null || piece.isEmpty()) {
+            return "WHITESPACE";
+        }
+        String trimmed = piece.trim();
+        if(trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*")) {
+            return "COMMENT";
+        }
+        if(piece.chars().allMatch(ch -> Character.isWhitespace(ch))) {
+            return "WHITESPACE";
+        }
+        return "OTHER";
     }
 
     private static java.util.List<String> getOptionalStateEntryList(ParserRuleContext ctx) {
-
         try {
-            Class<?>  clazz = ctx.getClass();
-            java.lang.reflect.Field field = clazz.getField("__vmf_text__optionalStates");
+            java.lang.reflect.Field field = ctx.getClass().getField("__vmf_text__optionalStates");
             Object value = field.get(ctx);
-
             return (java.util.List<String>) value;
-        } catch(Exception ex) {
-            ex.printStackTrace(System.err);
+        } catch (Exception ex) {
+            throw new RuntimeException("Cannot read optional-state list from parser context "
+                    + ctx.getClass().getSimpleName(), ex);
         }
-
-        throw new RuntimeException("Cannot get optional-state-list");
-
     }
 
 
@@ -697,12 +683,10 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         ${rcls.nameWithLower()}.setCodeRange(ctxToCodeRange(ctx));
 
         // ----------------------------------------
-        // Initializing Rule Payload
+        // Initializing Rule Context (transient, for lexical metadata capture)
         // ----------------------------------------
 
-        final java.util.Map<String,Object> payload = new java.util.HashMap<>();
-        ${rcls.nameWithLower()}.setPayload(payload);
-        payload.put("vmf-text:antlr4-rule-ctx", ctx);
+        conversionRuleContexts.put(${rcls.nameWithLower()}, ctx);
 
         // ----------------------------------------
         // Converting Properties

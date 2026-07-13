@@ -35,6 +35,7 @@ import ${modelPackageName}.CodeElement;
 import ${modelPackageName}.CodeRange;
 import ${modelPackageName}.LexicalInfo;
 import ${modelPackageName}.OptionalState;
+import ${modelPackageName}.TriviaPiece;
 
 /**
  * Text formatting interface.
@@ -99,6 +100,40 @@ public interface Formatter {
    * formatter tries to reproduce white-spaces as accurately as possible.
    */
   static Formatter newDefaultFormatter() { return new DefaultFormatter();}
+
+  /**
+   * Returns a lexical-preserving formatter that consults the given policy only
+   * where exact preservation is undefined (programmatically created nodes or
+   * invalidated lexical metadata after edits).
+   */
+  static Formatter newDefaultFormatter(Formatter.ProgrammaticSeparatorPolicy policy) {
+    return new DefaultFormatter(policy);
+  }
+
+  /**
+   * Policy consulted by {@link DefaultFormatter} only where exact lexical
+   * preservation is undefined by construction.
+   */
+  interface ProgrammaticSeparatorPolicy {
+
+    /**
+     * Separator to emit before a terminal/lexer element when the parent carries
+     * no lexical metadata at all (e.g. programmatically created models).
+     */
+    String separatorBefore(CodeElement parent, RuleInfo ruleInfo);
+
+    /**
+     * Separator to emit when lexical metadata was deliberately invalidated by
+     * model edits (empty trivia list on a parent that still has lexical info).
+     */
+    String separatorBeforeEdited(CodeElement parent, RuleInfo ruleInfo);
+
+    /**
+     * Separator to emit when the hidden-text counter is exhausted before a
+     * closing delimiter during best-effort unparsing of edited models.
+     */
+    String separatorBeforeClosingDelimiter(CodeElement parent, RuleInfo ruleInfo);
+  }
 
   /**
    * Returns a new instance of the default formatte without support for lexical preservation. This
@@ -302,12 +337,25 @@ public interface Formatter {
 
   class DefaultFormatter extends BaseFormatter {
 
+    private final Formatter.ProgrammaticSeparatorPolicy programmaticPolicy;
+
     private CodeElement currentElement;
 
     private boolean consumeElement = false;
+
+    private final java.util.IdentityHashMap<CodeElement, Integer> hiddenTextCounters =
+            new java.util.IdentityHashMap<>();
+    private final java.util.IdentityHashMap<CodeElement, Integer> optionalSymbolsCounters =
+            new java.util.IdentityHashMap<>();
+    private final java.util.IdentityHashMap<CodeElement, java.util.Map<String,Integer>> optionalPathCounters =
+            new java.util.IdentityHashMap<>();
     
     DefaultFormatter() {
-        //
+        this(ConservativeSeparatorPolicy.INSTANCE);
+    }
+
+    DefaultFormatter(Formatter.ProgrammaticSeparatorPolicy programmaticPolicy) {
+        this.programmaticPolicy = programmaticPolicy;
     }
 
     @Override
@@ -347,158 +395,51 @@ public interface Formatter {
     }
 
     private void incHiddenTextCounter(CodeElement e) {
-
-        if(e.getPayload()==null) {
-          return;
-        }
-
-        if(!(e.getPayload() instanceof java.util.Map)) {
-          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
-        }
-
-        Integer value = (Integer)
-                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:hidden-text-counter");
-        if(value==null) {
-            value = 0;
-        }
-        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:hidden-text-counter",++value);
+        hiddenTextCounters.put(e, getHiddenTextCounter(e) + 1);
     }
     private void decHiddenTextCounter(CodeElement e) {
-
-        if(e.getPayload()==null) {
-          return;
-        }
-
-        if(!(e.getPayload() instanceof java.util.Map)) {
-          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
-        }
-
-        Integer value = (Integer)
-                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:hidden-text-counter");
-        if(value==null) {
-            value = 0;
-        }
-        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:hidden-text-counter",--value);
+        hiddenTextCounters.put(e, getHiddenTextCounter(e) - 1);
     }
     private void incOptionalSymbolsCounter(CodeElement e) {
-
-        if(e.getPayload()==null) {
-          return;
-        }
-
-        if(!(e.getPayload() instanceof java.util.Map)) {
-          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
-        }
-
-        Integer value = (Integer)
-                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:optional-symbols-counter");
-        if(value==null) {
-            value = 0;
-        }
-        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:optional-symbols-counter",++value);
+        optionalSymbolsCounters.put(e, getOptionalSymbolsCounter(e) + 1);
     }
     private void decOptionalSymbolsCounter(CodeElement e) {
-
-        if(e.getPayload()==null) {
-          return;
-        }
-
-        if(!(e.getPayload() instanceof java.util.Map)) {
-          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
-        }
-
-        Integer value = (Integer)
-                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:optional-symbols-counter");
-        if(value==null) {
-            value = 0;
-        }
-        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:optional-symbols-counter",--value);
+        optionalSymbolsCounters.put(e, getOptionalSymbolsCounter(e) - 1);
     }
     private void reset(CodeElement e) {
-
-        if(e.getPayload()==null) {
-          return;
-        }
-
-        if(!(e.getPayload() instanceof java.util.Map)) {
-          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
-        }
-
-        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:hidden-text-counter",0);
-        ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:optional-symbols-counter",0);
-        ((java.util.Map<String,Object>)e.getPayload()).remove("vmf-text:formatter:optional-path-counters");
+        hiddenTextCounters.remove(e);
+        optionalSymbolsCounters.remove(e);
+        optionalPathCounters.remove(e);
     }
     private int getHiddenTextCounter(CodeElement e) {
-
-        if(e.getPayload()==null) {
-          return 0;
-        }
-
-        if(!(e.getPayload() instanceof java.util.Map)) {
-          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
-        }
-
-        Integer value = (Integer)
-                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:hidden-text-counter");
-        if(value==null) {
-            value = 0;
-        }
-        return value;
+        Integer value = hiddenTextCounters.get(e);
+        return value == null ? 0 : value;
     }
     private java.util.List<String> getHiddenText(CodeElement e) {
 
-        if(e.getLexicalInfo()!=null) {
-          return e.getLexicalInfo().getIgnoredPiecesOfText();
-        }
-
-        if(e.getPayload()==null) {
+        if(e.getLexicalInfo()==null) {
           return null;
         }
 
-        if(!(e.getPayload() instanceof java.util.Map)) {
-          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        java.util.List<String> result = new java.util.ArrayList<>();
+        for(TriviaPiece piece : e.getLexicalInfo().getTriviaPieces()) {
+            result.add(piece.getText());
         }
-         
-        java.util.Map<String,Object> payload = (java.util.Map<String,Object>)e.getPayload();
-
-        return (java.util.List<String>)payload.get("vmf-text:ignored-pieces-of-text");
+        return result;
     }
 
     private java.util.List<Boolean> getOptionalSymbolState(CodeElement e) {
 
-        if(e.getLexicalInfo()!=null) {
-          return e.getLexicalInfo().getOptionalSymbols();
-        }
-
-        if(e.getPayload()==null) {
+        if(e.getLexicalInfo()==null) {
           return null;
         }
 
-        if(!(e.getPayload() instanceof java.util.Map)) {
-          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
-        }
-         
-        java.util.Map<String,Object> payload = (java.util.Map<String,Object>)e.getPayload();
-
-        return (java.util.List<Boolean>)payload.get("vmf-text:optionalSymbols");
+        return e.getLexicalInfo().getOptionalSymbols();
     }
 
     private int getOptionalSymbolsCounter(CodeElement e) {
-
-        if(e.getPayload()==null) {
-          return 0;
-        }
-
-        if(!(e.getPayload() instanceof java.util.Map)) {
-          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
-        }
-
-        Integer value = (Integer)
-                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:optional-symbols-counter");
-        if(value==null) {
-            value = 0;
-        }
-        return value;
+        Integer value = optionalSymbolsCounters.get(e);
+        return value == null ? 0 : value;
     }
 
     /**
@@ -530,42 +471,20 @@ public interface Formatter {
     }
 
     private int getOptionalPathCounter(CodeElement e, String path) {
-
-        if(e.getPayload()==null || !(e.getPayload() instanceof java.util.Map)) {
-          return 0;
-        }
-
-        java.util.Map<String,Integer> counters = (java.util.Map<String,Integer>)
-                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:optional-path-counters");
-
-        if(counters==null) {
+        java.util.Map<String,Integer> counters = optionalPathCounters.get(e);
+        if(counters == null) {
             return 0;
         }
-
         Integer value = counters.get(path);
         return value==null ? 0 : value;
     }
 
     private void incOptionalPathCounter(CodeElement e, String path) {
-
-        if(e.getPayload()==null) {
-          return;
-        }
-
-        if(!(e.getPayload() instanceof java.util.Map)) {
-          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
-        }
-
-        java.util.Map<String,Object> payload = (java.util.Map<String,Object>)e.getPayload();
-
-        java.util.Map<String,Integer> counters = (java.util.Map<String,Integer>)
-                payload.get("vmf-text:formatter:optional-path-counters");
-
-        if(counters==null) {
+        java.util.Map<String,Integer> counters = optionalPathCounters.get(e);
+        if(counters == null) {
             counters = new java.util.HashMap<>();
-            payload.put("vmf-text:formatter:optional-path-counters", counters);
+            optionalPathCounters.put(e, counters);
         }
-
         Integer value = counters.get(path);
         counters.put(path, value==null ? 1 : value+1);
     }
@@ -646,24 +565,21 @@ public interface Formatter {
                   // original hidden-text entries, keep a neutral separator before
                   // closing delimiters. Exact parsed models should not reach this
                   // branch.
-                  String t = ruleInfo.getRuleText();
-                  if(")".equals(t) || "]".equals(t) || "}".equals(t)) {
-                    w.append(" ");
+                  String sep = programmaticPolicy.separatorBeforeClosingDelimiter(e, ruleInfo);
+                  if(!sep.isEmpty()) {
+                    w.append(sep);
                   }
                   // Do not throw here; keep rendering to preserve best-effort output
                 }
             } else if(getHiddenText(e)==null) {
-                // No lexical payload is available (e.g. model created programmatically).
-                // Emit one neutral separator to keep the output parseable without
-                // affecting parsed models with payload.
-                w.append(" ");
+                String sep = programmaticPolicy.separatorBefore(e, ruleInfo);
+                if(!sep.isEmpty()) {
+                  w.append(sep);
+                }
             } else {
-                // Lexical payload exists but has deliberately been invalidated by
-                // model edits. Lexer values still need a neutral separator to keep
-                // edited primitive values separated from surrounding grammar
-                // literals; punctuation/terminals are emitted without extra space.
-                if(ruleInfo.getRuleType()==RuleType.LEXER_RULE) {
-                  w.append(" ");
+                String sep = programmaticPolicy.separatorBeforeEdited(e, ruleInfo);
+                if(!sep.isEmpty()) {
+                  w.append(sep);
                 }
             }
         
@@ -688,6 +604,33 @@ public interface Formatter {
         }
     }
   } // end default-formatter
+
+final class ConservativeSeparatorPolicy implements Formatter.ProgrammaticSeparatorPolicy {
+
+  static final Formatter.ProgrammaticSeparatorPolicy INSTANCE = new ConservativeSeparatorPolicy();
+
+  private ConservativeSeparatorPolicy() {
+  }
+
+  @Override
+  public String separatorBefore(CodeElement parent, Formatter.RuleInfo ruleInfo) {
+    return " ";
+  }
+
+  @Override
+  public String separatorBeforeEdited(CodeElement parent, Formatter.RuleInfo ruleInfo) {
+    return ruleInfo.getRuleType() == Formatter.RuleType.LEXER_RULE ? " " : "";
+  }
+
+  @Override
+  public String separatorBeforeClosingDelimiter(CodeElement parent, Formatter.RuleInfo ruleInfo) {
+    String t = ruleInfo.getRuleText();
+    if(")".equals(t) || "]".equals(t) || "}".equals(t)) {
+      return " ";
+    }
+    return "";
+  }
+}
 
 
 class JavaStyleFormatter implements Formatter {

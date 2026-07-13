@@ -71,7 +71,6 @@ interface VMFTextSourceVirtualDirectory {
 }
 
 class VMFTextPluginExtension {
-    // vmf-text version
     String vmfVersion     = "0.2.10"
     String antlrVersion   = "4.13.2"
     boolean autoLabel     = false
@@ -147,7 +146,6 @@ public class VMFTextPlugin implements Plugin<Project> {
 //        )
 
         project.dependencies {
-            //vmfText    group: 'eu.mihosoft.vmf', name: 'vmf-text',          version: extension.version
             implementation    group: 'eu.mihosoft.vmf', name: 'vmf-runtime',       version: extension.vmfVersion
             implementation    group: 'org.antlr',       name: 'antlr4-runtime',    version: extension.antlrVersion
         }

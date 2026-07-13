@@ -204,22 +204,28 @@ names.
 
 ## Typed Lexical Metadata
 
-Parsed `CodeElement`s now expose typed lexical metadata via `getLexicalInfo()`.
-The typed mirror currently contains ignored text pieces, optional-symbol states,
-the original code range and a grammar element identifier. Optional-element
-presence is additionally available as path-keyed `OptionalState` entries
-(`getOptionalStates()`), which the unparser consumes keyed by grammar element
-path — robust against ordering divergence, with the flat positional list kept
-as a derived legacy view. The existing raw payload map remains available for
-compatibility, but the default formatter reads typed lexical info first and
-falls back to the payload map if needed.
+Parsed `CodeElement`s expose typed lexical metadata via `getLexicalInfo()`.
+The typed mirror contains `TriviaPiece` entries (text plus kind), optional-symbol
+states, the original code range and a grammar element identifier. Optional-element
+presence is available as path-keyed `OptionalState` entries (`getOptionalStates()`),
+which the unparser consumes keyed by grammar element path — robust against ordering
+divergence, with the flat positional list kept as a derived legacy view.
+
+Freshly parsed models no longer write `vmf-text:` entries into
+`CodeElement.getPayload()`; lexical metadata lives exclusively on `LexicalInfo`.
+`getPayload()` remains on the API for user-defined extensions but is deprecated
+for VMF-Text internals.
 
 The typed metadata is ignored for semantic equality. This allows two models with
 the same language semantics but different source trivia to compare as semantic
-models, while source-preserving workflows can still serialize or inspect the
-lexical information explicitly. For semantic-only JSON/schema workflows, treat
-`CodeElement.getPayload()` as internal VMF-Text state and prefer source bundles
-or typed `LexicalInfo` for source-preserving persistence.
+models, while source-preserving workflows can serialize or inspect the lexical
+information explicitly. For semantic-only JSON/schema workflows, omit `LexicalInfo`
+from the schema or use source bundles for source-preserving persistence.
+
+Programmatically created models (no parse-time lexical info) consult a pluggable
+`ProgrammaticSeparatorPolicy` inside the default formatter. The built-in
+`ConservativeSeparatorPolicy` reproduces today's single-space fallback; custom
+policies are consulted only where exact preservation is undefined by construction.
 
 ## Building VMF-Text (Core)
 

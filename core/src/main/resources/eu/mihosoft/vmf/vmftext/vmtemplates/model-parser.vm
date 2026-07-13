@@ -53,7 +53,8 @@ interface CodeLocation {
 
 interface LexicalInfo {
   @eu.mihosoft.vmf.core.IgnoreEquals
-  String[] getIgnoredPiecesOfText();
+  @eu.mihosoft.vmf.core.Contains
+  TriviaPiece[] getTriviaPieces();
 
   @eu.mihosoft.vmf.core.IgnoreEquals
   Boolean[] getOptionalSymbols();
@@ -67,6 +68,11 @@ interface LexicalInfo {
 
   @eu.mihosoft.vmf.core.IgnoreEquals
   CodeRange getOriginalRange();
+}
+
+interface TriviaPiece {
+  String getText();
+  String getKind();
 }
 
 interface OptionalState {
@@ -90,6 +96,11 @@ interface CodeElement {
   @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")
   eu.mihosoft.vcollections.VList<CodeElement> pathToRoot();
 
+  /**
+   * @deprecated VMF-Text no longer stores lexical metadata in the payload map.
+   *             Use {@link #getLexicalInfo()} for source-preserving metadata.
+   */
+  @java.lang.Deprecated
   @eu.mihosoft.vmf.core.IgnoreEquals
   Object getPayload();
 

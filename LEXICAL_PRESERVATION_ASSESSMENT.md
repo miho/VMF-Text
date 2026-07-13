@@ -79,22 +79,23 @@ optional-presence is order-sensitive.
   presence can therefore still be assigned to the earliest occurrences.
   EBNF optionals (`x?`, `x*`) record explicit presence/absence per encounter
   and are exact.
-- Lexical metadata lives in `Object getPayload()` maps. This is flexible, but
-  not ideal for VMF Jackson / JSON schema.
-- Grammar rewriting injects Java-target ANTLR actions. This is pragmatic for
-  the current Java generator but should be isolated if VMF-Text is to support
-  more ANTLR target scenarios.
-- Programmatically created models still need formatter policy decisions. Exact
-  lexical preservation is well-defined for parsed models; generated models need
-  a pretty-printing or grammar-aware separator policy.
+- ~~Lexical metadata lives in `Object getPayload()` maps.~~ **Resolved (0.2.1):**
+  lexical metadata is typed on `LexicalInfo` (`TriviaPiece`, `OptionalState`);
+  freshly parsed models no longer write `vmf-text:` payload entries.
+- ~~Grammar rewriting injects Java-target ANTLR actions.~~ **Isolated (0.2.1):**
+  Java-target injection and read-back live behind `AntlrTargetOptionalStateProvider`
+  (`JavaAntlrOptionalStateProvider`); grammar rewrite behaviour is unchanged.
+- ~~Programmatically created models still need formatter policy decisions.~~
+  **Resolved (0.2.1):** `ProgrammaticSeparatorPolicy` is pluggable; default
+  policy matches the previous conservative separator fallback.
 
 ## Recommended next design step: typed lexical metadata
 
-**Status (0.2.1):** partially implemented — `LexicalInfo` now carries typed
-`OptionalState { grammarElementPath, present }` entries in addition to the
-flat arrays, and the default formatter reads typed data first. Remaining
-work: typed `TriviaPiece` structures for the hidden-text pieces and retiring
-the payload-map fallback.
+**Status (0.2.1):** implemented — `LexicalInfo` carries typed `TriviaPiece`
+entries, `OptionalState { grammarElementPath, present }` objects, and the
+default formatter reads typed data exclusively. The untyped payload-map fallback
+has been retired; `CodeElement.getPayload()` is deprecated for VMF-Text internals.
+Programmatically created models consult a pluggable `ProgrammaticSeparatorPolicy`.
 
 For robust editor/JSON-schema support, lexical state should become explicit and
 typed, or be explicitly excluded from the semantic JSON schema:
