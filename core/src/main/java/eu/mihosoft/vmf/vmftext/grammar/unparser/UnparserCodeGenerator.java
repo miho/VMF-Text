@@ -1473,8 +1473,8 @@ public class UnparserCodeGenerator {
 
                         w.append(indent+"      getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
                         w.append(indent+"      if(!ruleInfo.isConsumed()) {").append('\n');
-                        w.append(indent+"        // internalW.print(s);").append('\n');
-                        w.append(indent+"        getUnparser().getFormatter().render( unparser, ruleInfo, internalW, s);").append('\n');
+                        w.append(indent+"        // internalW.print(listElemObj);").append('\n');
+                        w.append(indent+"        getUnparser().getFormatter().render( unparser, ruleInfo, internalW, listElemObj);").append('\n');
                         w.append(indent+"      }").append('\n');
                         w.append(indent+"      getUnparser().getFormatter().post( unparser, ruleInfo, internalW);").append('\n');
                     }

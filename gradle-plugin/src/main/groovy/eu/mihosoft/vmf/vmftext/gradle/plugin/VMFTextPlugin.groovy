@@ -324,8 +324,13 @@ class CompileVMFTextTask extends DefaultTask {
                         generationOptions
                 )
             } catch (RuntimeException ex) {
-                if(!ex.message?.startsWith("Cannot detect package name of")) {
+                if(ex.message?.startsWith("Cannot detect package name of")) {
                     println("WARNING: " + ex.message)
+                } else {
+                    // Fail the build instead of succeeding with no generated model output
+                    // (was previously a soft WARNING — see issue #8 follow-up).
+                    throw new org.gradle.api.GradleException(
+                            "VMF-Text generation failed for " + gF + ": " + ex.message, ex)
                 }
             }    
         }

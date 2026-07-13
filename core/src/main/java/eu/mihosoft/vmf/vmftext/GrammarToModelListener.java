@@ -154,7 +154,13 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
                         build());
             }
         } else {
-            System.out.println("   -> no rule. Using String conversion.");
+            // String literals and labeled parser wildcards ('.', issue #8) map to
+            // token-typed String properties (Token / List<Token> in the ANTLR context).
+            if(ParseTreeUtil.isDotWildcard(e)) {
+                System.out.println("   -> labeled wildcard '.'. Using String conversion.");
+            } else {
+                System.out.println("   -> no rule. Using String conversion.");
+            }
 
             property.setType(Type.newBuilder().
                     withArrayType(isListType).
