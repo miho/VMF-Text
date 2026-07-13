@@ -11,7 +11,21 @@ VMF-Text is a novel framework for grammar-based language modeling on the Java Pl
 
 Checkout the tutorial projects: https://github.com/miho/VMF-Text-Tutorials
 
-VMF-Text comes with excellent Gradle support. Just add the plugin like so (click [here](https://plugins.gradle.org/plugin/eu.mihosoft.vmftext) to get the latest version):
+VMF-Text comes with excellent Gradle support. Make sure `mavenCentral()` is
+among your plugin repositories in `settings.gradle` (this is where the plugin
+and all of its dependencies are published):
+
+```gradle
+// settings.gradle
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+```
+
+Then add the plugin (click [here](https://plugins.gradle.org/plugin/eu.mihosoft.vmftext) to get the latest version):
 
 ```gradle
 plugins {
