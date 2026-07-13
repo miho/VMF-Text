@@ -144,6 +144,27 @@ public class ParseTreeUtil {
     }
 
     /**
+     * Indicates whether the element is a reference to the synthetic
+     * {@link LabeledDotRewriter#ANY_TOKEN_RULE} stand-in injected for list-labeled
+     * wildcards ({@code label+=.}).
+     * @param e the element context to check
+     * @return {@code true} if this is a labeled ref of the synthetic any-token rule
+     */
+    public static boolean isWildcardTokenProxy(ANTLRv4Parser.ElementContext e) {
+        return isParserRule(e)
+                && LabeledDotRewriter.ANY_TOKEN_RULE.equals(getElementText(e));
+    }
+
+    /**
+     * Indicates whether {@code ruleName} is the synthetic any-token proxy rule.
+     * @param ruleName parser rule name
+     * @return {@code true} if {@code ruleName} is {@link LabeledDotRewriter#ANY_TOKEN_RULE}
+     */
+    public static boolean isWildcardTokenProxyRule(String ruleName) {
+        return LabeledDotRewriter.ANY_TOKEN_RULE.equals(ruleName);
+    }
+
+    /**
      * Indicates whether the specified element context is negated, i.e. {@code ~[ABC]}
      * @param e the element context to check
      * @return {@code true} if the specified element context is negated; {@code false} otherwise

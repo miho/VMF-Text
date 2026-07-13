@@ -217,9 +217,12 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
                         withName(propertyName).
                         withText(stream.getText(ctx.getSourceInterval())).
                         withListType(listType).
-                        withParserRule(ParseTreeUtil.isParserRule(ctx)).
+                        withParserRule(ParseTreeUtil.isParserRule(ctx)
+                                && !ParseTreeUtil.isWildcardTokenProxy(ctx)).
                         withLexerRule(ParseTreeUtil.isLexerRule(ctx)).
-                        withTerminal(ParseTreeUtil.isStringLiteral(ctx)).
+                        withTerminal(ParseTreeUtil.isStringLiteral(ctx)
+                                || ParseTreeUtil.isWildcardTokenProxy(ctx)
+                                || ParseTreeUtil.isDotWildcard(ctx)).
                         withNegated(ParseTreeUtil.isNegated(ctx)).
                         withTokenIndexStart(ctx.start.getTokenIndex()).
                         withTokenIndexStop(ctx.stop.getTokenIndex()).
@@ -338,6 +341,18 @@ class GrammarToRuleMatcherListener extends ANTLRv4ParserBaseListener {
         String ruleName = ctx.RULE_REF().getText();
         if(debug)
             System.out.println("> entering rule:  '" + ruleName + "'");
+
+        // Synthetic stand-in for list-labeled '.' — not part of the unparser model.
+        if(ParseTreeUtil.isWildcardTokenProxyRule(ruleName)) {
+            if(debug)
+                System.out.println(" -> [SKIP] synthetic labeled-dot stand-in");
+            currentRuleNames.push(ruleName);
+            // Push a placeholder so exit can pop symmetrically without mutating the model.
+            currentRules.push(UPRule.newBuilder().withName(ruleName).build());
+            super.enterParserRuleSpec(ctx);
+            return;
+        }
+
         currentRuleNames.push(ruleName);
 
         int locals = -1;

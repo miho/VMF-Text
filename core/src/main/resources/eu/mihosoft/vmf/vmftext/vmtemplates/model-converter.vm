@@ -734,7 +734,9 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         if(ctx.${p.nameWithLower()}!=null) {
             // FALLBACK:
             // ${rcls.nameWithLower()}.set${p.nameWithUpper()}(ctx.${p.nameWithLower()}.getText());
-            Token entry = ctx.${p.nameWithLower()};
+            // Token for lexer/terminal labels; ParserRuleContext for the synthetic
+            // any-token stand-in injected for list-labeled '.' (issue #8). Both expose getText().
+            var entry = ctx.${p.nameWithLower()};
             ${rcls.nameWithLower()}.set${p.nameWithUpper()}(${model.getTypeMappings().conversionCodeOfMappingStringToType($rcls.nameWithUpper(), $p.type.getAntlrRuleName())});
         }
 #end## if array type
