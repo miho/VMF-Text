@@ -54,10 +54,45 @@ public class VMFText {
     }
 
     public static final String CTX_PARSED_OPTIONAL_CODE = "{$ctx.__vmf_text__parsed_optional = true;} ";
-    public static final String CTX_ADD_OPTIONAL_STATE_CODE_COMPLEX_CASE = "{$ctx.__vmf_text__optionalSymbols.add($ctx.__vmf_text__parsed_optional);$ctx.__vmf_text__parsed_optional=false;}";
-    public static final String CTX_ADD_OPTIONAL_STATE_CODE = "{$ctx.__vmf_text__optionalSymbols.add(true);}";
-    public static final String CTX_RULE_LOCALS_CODE = " locals [List<Boolean> __vmf_text__optionalSymbols = new ArrayList<Boolean>(), boolean __vmf_text__parsed_optional = false]";
-    public static final String CTX_APPEND_RULE_LOCALS_CODE = ", List<Boolean> __vmf_text__optionalSymbols = new ArrayList<Boolean>(), boolean __vmf_text__parsed_optional = false";
+    public static final String CTX_RULE_LOCALS_CODE = " locals [List<String> __vmf_text__optionalStates = new ArrayList<String>(), boolean __vmf_text__parsed_optional = false]";
+    public static final String CTX_APPEND_RULE_LOCALS_CODE = ", List<String> __vmf_text__optionalStates = new ArrayList<String>(), boolean __vmf_text__parsed_optional = false";
+
+    /**
+     * Builds the injected action that records a path-keyed optional-presence
+     * state for elements wrapped in an EBNF optional, e.g. {@code (x)?} or
+     * {@code (x)*}: the inner {@link #CTX_PARSED_OPTIONAL_CODE} action sets
+     * the flag when the element is matched; this action records
+     * {@code "<path>=<present>"} and resets the flag, so every encounter
+     * appends exactly one state entry.
+     */
+    static String ctxAddOptionalStateComplexCaseCode(String grammarElementPath) {
+        return "{$ctx.__vmf_text__optionalStates.add(\"" + grammarElementPath
+                + "=\"+$ctx.__vmf_text__parsed_optional);$ctx.__vmf_text__parsed_optional=false;}";
+    }
+
+    /**
+     * Builds the injected action for elements that are effectively optional
+     * by alternative structure (no EBNF suffix): it executes only when the
+     * containing alternative is taken, so absence is represented by the
+     * absence of an entry for the element's grammar path.
+     */
+    static String ctxAddOptionalStateCode(String grammarElementPath) {
+        return "{$ctx.__vmf_text__optionalStates.add(\"" + grammarElementPath + "=true\");}";
+    }
+
+    /**
+     * Removes every locals declaration and grammar action injected by
+     * {@code rewriteGrammar} from the given grammar text fragment. The
+     * injected actions carry per-element grammar paths and are therefore not
+     * constant, so they are stripped by pattern instead of literal
+     * replacement.
+     */
+    public static String stripInjectedActions(String grammarText) {
+        return grammarText
+                .replace(CTX_RULE_LOCALS_CODE, "")
+                .replace(CTX_APPEND_RULE_LOCALS_CODE, "")
+                .replaceAll("\\{\\$ctx\\.__vmf_text__[^}]*\\}[ ]?", "");
+    }
 
     private static class GrammarAndUnparser {
         UnparserModel unparserModel;
@@ -241,6 +276,31 @@ public class VMFText {
 
     private static File rewriteGrammar(File grammar) throws IOException {
 
+        // The unparser code generator derives grammar-element paths from a
+        // model of the REWRITTEN grammar. Wrapping bare EBNF-optional
+        // elements in sub-rules changes that structure, so recording paths
+        // computed on the original grammar would not match the paths the
+        // generated unparser queries. Rewriting therefore happens in two
+        // passes:
+        //
+        //   pass A: insert only the structural wrappers, e.g.
+        //           ';'?  ->  ( ';' {flag} )?
+        //           (the inner flag action doubles as the wrapper marker);
+        //   pass B: reparse, compute element paths on the final structure
+        //           and inject the state-recording actions with those paths.
+        //
+        // Injected actions do not create model elements, so the pass-B model
+        // is structurally identical to the model the unparser generator
+        // later builds from the final grammar.
+        Path dir = Files.createTempDirectory("vmf-text");
+
+        File wrapped = rewriteGrammarWrapOptionals(grammar, dir);
+
+        return rewriteGrammarInjectStateActions(wrapped, dir, grammar.getName());
+    }
+
+    private static File rewriteGrammarWrapOptionals(File grammar, Path dir) throws IOException {
+
         InputStream codeStream = new FileInputStream(grammar);
         CharStream input = CharStreams.fromStream(codeStream);
 
@@ -252,33 +312,14 @@ public class VMFText {
         ParseTreeWalker walker = new ParseTreeWalker();
 
         GrammarToRuleMatcherListener matchListenr = new GrammarToRuleMatcherListener(tokens);
-        // GrammarToRuleMatcherListener.setDebug(true);
 
         walker.walk(matchListenr, tree);
 
-        //Path dir = new File("/Users/miho/tmp").toPath();
-        Path dir = Files.createTempDirectory("vmf-text");
-
-        File grammarOut = new File(dir.toFile(),grammar.getName());
+        File grammarOut = new File(dir.toFile(),grammar.getName()+".wrapped");
 
         TokenStreamRewriter rewriter = new TokenStreamRewriter(tokens);
 
         UnparserModel model = matchListenr.getModel();
-
-        model.vmf().content().stream(UPRule.class).forEach(r -> {
-
-            // add optional symbol list to rule definition
-            // - if locals is present, we append to the locals definition
-            // - otherwise, we add the 'locals [..]' definition to the rule def
-            if(r.getTokenIndexLOCALS()<0) {
-                String str = CTX_RULE_LOCALS_CODE;
-                rewriter.insertBefore(r.getTokenIndexCOLON(), str);
-            } else {
-                String str = CTX_APPEND_RULE_LOCALS_CODE;
-                rewriter.insertAfter(r.getTokenIndexLOCALS(), str);
-            }
-
-        });
 
         model.vmf().content().stream(UPElement.class).forEach(upElement -> {
 
@@ -309,25 +350,163 @@ public class VMFText {
                     //
                     // example:
                     //
-                    // ';'?    -> (';' {action:true} )? {action:record_symbol(true or false)}
+                    // ';'?    -> (';' {action:flag=true} )?
                     //
                     rewriter.insertBefore(upElement.getTokenIndexStart(),"(");
                     rewriter.insertAfter(upElement.getTokenIndexStop()-1,
                             CTX_PARSED_OPTIONAL_CODE+")");
-                    rewriter.insertAfter(upElement.getTokenIndexStop(),
-                            CTX_ADD_OPTIONAL_STATE_CODE_COMPLEX_CASE);
-                } else {
-                    // just add the action since no ebnf suffix is present
-                    rewriter.insertAfter(upElement.getTokenIndexStop(),
-                            CTX_ADD_OPTIONAL_STATE_CODE);
                 }
-
             }
         });
 
         Files.write(grammarOut.toPath(), rewriter.getText().getBytes("UTF-8"));
 
         return grammarOut;
+    }
+
+    private static File rewriteGrammarInjectStateActions(File grammar, Path dir, String grammarFileName)
+            throws IOException {
+
+        InputStream codeStream = new FileInputStream(grammar);
+        CharStream input = CharStreams.fromStream(codeStream);
+
+        ANTLRv4Lexer lexer = new ANTLRv4Lexer(input);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        ANTLRv4Parser parser = new ANTLRv4Parser(tokens);
+
+        ParserRuleContext tree = parser.grammarSpec();
+        ParseTreeWalker walker = new ParseTreeWalker();
+
+        GrammarToRuleMatcherListener matchListenr = new GrammarToRuleMatcherListener(tokens);
+
+        walker.walk(matchListenr, tree);
+
+        File grammarOut = new File(dir.toFile(),grammarFileName);
+
+        TokenStreamRewriter rewriter = new TokenStreamRewriter(tokens);
+
+        UnparserModel model = matchListenr.getModel();
+
+        model.vmf().content().stream(UPRule.class).forEach(r -> {
+
+            // add optional state list to rule definition
+            // - if locals is present, we append to the locals definition
+            // - otherwise, we add the 'locals [..]' definition to the rule def
+            if(r.getTokenIndexLOCALS()<0) {
+                String str = CTX_RULE_LOCALS_CODE;
+                rewriter.insertBefore(r.getTokenIndexCOLON(), str);
+            } else {
+                String str = CTX_APPEND_RULE_LOCALS_CODE;
+                rewriter.insertAfter(r.getTokenIndexLOCALS(), str);
+            }
+
+        });
+
+        model.vmf().content().stream(UPElement.class).forEach(upElement -> {
+
+            if(upElement instanceof SubRule) {
+                UPElement wrappedElement = injectedWrapperContent((SubRule) upElement);
+                if(wrappedElement!=null) {
+                    // pass-A wrapper: record explicit presence/absence keyed
+                    // by the path of the wrapped element — the same path the
+                    // generated unparser queries at consumption time
+                    rewriter.insertAfter(upElement.getTokenIndexStop(),
+                            ctxAddOptionalStateComplexCaseCode(UPRuleUtil.getPath(wrappedElement)));
+                }
+                return;
+            }
+
+            if(isInsideInjectedWrapper(upElement)) {
+                // covered by the wrapper's flag/record mechanism above
+                return;
+            }
+
+            boolean parentIsBlockSet = false;
+
+            if(upElement.getParentAlt().getParentRule() instanceof SubRule) {
+                if(UPRuleUtil.isBlockSet((UPElement) upElement.getParentAlt().getParentRule())) {
+                    parentIsBlockSet = true;
+                }
+            }
+
+            if(UPRuleUtil.isEffectivelyOptional(upElement) && !parentIsBlockSet) {
+
+                if(upElement.ebnfZeroMany() || upElement.ebnfOptional()) {
+                    // bare EBNF optionals were wrapped in pass A; an action
+                    // inserted after 'x?' would fire even when x is absent,
+                    // so never record here
+                    return;
+                }
+
+                // effectively optional by alternative structure: the action
+                // executes only when the containing alternative is taken, so
+                // absence is represented by the missing entry for this path
+                rewriter.insertAfter(upElement.getTokenIndexStop(),
+                        ctxAddOptionalStateCode(UPRuleUtil.getPath(upElement)));
+            }
+        });
+
+        Files.write(grammarOut.toPath(), rewriter.getText().getBytes("UTF-8"));
+
+        return grammarOut;
+    }
+
+    /**
+     * Returns the single element wrapped by a pass-A injected wrapper, or
+     * {@code null} if the given sub-rule is not such a wrapper. Injected
+     * wrappers are EBNF-optional sub-rules that carry the parsed-optional
+     * flag action and contain exactly one non-sub-rule element.
+     */
+    private static UPElement injectedWrapperContent(SubRule sr) {
+
+        if(!(sr instanceof UPElement)) {
+            return null;
+        }
+
+        UPElement srElement = (UPElement) sr;
+
+        if(!(srElement.ebnfOptional() || srElement.ebnfZeroMany())) {
+            return null;
+        }
+
+        if(srElement.getText()==null || !srElement.getText().contains("__vmf_text__parsed_optional")) {
+            return null;
+        }
+
+        if(sr.getAlternatives().size()!=1) {
+            return null;
+        }
+
+        eu.mihosoft.vmf.vmftext.grammar.AlternativeBase alt = sr.getAlternatives().get(0);
+
+        if(alt.getElements().size()!=1) {
+            return null;
+        }
+
+        UPElement inner = alt.getElements().get(0);
+
+        if(inner instanceof SubRule) {
+            return null;
+        }
+
+        if(inner.getText()!=null && inner.getText().contains("__vmf_text__parsed_optional")) {
+            return null;
+        }
+
+        return inner;
+    }
+
+    private static boolean isInsideInjectedWrapper(UPElement e) {
+
+        if(e.getParentAlt()==null) {
+            return false;
+        }
+
+        if(!(e.getParentAlt().getParentRule() instanceof SubRule)) {
+            return false;
+        }
+
+        return injectedWrapperContent((SubRule) e.getParentAlt().getParentRule()) == e;
     }
 
     private static GrammarAndUnparser convertGrammarToModel(File grammar) throws IOException {

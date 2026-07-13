@@ -34,6 +34,7 @@ import ${modelPackageName}.ReadOnlyCodeElement;
 import ${modelPackageName}.CodeElement;
 import ${modelPackageName}.CodeRange;
 import ${modelPackageName}.LexicalInfo;
+import ${modelPackageName}.OptionalState;
 
 /**
  * Text formatting interface.
@@ -425,6 +426,7 @@ public interface Formatter {
 
         ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:hidden-text-counter",0);
         ((java.util.Map<String,Object>)e.getPayload()).put("vmf-text:formatter:optional-symbols-counter",0);
+        ((java.util.Map<String,Object>)e.getPayload()).remove("vmf-text:formatter:optional-path-counters");
     }
     private int getHiddenTextCounter(CodeElement e) {
 
@@ -499,6 +501,75 @@ public interface Formatter {
         return value;
     }
 
+    /**
+     * Returns the recorded optional-presence states for the given grammar
+     * element path, in occurrence order, or {@code null} if the element
+     * carries no path-keyed states at all (legacy/positional data only).
+     * An empty list means path-keyed data exists but this path was never
+     * recorded, i.e. the element is absent.
+     */
+    private java.util.List<Boolean> getOptionalStatesForPath(CodeElement e, String path) {
+
+        if(e.getLexicalInfo()==null) {
+          return null;
+        }
+
+        java.util.List<OptionalState> states = e.getLexicalInfo().getOptionalStates();
+
+        if(states==null || states.isEmpty()) {
+          return null;
+        }
+
+        java.util.List<Boolean> result = new java.util.ArrayList<>();
+        for(OptionalState s : states) {
+            if(path.equals(s.getGrammarElementPath())) {
+                result.add(s.isPresent());
+            }
+        }
+        return result;
+    }
+
+    private int getOptionalPathCounter(CodeElement e, String path) {
+
+        if(e.getPayload()==null || !(e.getPayload() instanceof java.util.Map)) {
+          return 0;
+        }
+
+        java.util.Map<String,Integer> counters = (java.util.Map<String,Integer>)
+                ((java.util.Map<String,Object>)e.getPayload()).get("vmf-text:formatter:optional-path-counters");
+
+        if(counters==null) {
+            return 0;
+        }
+
+        Integer value = counters.get(path);
+        return value==null ? 0 : value;
+    }
+
+    private void incOptionalPathCounter(CodeElement e, String path) {
+
+        if(e.getPayload()==null) {
+          return;
+        }
+
+        if(!(e.getPayload() instanceof java.util.Map)) {
+          throw new RuntimeException("Only instances of java.util.Map are supported as payload object.");
+        }
+
+        java.util.Map<String,Object> payload = (java.util.Map<String,Object>)e.getPayload();
+
+        java.util.Map<String,Integer> counters = (java.util.Map<String,Integer>)
+                payload.get("vmf-text:formatter:optional-path-counters");
+
+        if(counters==null) {
+            counters = new java.util.HashMap<>();
+            payload.put("vmf-text:formatter:optional-path-counters", counters);
+        }
+
+        Integer value = counters.get(path);
+        counters.put(path, value==null ? 1 : value+1);
+    }
+
     @Override
     public void pre(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
         if(!(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE)) {
@@ -516,12 +587,29 @@ public interface Formatter {
 
                 boolean symbolState = false;
 
-                if(getOptionalSymbolState(e)==null) {
+                java.util.List<Boolean> pathStates = getOptionalStatesForPath(e, ruleInfo.getRulePath());
+
+                if(pathStates != null) {
+                  // Path-keyed consumption: states recorded for this grammar
+                  // element path are consumed in occurrence order. A missing
+                  // entry means the element is absent (recording skips absent
+                  // non-EBNF optionals), and states recorded for other paths
+                  // can never be misassigned to this element.
+                  int pos = getOptionalPathCounter(e, ruleInfo.getRulePath());
+                  if(pos < pathStates.size()) {
+                    symbolState = pathStates.get(pos);
+                  } else {
+                    symbolState = false;
+                  }
+                  incOptionalPathCounter(e, ruleInfo.getRulePath());
+                } else if(getOptionalSymbolState(e)==null) {
                   System.err.println("OptionalSymbolState NULL: Rule-Info: " + ruleInfo.getGrammarText() + " -> " + ruleInfo.getRuleName());
                   // Default to keeping the element when state is unknown
                   symbolState = true;
                   incOptionalSymbolsCounter(e);
                 } else {
+                  // Legacy positional consumption for models without
+                  // path-keyed states (e.g. restored from pre-0.2.1 data).
                   int pos = getOptionalSymbolsCounter(e);
                   if(pos < getOptionalSymbolState(e).size()) {
                     symbolState = getOptionalSymbolState(e).get(pos);

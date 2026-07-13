@@ -59,10 +59,19 @@ interface LexicalInfo {
   Boolean[] getOptionalSymbols();
 
   @eu.mihosoft.vmf.core.IgnoreEquals
+  @eu.mihosoft.vmf.core.Contains
+  OptionalState[] getOptionalStates();
+
+  @eu.mihosoft.vmf.core.IgnoreEquals
   String getGrammarElementPath();
 
   @eu.mihosoft.vmf.core.IgnoreEquals
   CodeRange getOriginalRange();
+}
+
+interface OptionalState {
+  String getGrammarElementPath();
+  boolean getPresent();
 }
 
 @eu.mihosoft.vmf.core.InterfaceOnly

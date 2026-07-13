@@ -61,9 +61,24 @@ optional-presence is order-sensitive.
 
 ## Risks that remain
 
-- `optionalSymbols` is still fundamentally positional. The recent changes make
-  it work for the covered nested optional cases, but a path-keyed structure
-  would be more robust.
+- ~~`optionalSymbols` is still fundamentally positional.~~ **Resolved (0.2.1):**
+  optional presence is now recorded as `"<grammar-element-path>=<present>"`
+  entries and mirrored into typed `OptionalState` objects on `LexicalInfo`;
+  the formatter consumes them keyed by `RuleInfo.getRulePath()` with
+  per-path occurrence counters. A missing entry means *absent* instead of
+  shifting all subsequent states, which eliminates the cross-path
+  desynchronization class entirely. Because the unparser model is built from
+  the rewritten grammar, `rewriteGrammar` runs in two passes (structural
+  wrappers first, then a reparse and path computation on the final
+  structure), so recorded and consumed paths are identical by construction.
+  The legacy positional `Boolean` list remains as a derived view and as the
+  consumption fallback for pre-0.2.1 data.
+  *Residual limitation:* elements that are effectively optional by
+  alternative structure (no EBNF suffix) record presence only when their
+  alternative is taken; repeated occurrences of the *same* path with mixed
+  presence can therefore still be assigned to the earliest occurrences.
+  EBNF optionals (`x?`, `x*`) record explicit presence/absence per encounter
+  and are exact.
 - Lexical metadata lives in `Object getPayload()` maps. This is flexible, but
   not ideal for VMF Jackson / JSON schema.
 - Grammar rewriting injects Java-target ANTLR actions. This is pragmatic for
@@ -74,6 +89,12 @@ optional-presence is order-sensitive.
   a pretty-printing or grammar-aware separator policy.
 
 ## Recommended next design step: typed lexical metadata
+
+**Status (0.2.1):** partially implemented — `LexicalInfo` now carries typed
+`OptionalState { grammarElementPath, present }` entries in addition to the
+flat arrays, and the default formatter reads typed data first. Remaining
+work: typed `TriviaPiece` structures for the hidden-text pieces and retiring
+the payload-map fallback.
 
 For robust editor/JSON-schema support, lexical state should become explicit and
 typed, or be explicitly excluded from the semantic JSON schema:

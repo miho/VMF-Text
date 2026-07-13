@@ -361,10 +361,19 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             ParserRuleContext eCtx = (ParserRuleContext)payload.get("vmf-text:antlr4-rule-ctx");
                        
             java.util.List<String> ignoredPiecesOfText = ignoredPiecesOfTextListener.getIgnoredPiecesOfText(eCtx);
-            java.util.List<Boolean> optionalSymbols = getOptionalSymbolList(eCtx);
+            java.util.List<String> optionalStateEntries = getOptionalStateEntryList(eCtx);
+
+            // legacy positional view, derived from the path-keyed entries
+            // (recording order is unchanged, entries are "<path>=<present>")
+            java.util.List<Boolean> optionalSymbols = new java.util.ArrayList<>();
+            for(String optionalStateEntry : optionalStateEntries) {
+                optionalSymbols.add(Boolean.parseBoolean(
+                    optionalStateEntry.substring(optionalStateEntry.lastIndexOf('=')+1)));
+            }
 
             payload.put("vmf-text:ignored-pieces-of-text", ignoredPiecesOfText);
             payload.put("vmf-text:optionalSymbols", optionalSymbols );
+            payload.put("vmf-text:optionalStates", optionalStateEntries );
 
             LexicalInfo lexicalInfo = e.getLexicalInfo();
             if(lexicalInfo == null) {
@@ -375,25 +384,33 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             lexicalInfo.getIgnoredPiecesOfText().addAll(ignoredPiecesOfText);
             lexicalInfo.getOptionalSymbols().clear();
             lexicalInfo.getOptionalSymbols().addAll(optionalSymbols);
+            lexicalInfo.getOptionalStates().clear();
+            for(String optionalStateEntry : optionalStateEntries) {
+                int sepIdx = optionalStateEntry.lastIndexOf('=');
+                lexicalInfo.getOptionalStates().add(OptionalState.newBuilder().
+                        withGrammarElementPath(optionalStateEntry.substring(0, sepIdx)).
+                        withPresent(Boolean.parseBoolean(optionalStateEntry.substring(sepIdx+1))).
+                        build());
+            }
             lexicalInfo.setOriginalRange(e.getCodeRange());
             lexicalInfo.setGrammarElementPath(eCtx.getClass().getSimpleName());
 
         } // end for each code element
     }
 
-    private static java.util.List<Boolean> getOptionalSymbolList(ParserRuleContext ctx) {
+    private static java.util.List<String> getOptionalStateEntryList(ParserRuleContext ctx) {
 
         try {
             Class<?>  clazz = ctx.getClass();
-            java.lang.reflect.Field field = clazz.getField("__vmf_text__optionalSymbols");
+            java.lang.reflect.Field field = clazz.getField("__vmf_text__optionalStates");
             Object value = field.get(ctx);
 
-            return (java.util.List<Boolean>) value;
+            return (java.util.List<String>) value;
         } catch(Exception ex) {
             ex.printStackTrace(System.err);
         }
 
-        throw new RuntimeException("Cannot get optional-symbol-list");
+        throw new RuntimeException("Cannot get optional-state-list");
 
     }
 

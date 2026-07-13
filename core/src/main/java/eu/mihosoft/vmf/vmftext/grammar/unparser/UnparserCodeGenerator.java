@@ -100,10 +100,7 @@ public class UnparserCodeGenerator {
             String aText = a.getElements().stream().filter(e->!e.getText().
                     startsWith("#")).map(e->e.getText() + " ").collect(Collectors.joining());
 
-            aText = aText.replace(VMFText.CTX_PARSED_OPTIONAL_CODE,"");
-            aText = aText.replace(VMFText.CTX_RULE_LOCALS_CODE,"");
-            aText = aText.replace(VMFText.CTX_ADD_OPTIONAL_STATE_CODE_COMPLEX_CASE,"");
-            aText = aText.replace(VMFText.CTX_ADD_OPTIONAL_STATE_CODE,"");
+            aText = VMFText.stripInjectedActions(aText);
 
             w.append(aName+": ").append(aText + " " + (aText.endsWith("EOF")?"":"EOF")+" ;\n");
 
@@ -120,10 +117,7 @@ public class UnparserCodeGenerator {
 
                 String eText = e.getText(); // TODO 27.12.2017 maybe simplify expression by removing all labels and substitute sub-rules?
 
-                eText = eText.replace(VMFText.CTX_PARSED_OPTIONAL_CODE,"");
-                eText = eText.replace(VMFText.CTX_RULE_LOCALS_CODE,"");
-                eText = eText.replace(VMFText.CTX_ADD_OPTIONAL_STATE_CODE_COMPLEX_CASE,"");
-                eText = eText.replace(VMFText.CTX_ADD_OPTIONAL_STATE_CODE,"");
+                eText = VMFText.stripInjectedActions(eText);
 
                 w.append(srName+": ").append(eText+";\n");
 

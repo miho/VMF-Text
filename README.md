@@ -206,9 +206,13 @@ names.
 
 Parsed `CodeElement`s now expose typed lexical metadata via `getLexicalInfo()`.
 The typed mirror currently contains ignored text pieces, optional-symbol states,
-the original code range and a grammar element identifier. The existing raw
-payload map remains available for compatibility, but the default formatter reads
-typed lexical info first and falls back to the payload map if needed.
+the original code range and a grammar element identifier. Optional-element
+presence is additionally available as path-keyed `OptionalState` entries
+(`getOptionalStates()`), which the unparser consumes keyed by grammar element
+path — robust against ordering divergence, with the flat positional list kept
+as a derived legacy view. The existing raw payload map remains available for
+compatibility, but the default formatter reads typed lexical info first and
+falls back to the payload map if needed.
 
 The typed metadata is ignored for semantic equality. This allows two models with
 the same language semantics but different source trivia to compare as semantic
