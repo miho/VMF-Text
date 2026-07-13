@@ -3,7 +3,9 @@
 [![CI](https://github.com/miho/VMF-Text/actions/workflows/ci.yml/badge.svg)](https://github.com/miho/VMF-Text/actions/workflows/ci.yml)
 [![Join the chat at https://gitter.im/VMF_/Lobby](https://badges.gitter.im/VMF_/Lobby.svg)](https://gitter.im/VMF_/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-VMF-Text is a novel framework for grammar-based language modeling on the Java Platform (it runs on Java 11 and later): give it a labeled [ANTLR4](https://github.com/antlr/antlr4) grammar and it will generate a rich and clean API (based on [VMF](https://github.com/miho/VMF)) for (un)parsing and transforming custom textual languages. **The complete API is derived from just a single ANTLR4 grammar file!**
+VMF-Text is a framework for grammar-based language modeling on the Java Platform (the published artifacts run on Java 11 and later): give it a plain [ANTLR4](https://github.com/antlr/antlr4) grammar — labeled for a curated API, or [auto-labeled](#automatic-labels) as-is — and it generates a rich and clean API (based on [VMF](https://github.com/miho/VMF)) for parsing, transforming and unparsing custom textual languages, with exact round-trip fidelity for parsed sources. **The complete API is derived from just a single ANTLR4 grammar file!**
+
+Wondering how this relates to Xtext, Langium, textX, plain ANTLR4 or JavaParser? See the honest comparison in [COMPARISON.md](COMPARISON.md).
 
 <img src="resources/img/vmf-text-01.jpg">
 
@@ -78,6 +80,8 @@ plugins {
 vmfText {
     vmfVersion   = '0.2.10'  // (runtime version)
     antlrVersion = '4.13.2'  // (runtime version)
+    // autoLabel = true      // opt-in: derive labels for unlabeled grammars,
+                             // see "Automatic Labels" below
 }
 ```
 

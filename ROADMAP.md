@@ -121,9 +121,9 @@ sh ./gradlew publishPlugins --no-daemon
 
 From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 
-- **Typed lexical metadata** (`LexicalInfo` / `TriviaPiece` /
-  `OptionalState`) instead of untyped payload maps → clean VMF-Jackson /
-  JSON-schema story.
+- **Complete the typed lexical metadata migration** — a typed `LexicalInfo`
+  mirror already ships (see README "Typed Lexical Metadata"); retire the
+  untyped payload-map fallback for a clean VMF-Jackson / JSON-schema story.
 - **Path-keyed optional-presence state** — remove the positional coupling of
   `optionalSymbols`.
 - **Formatter policy for programmatically created models** — pluggable
