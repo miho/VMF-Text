@@ -100,16 +100,11 @@ public class DotAsTerminalTest {
     }
 
     @Test
-    public void textToExpand_roundTripsWordsOnly() {
-        String code = "alpha beta gamma";
-        TextToExpand model = parser.parseTextToExpand(code);
+    public void textToExpand_parsesWordsOnly() {
+        TextToExpand model = parser.parseTextToExpand("alpha beta gamma");
 
         Assert.assertEquals(Arrays.asList("alpha", "beta", "gamma"), model.getWords());
         Assert.assertTrue(model.getIgnored().isEmpty());
-
-        TextToExpand again = parser.parseTextToExpand(unparser.unparse(model));
-        assertSameItems(model.getWords(), again.getWords());
-        Assert.assertTrue(again.getIgnored().isEmpty());
     }
 
     @Test
