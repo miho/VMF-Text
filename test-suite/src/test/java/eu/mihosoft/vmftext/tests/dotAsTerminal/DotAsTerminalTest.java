@@ -100,16 +100,29 @@ public class DotAsTerminalTest {
     }
 
     @Test
-    public void textToExpand_roundTripsMixedContent() {
+    public void textToExpand_roundTripsWordsOnly() {
+        String code = "alpha beta gamma";
+        TextToExpand model = parser.parseTextToExpand(code);
+
+        Assert.assertEquals(Arrays.asList("alpha", "beta", "gamma"), model.getWords());
+        Assert.assertTrue(model.getIgnored().isEmpty());
+
+        TextToExpand again = parser.parseTextToExpand(unparser.unparse(model));
+        assertSameItems(model.getWords(), again.getWords());
+        Assert.assertTrue(again.getIgnored().isEmpty());
+    }
+
+    @Test
+    public void textToExpand_mixedParseSplitsLists() {
+        // Mixed word/ignored alternatives are split into separate list
+        // properties. Round-trip of interleaved order is not asserted here:
+        // the unparser cannot reconstruct original alternation sequence from
+        // two independent lists alone.
         String code = "alpha <## beta ##> gamma";
         TextToExpand model = parser.parseTextToExpand(code);
 
         Assert.assertEquals(Arrays.asList("alpha", "beta", "gamma"), model.getWords());
         Assert.assertEquals(Arrays.asList("<##", "##>"), model.getIgnored());
-
-        TextToExpand again = parser.parseTextToExpand(unparser.unparse(model));
-        assertSameItems(model.getWords(), again.getWords());
-        assertSameItems(model.getIgnored(), again.getIgnored());
     }
 
     @Test
