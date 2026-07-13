@@ -31,6 +31,8 @@ import eu.mihosoft.vmf.core.io.*;
 import eu.mihosoft.vmf.vmftext.grammar.*;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Lexer;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
+import eu.mihosoft.vmf.vmftext.grammar.target.AntlrTargetOptionalStateProvider;
+import eu.mihosoft.vmf.vmftext.grammar.target.JavaAntlrOptionalStateProvider;
 import eu.mihosoft.vmf.vmftext.grammar.unparser.UPRuleUtil;
 import groovy.lang.GroovyClassLoader;
 import org.antlr.v4.runtime.*;
@@ -53,45 +55,32 @@ public class VMFText {
         throw new AssertionError("Don't instantiate me!");
     }
 
-    public static final String CTX_PARSED_OPTIONAL_CODE = "{$ctx.__vmf_text__parsed_optional = true;} ";
-    public static final String CTX_RULE_LOCALS_CODE = " locals [List<String> __vmf_text__optionalStates = new ArrayList<String>(), boolean __vmf_text__parsed_optional = false]";
-    public static final String CTX_APPEND_RULE_LOCALS_CODE = ", List<String> __vmf_text__optionalStates = new ArrayList<String>(), boolean __vmf_text__parsed_optional = false";
+    /** @deprecated use {@link JavaAntlrOptionalStateProvider#PARSED_OPTIONAL_FLAG_ACTION} */
+    @Deprecated
+    public static final String CTX_PARSED_OPTIONAL_CODE =
+            JavaAntlrOptionalStateProvider.PARSED_OPTIONAL_FLAG_ACTION;
+    /** @deprecated use {@link JavaAntlrOptionalStateProvider#RULE_LOCALS_DECLARATION} */
+    @Deprecated
+    public static final String CTX_RULE_LOCALS_CODE =
+            JavaAntlrOptionalStateProvider.RULE_LOCALS_DECLARATION;
+    /** @deprecated use {@link JavaAntlrOptionalStateProvider#APPEND_RULE_LOCALS_DECLARATION} */
+    @Deprecated
+    public static final String CTX_APPEND_RULE_LOCALS_CODE =
+            JavaAntlrOptionalStateProvider.APPEND_RULE_LOCALS_DECLARATION;
 
-    /**
-     * Builds the injected action that records a path-keyed optional-presence
-     * state for elements wrapped in an EBNF optional, e.g. {@code (x)?} or
-     * {@code (x)*}: the inner {@link #CTX_PARSED_OPTIONAL_CODE} action sets
-     * the flag when the element is matched; this action records
-     * {@code "<path>=<present>"} and resets the flag, so every encounter
-     * appends exactly one state entry.
-     */
+    private static final AntlrTargetOptionalStateProvider OPTIONAL_STATE_PROVIDER =
+            JavaAntlrOptionalStateProvider.INSTANCE;
+
     static String ctxAddOptionalStateComplexCaseCode(String grammarElementPath) {
-        return "{$ctx.__vmf_text__optionalStates.add(\"" + grammarElementPath
-                + "=\"+$ctx.__vmf_text__parsed_optional);$ctx.__vmf_text__parsed_optional=false;}";
+        return OPTIONAL_STATE_PROVIDER.buildComplexOptionalStateAction(grammarElementPath);
     }
 
-    /**
-     * Builds the injected action for elements that are effectively optional
-     * by alternative structure (no EBNF suffix): it executes only when the
-     * containing alternative is taken, so absence is represented by the
-     * absence of an entry for the element's grammar path.
-     */
     static String ctxAddOptionalStateCode(String grammarElementPath) {
-        return "{$ctx.__vmf_text__optionalStates.add(\"" + grammarElementPath + "=true\");}";
+        return OPTIONAL_STATE_PROVIDER.buildOptionalStateAction(grammarElementPath);
     }
 
-    /**
-     * Removes every locals declaration and grammar action injected by
-     * {@code rewriteGrammar} from the given grammar text fragment. The
-     * injected actions carry per-element grammar paths and are therefore not
-     * constant, so they are stripped by pattern instead of literal
-     * replacement.
-     */
     public static String stripInjectedActions(String grammarText) {
-        return grammarText
-                .replace(CTX_RULE_LOCALS_CODE, "")
-                .replace(CTX_APPEND_RULE_LOCALS_CODE, "")
-                .replaceAll("\\{\\$ctx\\.__vmf_text__[^}]*\\}[ ]?", "");
+        return OPTIONAL_STATE_PROVIDER.stripInjectedActions(grammarText);
     }
 
     private static class GrammarAndUnparser {
@@ -354,7 +343,7 @@ public class VMFText {
                     //
                     rewriter.insertBefore(upElement.getTokenIndexStart(),"(");
                     rewriter.insertAfter(upElement.getTokenIndexStop()-1,
-                            CTX_PARSED_OPTIONAL_CODE+")");
+                            OPTIONAL_STATE_PROVIDER.getParsedOptionalFlagAction()+")");
                 }
             }
         });
@@ -393,10 +382,10 @@ public class VMFText {
             // - if locals is present, we append to the locals definition
             // - otherwise, we add the 'locals [..]' definition to the rule def
             if(r.getTokenIndexLOCALS()<0) {
-                String str = CTX_RULE_LOCALS_CODE;
+                String str = OPTIONAL_STATE_PROVIDER.getRuleLocalsDeclaration();
                 rewriter.insertBefore(r.getTokenIndexCOLON(), str);
             } else {
-                String str = CTX_APPEND_RULE_LOCALS_CODE;
+                String str = OPTIONAL_STATE_PROVIDER.getAppendRuleLocalsDeclaration();
                 rewriter.insertAfter(r.getTokenIndexLOCALS(), str);
             }
 

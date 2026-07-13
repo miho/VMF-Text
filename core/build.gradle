@@ -30,7 +30,14 @@ plugins {
 
 apply plugin: 'java'
 apply plugin: 'idea'
+
+ext.commonProps = new Properties()
+file(new File(projectDir.parentFile,"config/common.properties")).withInputStream { commonProps.load(it) }
+
 apply from: 'gradle/publishing.gradle'
+
+group = publishingInfo.groupId
+version = publishingInfo.versionId
 
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
@@ -89,7 +96,7 @@ repositories {
 
 dependencies {
    
-    implementation (group: 'org.antlr', name: 'antlr4', version: '4.11.1')
+    implementation (group: 'org.antlr', name: 'antlr4', version: '4.13.2')
 
     implementation group: 'eu.mihosoft.ext.velocity.legacy', name: 'velocity-legacy', version: '1.7.4'
 

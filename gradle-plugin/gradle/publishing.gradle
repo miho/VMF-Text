@@ -223,7 +223,8 @@ if(
 ) {
 
     signing {
-        sign publishing.publications
+        sign publishing.publications.mavenJava
+        sign publishing.publications.pluginMaven
     }
 
 } else {

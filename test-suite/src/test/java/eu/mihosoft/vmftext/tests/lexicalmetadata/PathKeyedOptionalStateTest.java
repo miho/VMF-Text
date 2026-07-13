@@ -55,10 +55,6 @@ public class PathKeyedOptionalStateTest {
                 if (e.getLexicalInfo() != null) {
                     e.getLexicalInfo().getOptionalSymbols().clear();
                 }
-                if (e.getPayload() instanceof Map) {
-                    ((Map<?, ?>) e.getPayload()).keySet()
-                            .removeIf("vmf-text:optionalSymbols"::equals);
-                }
             });
 
             Assert.assertEquals(source, new NestedUnnamedModelUnparser().unparse(model));
@@ -69,13 +65,6 @@ public class PathKeyedOptionalStateTest {
     public void pathKeyedRoundTripSurvivesWithoutLexicalPayloadEntries() {
         String source = "r1 (), r2 (test123), r3 (), r4 (def), r5 (a b)";
         NestedUnnamedModel model = new NestedUnnamedModelParser().parse(source);
-
-        model.getRoot().vmf().content().stream(CodeElement.class)
-                .map(CodeElement::getPayload)
-                .filter(p -> p instanceof Map)
-                .map(p -> (Map<?, ?>) p)
-                .forEach(p -> p.keySet().removeIf(k ->
-                        k instanceof String && ((String) k).startsWith("vmf-text:")));
 
         Assert.assertEquals(source, new NestedUnnamedModelUnparser().unparse(model));
     }

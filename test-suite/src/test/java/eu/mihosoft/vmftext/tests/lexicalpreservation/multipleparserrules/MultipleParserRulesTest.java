@@ -51,15 +51,15 @@ public class MultipleParserRulesTest {
         MultipleParserRulesModel model = new MultipleParserRulesModelParser().parse(code);
 
         @SuppressWarnings("unchecked")
-        List<String> firstRuleHiddenText = (List<String>) ((Map<String,Object>) model.getRoot().
-                getRules().get(0).getPayload()).get("vmf-text:ignored-pieces-of-text");
+        java.util.List<eu.mihosoft.vmftext.tests.lexicalpreservation.multipleparserrules.TriviaPiece> firstRuleHiddenText =
+                model.getRoot().getRules().get(0).getLexicalInfo().getTriviaPieces();
 
         @SuppressWarnings("unchecked")
-        List<String> secondRuleHiddenText = (List<String>) ((Map<String,Object>) model.getRoot().
-                getRules().get(1).getPayload()).get("vmf-text:ignored-pieces-of-text");
+        java.util.List<eu.mihosoft.vmftext.tests.lexicalpreservation.multipleparserrules.TriviaPiece> secondRuleHiddenText =
+                model.getRoot().getRules().get(1).getLexicalInfo().getTriviaPieces();
 
-        Assert.assertEquals(" \t", firstRuleHiddenText.get(0));
-        Assert.assertEquals("\r\n ", secondRuleHiddenText.get(0));
+        Assert.assertEquals(" \t", firstRuleHiddenText.get(0).getText());
+        Assert.assertEquals("\r\n ", secondRuleHiddenText.get(0).getText());
 
         MultipleParserRulesModelUnparser unparser = new MultipleParserRulesModelUnparser();
         String newCode = unparser.unparse(model);
