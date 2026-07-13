@@ -1,6 +1,6 @@
 # VMF-Text Roadmap
 
-*Last updated: 2026-07-12*
+*Last updated: 2026-07-13*
 
 VMF-Text occupies a niche no other framework covers: **a plain (labeled or
 auto-labeled) ANTLR4 grammar in → a rich, typed VMF model plus an exact
@@ -11,13 +11,13 @@ that differentiator into something outsiders can see and adopt.
 
 Design background: `LEXICAL_PRESERVATION_ASSESSMENT.md`.
 
-## Phase 0 — Ship 0.2.0 (in progress)
+## Phase 0 — Ship 0.2.0 (shipped 2026-07-12)
 
 The first non-preview release in the project's history (previous releases:
-0.1–0.1.2 previews, 2018). Everything below is version-aligned in the working
-tree; remaining steps are validation, publishing, and housekeeping.
+0.1–0.1.2 previews, 2018). Released as
+[v0.2.0](https://github.com/miho/VMF-Text/releases/tag/v0.2.0).
 
-- [x] VMF `0.2.10` released to Maven Central (prerequisite, done 2026-07-12)
+- [x] VMF `0.2.10` released to Maven Central (prerequisite)
 - [x] Align all version references: `vmf-text` → `0.2.0`
       (`config/common.properties`), VMF → `0.2.10` (core build, plugin
       default, README, AGENTS.md), ANTLR → `4.13.2`
@@ -25,48 +25,61 @@ tree; remaining steps are validation, publishing, and housekeeping.
       build in `.github/workflows/ci.yml`)
 - [x] Plugin Portal metadata (`website`/`vcsUrl`) points at `miho/VMF-Text`
       (was the retired `VMF-Text-Gradle-Plugin` repo)
-- [ ] Full-chain local validation green: `sh ./build-and-test-all.sh`
-- [ ] VMF `0.2.10` visible on `repo1.maven.org` (Central sync) — required
-      before pushing, CI resolves VMF from Central
-- [ ] Commit release prep + roadmap, push, CI green
-- [ ] Publish `eu.mihosoft.vmf:vmf-text:0.2.0` to Maven Central
-      (closes [#12](https://github.com/miho/VMF-Text/issues/12))
-- [ ] Publish `vmf-text-gradle-plugin:0.2.0` to the Gradle Plugin Portal
-      (plugin id `eu.mihosoft.vmftext`; last Portal release was 0.1.2.7)
-      and Maven Central
-- [ ] Smoke test from a clean consumer project (no `mavenLocal`):
-      `plugins { id "eu.mihosoft.vmftext" version "0.2.0" }`, small grammar,
+- [x] Full-chain local validation green: `sh ./build-and-test-all.sh`
+- [x] VMF `0.2.10` visible on `repo1.maven.org`
+- [x] Commit release prep + roadmap, push, CI green
+- [x] Publish `eu.mihosoft.vmf:vmf-text:0.2.0` to Maven Central
+      (closed [#12](https://github.com/miho/VMF-Text/issues/12))
+- [x] Publish `vmf-text-gradle-plugin:0.2.0` to Maven Central; Gradle Plugin
+      Portal submission done for both plugin ids (`eu.mihosoft.vmftext`
+      0.2.0, `eu.mihosoft.vmf` 0.2.10) — listings pending Gradle's approval
+      of the group migration off the legacy `gradle.plugin.*` prefix
+- [x] Plugin **markers** published to Maven Central
+      (`eu.mihosoft.vmftext:eu.mihosoft.vmftext.gradle.plugin:0.2.0`,
+      `eu.mihosoft.vmf:eu.mihosoft.vmf.gradle.plugin:0.2.10`), so
+      `plugins { id "eu.mihosoft.vmftext" }` resolves with `mavenCentral()`
+      in `pluginManagement` — the Portal listing is a secondary channel,
+      not a requirement
+- [x] Smoke test from a clean consumer project (Central-only resolution):
       generate + compile + parse/unparse round trip
-- [ ] Tag `v0.2.0`, create GitHub release (draft notes in the appendix)
-- [ ] Issue triage:
-  - close [#2](https://github.com/miho/VMF-Text/issues/2) (lexical
-    preserving unparser — shipped in 0.2.0)
-  - close [#12](https://github.com/miho/VMF-Text/issues/12) (Maven Central)
-  - retest [#8](https://github.com/miho/VMF-Text/issues/8) (labeling `.`)
-    and [#9](https://github.com/miho/VMF-Text/issues/9) (grammar without
-    lexer rules) against 0.2.0; close with repro or update status
-  - answer [#14](https://github.com/miho/VMF-Text/issues/14) (superClass
-    option) with a decision
-  - label [#1](https://github.com/miho/VMF-Text/issues/1) /
-    [#7](https://github.com/miho/VMF-Text/issues/7) (rule/model rewriting)
-    as roadmap/design — feeds Phase 2
-- [ ] Post-release cleanup: `gradle-plugin/gradle/project-info.gradle`
-      hardcodes `versionId`; read it from `config/common.properties` like
-      `core` does
+- [x] Tag `v0.2.0`, GitHub release created
+- [x] Issue triage: [#2](https://github.com/miho/VMF-Text/issues/2),
+      [#9](https://github.com/miho/VMF-Text/issues/9) and
+      [#12](https://github.com/miho/VMF-Text/issues/12) closed;
+      [#8](https://github.com/miho/VMF-Text/issues/8) and
+      [#14](https://github.com/miho/VMF-Text/issues/14) updated + labeled
+      `enhancement`; [#1](https://github.com/miho/VMF-Text/issues/1) /
+      [#7](https://github.com/miho/VMF-Text/issues/7) labeled `roadmap`
+      (feed Phase 2)
 
-### Publishing prerequisites (one-time machine setup)
+### 0.2.1 / 0.2.11 build cleanup queue
 
-`~/.gradle/gradle.properties` must define (a commented template is already in
-place there):
+Small papercuts found during the release, none user-visible:
 
-- `mavenCentralUsername` / `mavenCentralPassword` — Central Portal user token
-  (namespace `eu.mihosoft`)
-- `signing.keyId` / `signing.password` / `signing.secretKeyRingFile` — GPG
-  release key
-- `gradle.publish.key` / `gradle.publish.secret` — Gradle Plugin Portal API
-  key
+- Set `project.group` and `project.version` at project level in **both**
+  gradle-plugin builds (VMF and VMF-Text) so `publishPlugins` from a release
+  tag no longer needs `-Pgroup=... -Pversion=...` overrides.
+- Align the ANTLR tool and runtime versions in the generated builds
+  (currently a harmless "tool 4.13.2 vs runtime 4.11.1" warning during
+  generation).
+- `gradle-plugin/gradle/project-info.gradle` hardcodes `versionId`; read it
+  from `config/common.properties` like `core` does.
+- Publish the plugin marker to Central from the plugin build itself (the
+  0.2.0/0.2.10 markers were produced by a standalone POM-only publisher
+  project).
+- Verify the Plugin Portal listings once Gradle approves the group
+  migration (notification arrives by email).
 
-### Publish commands
+### Publishing prerequisites
+
+Release credentials (Central Portal token, GPG signing key, Plugin Portal
+API key) are **not** stored in this repository or on the build machine;
+they are kept offline and passed per invocation as Gradle `-P` properties:
+`mavenCentralUsername`/`mavenCentralPassword`,
+`signing.keyId`/`signing.password`/`signing.secretKeyRingFile`,
+`gradle.publish.key`/`gradle.publish.secret`.
+
+### Publish commands (reference)
 
 ```bash
 # 1) core → Maven Central
@@ -76,11 +89,15 @@ sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft --no-daemon
 # then press "Publish" on https://central.sonatype.com/publishing/deployments
 # (or pass -PpublishingType=automatic to skip the manual click)
 
-# 2) gradle-plugin → Plugin Portal + Maven Central
+# 2) gradle-plugin → Maven Central + Plugin Portal
 cd ../gradle-plugin
-sh ./gradlew publishPlugins --no-daemon
 sh ./gradlew publishMavenJavaPublicationToMavenCentralRepository --no-daemon
 sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft --no-daemon
+sh ./gradlew publishPlugins --no-daemon
+# publishPlugins from a release tag currently needs
+#   -Pgroup=eu.mihosoft.vmf -Pversion=<version>
+# (fix queued in the 0.2.1 cleanup above); the Central plugin marker is
+# currently published by a separate POM-only project (see cleanup queue)
 ```
 
 ## Phase 1 — Prove the differentiator (~2 weeks after 0.2.0)
@@ -123,34 +140,29 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 - Multi-target ANTLR runtimes (C++/JS/Python generation).
 - Projectional editing (MPS territory).
 
-## Appendix: draft release notes v0.2.0
+## Appendix: v0.2.0
 
-> **VMF-Text 0.2.0** — first stable release.
->
-> VMF-Text turns a plain ANTLR4 grammar into a typed model API with parsing,
-> unparsing, and transformation support, built on the VMF modeling framework.
->
-> **Highlights**
-> - **Exact lexical preservation:** parse → edit the model → unparse;
->   all untouched text (whitespace, comments, formatting) is reproduced
->   byte-identically. Programmatically set values fall back to conservative
->   separators (see `LEXICAL_PRESERVATION_ASSESSMENT.md`).
-> - **Auto-labeling (`autoLabel = true`):** consume unlabeled or partially
->   labeled ANTLR4 grammars; explicit labels always win, inferred names are
->   deterministic — tested against complex real-world grammars.
-> - **Full Java 24 grammar** in the test suite as an end-to-end proof
->   (string templates intentionally unsupported — the preview feature was
->   withdrawn after Java 22).
-> - **Modernized stack:** JDK 21 toolchain, Gradle 9, ANTLR 4.13.2,
->   VMF 0.2.10 — all dependencies resolve from Maven Central.
-> - **Availability:** `eu.mihosoft.vmf:vmf-text:0.2.0` and
->   `eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.0` on Maven Central; Gradle
->   plugin `eu.mihosoft.vmftext` on the Plugin Portal.
->
-> ```gradle
-> plugins { id "eu.mihosoft.vmftext" version "0.2.0" }
-> vmfText {
->     vmfVersion   = '0.2.10'
->     antlrVersion = '4.13.2'
-> }
-> ```
+Shipped 2026-07-12: https://github.com/miho/VMF-Text/releases/tag/v0.2.0
+
+Consumption (works from Maven Central alone; the Portal listing is pending
+approval and optional):
+
+```gradle
+// settings.gradle
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+```
+
+```gradle
+// build.gradle
+plugins { id "eu.mihosoft.vmftext" version "0.2.0" }
+
+vmfText {
+    vmfVersion   = '0.2.10'
+    antlrVersion = '4.13.2'
+}
+```
