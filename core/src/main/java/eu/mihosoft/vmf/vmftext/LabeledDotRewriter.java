@@ -45,10 +45,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Non-list labels ({@code label=.}) are fine and left unchanged.</p>
  *
  * <p>The rewrite replaces {@code label+=.} with
- * {@code label+=__vmftext_anyToken} and injects a synthetic parser rule:</p>
+ * {@code label+=vmftextAnyToken} and injects a synthetic parser rule:</p>
  *
  * <pre>{@code
- * __vmftext_anyToken : . ;
+ * vmftextAnyToken : . ;
  * }</pre>
  *
  * <p>That preserves parser-wildcard semantics (any token except EOF) while going
@@ -58,8 +58,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 final class LabeledDotRewriter {
 
-    /** Synthetic parser rule used as a stand-in for list-labeled {@code .}. */
-    static final String ANY_TOKEN_RULE = "__vmftext_anyToken";
+    /**
+     * Synthetic parser rule used as a stand-in for list-labeled {@code .}.
+     * Must be a valid ANTLR parser rule name (lowercase start, no leading '_').
+     */
+    static final String ANY_TOKEN_RULE = "vmftextAnyToken";
 
     private LabeledDotRewriter() {
         throw new AssertionError("Don't instantiate me!");
