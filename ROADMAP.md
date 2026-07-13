@@ -54,7 +54,8 @@ The first non-preview release in the project's history (previous releases:
 
 ### 0.2.1 / 0.2.11 build cleanup queue
 
-Small papercuts found during the release, none user-visible:
+Small papercuts found during the release, none user-visible — tracked in
+[#19](https://github.com/miho/VMF-Text/issues/19):
 
 - Set `project.group` and `project.version` at project level in **both**
   gradle-plugin builds (VMF and VMF-Text) so `publishPlugins` from a release
@@ -118,6 +119,11 @@ sh ./gradlew publishPlugins --no-daemon
   conservative separator fallback for programmatically set values).
 
 ## Phase 2 — Harden the core (design work, scope after Phase 1)
+
+Shipped so far: the written LSP stance ([LSP_INTEGRATION.md](LSP_INTEGRATION.md))
+and path-keyed optional-presence state (`899ab47`). The remaining items below
+are tracked in [#19](https://github.com/miho/VMF-Text/issues/19) together with
+the 0.2.1 cleanup queue.
 
 From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 
