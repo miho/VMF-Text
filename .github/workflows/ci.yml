@@ -55,3 +55,32 @@ jobs:
           path: |
             test-suite/build/reports/tests/test
             test-suite/build/test-results/test
+
+  # Runs the round-trip showcase against the RELEASED vmf-text from Maven
+  # Central (not the local build) — a permanent consumer smoke test of the
+  # published artifacts and the README quickstart path.
+  roundtrip-example:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out VMF-Text
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Make toolchain JDK visible to Gradle
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.java.installations.fromEnv=JAVA_HOME_21_X64" >> ~/.gradle/gradle.properties
+
+      - name: Set up Gradle (caching + wrapper validation)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run round-trip showcase
+        working-directory: examples/java24-roundtrip
+        run: sh ./gradlew run --no-daemon

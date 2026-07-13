@@ -7,6 +7,46 @@ VMF-Text is a novel framework for grammar-based language modeling on the Java Pl
 
 <img src="resources/img/vmf-text-01.jpg">
 
+## Round-Trip Fidelity
+
+VMF-Text preserves the *exact* lexical shape of parsed sources: parse a file
+into a typed model, change what you need, unparse — everything you did not
+touch is reproduced byte-for-byte, comments, blank lines and irregular
+spacing included.
+
+The runnable [`examples/java24-roundtrip`](examples/java24-roundtrip)
+showcase parses a real Java 24 source file (sealed types, records, pattern
+switches with guards, text blocks) with a full Java 24 grammar, verifies the
+unedited unparse is byte-identical, then renames one method *on the model*:
+
+```java
+model.vmf().content().stream(MethodDeclaration.class)
+     .filter(m -> "describe".equals(m.getMethodName().getText()))
+     .forEach(m -> m.getMethodName().setText("render"));
+```
+
+The diff against the original file is exactly one line:
+
+```
+[1] sample/Shapes.java (955 chars) round-tripped byte-identically
+  line 27  -     static String describe(Shape shape) {
+  line 27  +     static String render(Shape shape) {
+[2] one model edit -> one changed line; every other byte is untouched
+```
+
+Run it yourself — it resolves the released VMF-Text straight from Maven
+Central:
+
+```
+cd examples/java24-roundtrip
+./gradlew run
+```
+
+None of this is Java-specific: the same parse → edit → unparse API is
+generated for any labeled ANTLR4 grammar. (Exact preservation applies to
+parsed content; values you set programmatically use conservative separators —
+see `LEXICAL_PRESERVATION_ASSESSMENT.md`.)
+
 ## Using VMF-Text
 
 Checkout the tutorial projects: https://github.com/miho/VMF-Text-Tutorials
