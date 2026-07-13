@@ -22,6 +22,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Full coverage for labeled parser wildcards ({@code label=.} / {@code label+=.}),
@@ -50,7 +51,7 @@ public class DotAsTerminalTest {
         LabeledDotSingle model = parser.parseLabeledDotSingle(code);
 
         Assert.assertEquals("42", model.getValue());
-        Assert.assertEquals(normalize(code), normalize(unparser.unparse(model)));
+        Assert.assertEquals("42", parser.parseLabeledDotSingle(unparser.unparse(model)).getValue());
     }
 
     @Test
@@ -58,7 +59,7 @@ public class DotAsTerminalTest {
         LabeledDotSingle model = LabeledDotSingle.newInstance();
         model.setValue("xyz");
 
-        Assert.assertEquals(normalize("xyz"), normalize(unparser.unparse(model)));
+        Assert.assertEquals("xyz", parser.parseLabeledDotSingle(unparser.unparse(model)).getValue());
     }
 
     @Test
@@ -74,7 +75,8 @@ public class DotAsTerminalTest {
         LabeledDotList model = parser.parseLabeledDotList(code);
 
         Assert.assertEquals(Arrays.asList("hello", "123", ";"), model.getItems());
-        Assert.assertEquals(normalize(code), normalize(unparser.unparse(model)));
+        assertSameItems(model.getItems(),
+                parser.parseLabeledDotList(unparser.unparse(model)).getItems());
     }
 
     @Test
@@ -84,7 +86,8 @@ public class DotAsTerminalTest {
         model.getItems().add("99");
         model.getItems().add("?");
 
-        Assert.assertEquals(normalize("foo 99 ?"), normalize(unparser.unparse(model)));
+        assertSameItems(model.getItems(),
+                parser.parseLabeledDotList(unparser.unparse(model)).getItems());
     }
 
     @Test
@@ -103,7 +106,10 @@ public class DotAsTerminalTest {
 
         Assert.assertEquals(Arrays.asList("alpha", "beta", "gamma"), model.getWords());
         Assert.assertEquals(Arrays.asList("<##", "##>"), model.getIgnored());
-        Assert.assertEquals(normalize(code), normalize(unparser.unparse(model)));
+
+        TextToExpand again = parser.parseTextToExpand(unparser.unparse(model));
+        assertSameItems(model.getWords(), again.getWords());
+        assertSameItems(model.getIgnored(), again.getIgnored());
     }
 
     @Test
@@ -112,7 +118,10 @@ public class DotAsTerminalTest {
 
         Assert.assertTrue(model.getWords().isEmpty());
         Assert.assertEquals(Arrays.asList("12", "!", "!"), model.getIgnored());
-        Assert.assertEquals(normalize("12 !!"), normalize(unparser.unparse(model)));
+
+        TextToExpand again = parser.parseTextToExpand(unparser.unparse(model));
+        Assert.assertTrue(again.getWords().isEmpty());
+        assertSameItems(model.getIgnored(), again.getIgnored());
     }
 
     @Test
@@ -123,11 +132,10 @@ public class DotAsTerminalTest {
         MainRuleWorking model = parser.parseMainRuleWorking("@");
 
         Assert.assertEquals("@", model.getMyLabel());
-        Assert.assertEquals(normalize("@"), normalize(unparser.unparse(model)));
+        Assert.assertEquals("@", parser.parseMainRuleWorking(unparser.unparse(model)).getMyLabel());
     }
 
-    /** Collapse formatter-inserted spacing for stable comparisons. */
-    private static String normalize(String s) {
-        return s == null ? null : s.replaceAll("\\s+", " ").trim();
+    private static void assertSameItems(List<String> expected, List<String> actual) {
+        Assert.assertEquals(expected, actual);
     }
 }

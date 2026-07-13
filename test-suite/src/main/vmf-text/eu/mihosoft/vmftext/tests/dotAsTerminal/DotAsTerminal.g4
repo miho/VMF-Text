@@ -6,6 +6,9 @@ grammar DotAsTerminal;
  * In a parser rule, '.' matches any token except EOF. Labeling it
  * (label=. / label+=.) must produce token-typed String properties —
  * the same shape as an explicit catch-all lexer rule such as ANY.
+ *
+ * Note: WS must be declared before the ANY catch-all so spaces are not
+ * emitted as default-channel tokens that labeled '.' would collect.
  */
 
 // Single labeled wildcard
@@ -31,8 +34,8 @@ HASH_CLOSE: '##>';
 
 MY_LEXER_RULE: 'abc';
 
-ANY: .;
-
 WS
 :   [ \r\t\n]+ -> channel(HIDDEN)
 ;
+
+ANY: .;
