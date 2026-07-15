@@ -21,11 +21,8 @@ complexity (all resolve released VMF-Text from Maven Central):
 
 1. **[`examples/arraylang-roundtrip`](examples/arraylang-roundtrip)** — the
    tiny `ArrayLang` grammar from this README. Parse an irregularly spaced
-   `(1,2,3)` list, prove byte-identical unparse, then replace one integer:
-
-```java
-array.getValues().set(1, 99); // 2 -> 99; surrounding whitespace stays
-```
+   `(1,2,3)` list, prove byte-identical unparse, then replace one integer on
+   the model with `array.getValues().set(1, 99)`.
 
 2. **[`examples/java8-roundtrip`](examples/java8-roundtrip)** — a small Java 8
    source file with a full Java 8 grammar. Rename a method and replace a

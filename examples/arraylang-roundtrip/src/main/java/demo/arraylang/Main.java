@@ -18,9 +18,9 @@ import java.util.List;
 
 /**
  * Smallest round-trip showcase: the ArrayLang grammar from the VMF-Text README.
- * Parse an irregularly spaced {@code (1,2,3)} list, prove byte-identical
- * unparse, then replace one value on the model and show that surrounding
- * whitespace is preserved.
+ * Parse an irregularly spaced {@code (1,2,3)} list and prove byte-identical
+ * unparse. Then replace one value on the model (edited primitives use the
+ * conservative separator fallback; see {@code LEXICAL_PRESERVATION_ASSESSMENT.md}).
  */
 public class Main {
 
@@ -47,6 +47,7 @@ public class Main {
         require(source.equals(roundTrip), "round trip is not byte-identical");
         System.out.println("[1] " + input + " (" + source.length()
                 + " chars) round-tripped byte-identically");
+        System.out.println("  source: " + visible(source));
 
         // 3) replace one value on the model (index 1: 2 -> 99)
         Array array = model.getRoot();
@@ -55,14 +56,17 @@ public class Main {
                 "expected second value to be 2");
         array.getValues().set(1, 99);
 
-        // 4) unparse: the edited token changes; surrounding whitespace stays
+        // 4) unparse the edited model: value changes; edited primitives use
+        //    conservative separators (exact shape is preserved for unedited
+        //    parses — see Java 8 / Java 24 examples for in-place token edits)
         String edited = new ArrayLangModelUnparser().unparse(model);
-        require(!source.equals(edited), "edited output should differ");
-        require(edited.contains("99"), "expected replaced value 99 in output");
+        ArrayLangModel reparsed = parser.parse(edited);
+        require(Integer.valueOf(99).equals(reparsed.getRoot().getValues().get(1)),
+                "expected replaced value 99 after reparse");
         System.out.println("[2] replaced values[1]: 2 -> 99");
-        System.out.println("  before: " + visible(source));
         System.out.println("  after:  " + visible(edited));
-        System.out.println("[3] one value edit; surrounding whitespace preserved");
+        System.out.println("[3] edited primitive values use conservative separators;");
+        System.out.println("    unedited round-trips stay byte-identical (step [1])");
     }
 
     private static String visible(String s) {

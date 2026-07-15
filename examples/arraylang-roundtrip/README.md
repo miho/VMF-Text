@@ -1,18 +1,18 @@
 # ArrayLang Round-Trip Showcase
 
 The smallest lexical-preservation example: the `ArrayLang` grammar from the
-VMF-Text README (`(1,2,3)` integer lists). Parses an irregularly spaced list,
-proves the unparse is byte-identical, then replaces one value on the model
-while keeping surrounding whitespace.
+VMF-Text README (`(1,2,3)` integer lists). Parses an irregularly spaced list
+and proves the unparse is byte-identical, then replaces one value on the model.
 
 What it demonstrates:
 
 - **Grammar → API.** One short labeled ANTLR4 file generates the typed model,
   parser and unparser.
 - **Exact lexical preservation.** Odd spaces and newlines survive parse →
-  unparse byte-for-byte.
-- **Value edits.** `array.getValues().set(1, 99)` changes one integer; the
-  rest of the source shape stays put.
+  unparse byte-for-byte when you do not edit.
+- **Value edits.** `array.getValues().set(1, 99)` updates the model; edited
+  primitive values use conservative separators (in-place token edits that keep
+  surrounding bytes are shown in the Java 8 / Java 24 examples).
 
 ## Run it
 
@@ -26,10 +26,11 @@ Expected output (abridged):
 
 ```
 [1] sample/numbers.txt (… chars) round-tripped byte-identically
+  source:  (1 ,  2,\n 3 ,4\n,  5 )\n
 [2] replaced values[1]: 2 -> 99
-  before:  (1 ,  2,\n 3 ,4\n,  5 )
-  after:   (1 ,  99,\n 3 ,4\n,  5 )
-[3] one value edit; surrounding whitespace preserved
+  after:  ( 1, 99, 3, 4, 5)
+[3] edited primitive values use conservative separators;
+    unedited round-trips stay byte-identical (step [1])
 ```
 
 ## Layout
