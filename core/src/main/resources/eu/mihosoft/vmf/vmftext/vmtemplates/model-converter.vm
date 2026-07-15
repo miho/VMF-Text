@@ -348,10 +348,11 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
     /**
      * Surgical trivia splice for delimited primitive lists shaped like
-     * {@code '(' item (',' item)* ')' EOF} (ArrayLang and similar).
-     * Recognized when {@code trivia.size() == 2 * nBefore + 3}. Returns
-     * {@code false} when the pattern does not match so the caller can
-     * {@code clear()} and fall back to conservative separators.
+     * {@code '(' item (',' item)* ')' [EOF]} (ArrayLang, CombinedLexerRules, …).
+     * Recognized when {@code trivia.size() == 2*N + F} with footprint {@code F}
+     * in {@code {2,3}} (F = prefix+suffix+pad extras: {@code '(' + ')' [+EOF] + pad}).
+     * Supports single- and multi-index add/remove. Returns {@code false} when the
+     * pattern does not match so the caller can {@code clear()}.
      */
     private boolean spliceDelimitedPrimitiveListTrivia(
             CodeElement element,
@@ -371,80 +372,103 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         int[] indices = added
                 ? listChange.added().indices()
                 : listChange.removed().indices();
-        if(indices == null || indices.length != 1) {
-            return false; // bulk ops: fall back
+        if(indices == null || indices.length == 0) {
+            return false;
         }
-        int i = indices[0];
 
         java.util.List<?> list = listChange.source();
         int nAfter = list.size();
-        int nBefore = added ? nAfter - 1 : nAfter + 1;
-        if(nBefore < 1) {
+        int delta = indices.length;
+        int nBefore = added ? nAfter - delta : nAfter + delta;
+        if(nBefore < 1 || nAfter < 0 || (added && nBefore < 0)) {
             return false;
         }
 
         java.util.List<TriviaPiece> trivia =
                 element.getLexicalInfo().getTriviaPieces();
-        // '(' + N values + (N-1) commas + ')' + EOF + pad  == 2N+3
-        if(trivia.size() != 2 * nBefore + 3) {
+        int footprint = trivia.size() - 2 * nBefore; // P + S  (pad included in S+P accounting)
+        // P=1 '(': F=2 → ')'+pad ; F=3 → ')'+EOF+pad
+        if(footprint != 2 && footprint != 3) {
             return false;
         }
-
-        final int P = 1; // one prefix terminal: '('
+        final int P = 1;
 
         if(removed) {
-            if(nBefore == 1) {
-                return false; // empty list not representable; clear
+            if(nAfter < 1) {
+                return false; // empty list not representable for this shape
             }
-            // i==0: drop value0 + following comma at [P, P+1]
-            // i>=1: drop comma + valuei at [P+2*i-1, P+2*i]
-            int start = (i == 0) ? P : (P + 2 * i - 1);
-            if(start < 0 || start + 1 >= trivia.size()) {
-                return false;
-            }
-            // Rebuild the trivia list under the caller's re-entrancy guard.
-            // Avoid VList.remove*/removeAll mid-iteration side effects.
-            java.util.List<TriviaPiece> kept =
-                    new java.util.ArrayList<>(trivia.size() - 2);
-            for(int t = 0; t < trivia.size(); t++) {
-                if(t == start || t == start + 1) {
-                    continue;
+            // Process high→low so each step uses the current footprint.
+            int[] sorted = indices.clone();
+            java.util.Arrays.sort(sorted);
+            int nNow = nBefore;
+            for(int k = sorted.length - 1; k >= 0; k--) {
+                int i = sorted[k];
+                if(i < 0 || i >= nNow) {
+                    return false;
                 }
-                kept.add(trivia.get(t));
+                if(trivia.size() != 2 * nNow + footprint) {
+                    return false;
+                }
+                int start = (i == 0) ? P : (P + 2 * i - 1);
+                if(start < 0 || start + 1 >= trivia.size()) {
+                    return false;
+                }
+                java.util.List<TriviaPiece> kept =
+                        new java.util.ArrayList<>(trivia.size() - 2);
+                for(int t = 0; t < trivia.size(); t++) {
+                    if(t != start && t != start + 1) {
+                        kept.add(trivia.get(t));
+                    }
+                }
+                trivia.clear();
+                trivia.addAll(kept);
+                nNow--;
+                if(trivia.size() != 2 * nNow + footprint) {
+                    return false;
+                }
             }
-            trivia.clear();
-            trivia.addAll(kept);
-            return trivia.size() == 2 * (nBefore - 1) + 3;
+            return nNow == nAfter;
         }
 
-        // added / insert
-        if(i < 0 || i > nBefore) {
-            return false;
-        }
-        if(i == 0) {
-            // insert value then comma right after '('
-            trivia.add(P, newTriviaPiece(""));
-            trivia.add(P + 1, newTriviaPiece(""));
-            // ensure space before the former first value (now after new comma)
-            TriviaPiece afterComma = trivia.get(P + 2);
-            if(afterComma.getText() == null || afterComma.getText().isEmpty()) {
-                afterComma.setText(" ");
-                afterComma.setKind(classifyTriviaKind(" "));
+        // added / insert — process low→high, adjusting subsequent indices
+        int[] sorted = indices.clone();
+        java.util.Arrays.sort(sorted);
+        int applied = 0;
+        for(int raw : sorted) {
+            int i = raw; // index in the list as of this insertion step
+            // When multiple inserts are reported against the final list, indices
+            // already reflect positions in the post-add list for VList addAll.
+            // For sequential single adds they are positions at each step.
+            // Use the event index directly; VList reports indices in the list
+            // after each element is placed for multi-add.
+            if(i < 0 || i > nBefore + applied) {
+                return false;
             }
-        } else if(i == nBefore) {
-            // append: insert comma then value before ')'
-            int at = 2 * nBefore; // index of ')'
-            trivia.add(at, newTriviaPiece(""));
-            trivia.add(at + 1, newTriviaPiece(" "));
-        } else {
-            // Insert before the existing comma+value at i so a later
-            // remove(i) (comma-before + value) undoes cleanly:
-            //   ..., v_{i-1}, NEW_COMMA, NEW, OLD_COMMA, v_i, ...
-            int at = P + 2 * i - 1; // old comma before value i
-            trivia.add(at, newTriviaPiece(""));
-            trivia.add(at + 1, newTriviaPiece(" "));
+            int nNow = nBefore + applied;
+            if(i == 0) {
+                trivia.add(P, newTriviaPiece(""));
+                trivia.add(P + 1, newTriviaPiece(""));
+                TriviaPiece afterComma = trivia.get(P + 2);
+                if(afterComma.getText() == null || afterComma.getText().isEmpty()) {
+                    afterComma.setText(" ");
+                    afterComma.setKind(classifyTriviaKind(" "));
+                }
+            } else if(i >= nNow) {
+                // append before ')'
+                int at = 2 * nNow; // index of ')'
+                trivia.add(at, newTriviaPiece(""));
+                trivia.add(at + 1, newTriviaPiece(" "));
+            } else {
+                int at = P + 2 * i - 1;
+                trivia.add(at, newTriviaPiece(""));
+                trivia.add(at + 1, newTriviaPiece(" "));
+            }
+            applied++;
+            if(trivia.size() != 2 * (nBefore + applied) + footprint) {
+                return false;
+            }
         }
-        return trivia.size() == 2 * (nBefore + 1) + 3;
+        return trivia.size() == 2 * nAfter + footprint;
     }
 
     private TriviaPiece newTriviaPiece(String text) {

@@ -128,6 +128,30 @@ public class ArrayLangListEditLexicalPreservationTest {
         Assert.assertEquals(source, unparser.unparse(model));
     }
 
+    @Test
+    public void bulkRemoveTwoIndicesPreservesRemainingWhitespace() {
+        String source = "(1.0 ,  2.0,\n 3.0 ,  4.0 )";
+        ArrayLangModel model = parser.parse(source);
+
+        // remove indices 1 and 3 (2.0 and 4.0) via removeAll
+        model.getRoot().getValues().removeAll(1, 3);
+
+        assertTriviaSize(model, 2);
+        Assert.assertEquals("(1.0,\n 3.0 )", unparser.unparse(model));
+    }
+
+    @Test
+    public void bulkAppendPreservesHeadWhitespace() {
+        String source = "(1.0 ,  2.0 )";
+        ArrayLangModel model = parser.parse(source);
+
+        model.getRoot().getValues().addAll(
+                java.util.Arrays.asList(3.0, 4.0));
+
+        assertTriviaSize(model, 4);
+        Assert.assertEquals("(1.0 ,  2.0, 3.0, 4.0 )", unparser.unparse(model));
+    }
+
     private static void assertTriviaSize(ArrayLangModel model, int nValues) {
         // '(' + N values + (N-1) commas + ')' + EOF + pad == 2N+3
         Assert.assertEquals(2 * nValues + 3,
