@@ -297,9 +297,33 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                     // (if present and no space already in front of it)
                     addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(e);
                 } else if(evt.getType() == eu.mihosoft.vmf.runtime.core.Change.ChangeType.LIST) {
-                    evt.listChange().get().added().elements().stream().
-                            filter(o->o instanceof CodeElement).map(o->(CodeElement)o).
-                            forEach(codeElement -> addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(codeElement));
+                    eu.mihosoft.vcollections.VListChangeEvent<?> listChange =
+                            evt.listChange().orElse(null);
+                    if(listChange != null && listChange.wasSet()) {
+                        // in-place replace of a child: keep parent trivia; ensure WS on new child
+                        listChange.added().elements().stream().
+                                filter(o->o instanceof CodeElement).map(o->(CodeElement)o).
+                                forEach(codeElement -> addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(codeElement));
+                        return;
+                    }
+                    mutatingTrivia[0] = true;
+                    try {
+                        // Splice parent bracket/comma trivia for '[ a (',' a)* ]' / '{ a (',' a)* }'
+                        // shapes; fall back to add-only WS padding if unrecognized.
+                        if(!spliceModelTypedDelimitedListTrivia(element, listChange)) {
+                            if(listChange != null) {
+                                listChange.added().elements().stream().
+                                        filter(o->o instanceof CodeElement).map(o->(CodeElement)o).
+                                        forEach(codeElement -> addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(codeElement));
+                            }
+                        } else if(listChange != null) {
+                            listChange.added().elements().stream().
+                                    filter(o->o instanceof CodeElement).map(o->(CodeElement)o).
+                                    forEach(codeElement -> addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(codeElement));
+                        }
+                    } finally {
+                        mutatingTrivia[0] = false;
+                    }
                 }
             } else {
                 // Non-model (primitive/string) edits: token *text* comes from the
@@ -476,6 +500,125 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 withText(text).
                 withKind(classifyTriviaKind(text)).
                 build();
+    }
+
+    /**
+     * Surgical parent-trivia splice for model-typed delimited lists shaped like
+     * {@code '[' item (',' item)* ']'} / {@code '{' item (',' item)* '}'} (JSON).
+     * Parent trivia holds only bracket/comma slots: size {@code N+1} for {@code N>=1},
+     * or {@code 2} for empty {@code []}/{}. Child leading trivia lives on each item.
+     */
+    private boolean spliceModelTypedDelimitedListTrivia(
+            CodeElement element,
+            eu.mihosoft.vcollections.VListChangeEvent<?> listChange) {
+
+        if(listChange == null || element.getLexicalInfo() == null) {
+            return false;
+        }
+
+        boolean added = listChange.wasAdded();
+        boolean removed = listChange.wasRemoved();
+        if(added == removed) {
+            return false;
+        }
+
+        int[] indices = added
+                ? listChange.added().indices()
+                : listChange.removed().indices();
+        if(indices == null || indices.length == 0) {
+            return false;
+        }
+
+        java.util.List<?> list = listChange.source();
+        int nAfter = list.size();
+        int delta = indices.length;
+        int nBefore = added ? nAfter - delta : nAfter + delta;
+        if(nBefore < 0 || nAfter < 0) {
+            return false;
+        }
+
+        java.util.List<TriviaPiece> trivia =
+                element.getLexicalInfo().getTriviaPieces();
+        // N>=1: '[' + (N-1) commas + ']' == N+1 ; empty: '[]' == 2
+        int expectedBefore = (nBefore == 0) ? 2 : (nBefore + 1);
+        if(trivia.size() != expectedBefore) {
+            return false;
+        }
+
+        if(removed) {
+            int[] sorted = indices.clone();
+            java.util.Arrays.sort(sorted);
+            int nNow = nBefore;
+            for(int k = sorted.length - 1; k >= 0; k--) {
+                int i = sorted[k];
+                if(i < 0 || i >= nNow) {
+                    return false;
+                }
+                int expectedNow = (nNow == 0) ? 2 : (nNow + 1);
+                if(trivia.size() != expectedNow) {
+                    return false;
+                }
+                if(nNow == 1) {
+                    // last element: drop no comma; leave '[]' trivia (size 2)
+                    nNow = 0;
+                    if(trivia.size() != 2) {
+                        return false;
+                    }
+                    continue;
+                }
+                // remove the comma associated with this value:
+                // i==0 → first comma (index 1); i>=1 → comma at index i
+                int commaAt = (i == 0) ? 1 : i;
+                if(commaAt <= 0 || commaAt >= trivia.size() - 1) {
+                    return false;
+                }
+                java.util.List<TriviaPiece> kept =
+                        new java.util.ArrayList<>(trivia.size() - 1);
+                for(int t = 0; t < trivia.size(); t++) {
+                    if(t != commaAt) {
+                        kept.add(trivia.get(t));
+                    }
+                }
+                trivia.clear();
+                trivia.addAll(kept);
+                nNow--;
+            }
+            int expectedAfter = (nAfter == 0) ? 2 : (nAfter + 1);
+            return nNow == nAfter && trivia.size() == expectedAfter;
+        }
+
+        // added
+        int[] sorted = indices.clone();
+        java.util.Arrays.sort(sorted);
+        int applied = 0;
+        for(int i : sorted) {
+            int nNow = nBefore + applied;
+            int expectedNow = (nNow == 0) ? 2 : (nNow + 1);
+            if(trivia.size() != expectedNow) {
+                return false;
+            }
+            if(nNow == 0) {
+                // empty → single element: no comma to insert
+                if(i != 0) {
+                    return false;
+                }
+                applied++;
+                continue;
+            }
+            if(i < 0 || i > nNow) {
+                return false;
+            }
+            // Insert comma slot before ']' for append (i==nNow), else at index i
+            // (insert-at-0 uses index 1 = first comma position).
+            int commaAt = (i >= nNow) ? (trivia.size() - 1) : ((i == 0) ? 1 : i);
+            trivia.add(commaAt, newTriviaPiece(""));
+            applied++;
+            if(trivia.size() != (nNow + 1) + 1) {
+                return false;
+            }
+        }
+        int expectedAfter = (nAfter == 0) ? 2 : (nAfter + 1);
+        return trivia.size() == expectedAfter;
     }
 
     /**
