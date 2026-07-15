@@ -85,4 +85,20 @@ public class TestArrayLang {
 
         Assert.assertEquals(model2, model2up);
     }
+
+    @Test
+    public void primitiveListSetPreservesSiblingWhitespace() {
+        // Trivia stores hidden text before each terminal; an in-place list set
+        // only changes token text, so sibling whitespace must survive.
+        String source = "(1.0 ,  2.0,\n 3.0 )";
+        ArrayLangModel model = new ArrayLangModelParser().parse(source);
+        int triviaBefore = model.getRoot().getLexicalInfo().getTriviaPieces().size();
+
+        model.getRoot().getValues().set(1, 99.0);
+
+        Assert.assertEquals(triviaBefore,
+                model.getRoot().getLexicalInfo().getTriviaPieces().size());
+        Assert.assertEquals("(1.0 ,  99.0,\n 3.0 )",
+                new ArrayLangModelUnparser().unparse(model));
+    }
 }

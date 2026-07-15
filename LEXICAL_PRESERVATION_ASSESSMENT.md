@@ -21,10 +21,11 @@ on the current JDK 21-based VM.
   subrule wrapper itself. The contained optional terminals/lexer elements carry
   the relevant presence state, avoiding positional desynchronization for cases
   like `('(' names+=IDENTIFIER* ')')?`.
-- Model edits keep lexical trivia for model-type/list changes where possible,
-  while edited primitive values get conservative separator fallback (same
-  invalidate-all-trivia policy as on `lexical-preservation-take-2`; see
-  [Edit invalidation](#edit-invalidation-primitive-vs-model-typed) below).
+- Model edits keep lexical trivia for model-type changes and for **in-place**
+  primitive/string rewrites (`list.set`, non-null property set). Structural
+  add/remove (or null↔value) still clears trivia on that element and falls
+  back to conservative separators — see
+  [Edit invalidation](#edit-invalidation-primitive-vs-model-typed).
 
 ## Current test evidence
 
@@ -94,14 +95,16 @@ optional-presence is order-sensitive.
 ## Edit invalidation (primitive vs model-typed)
 
 On each `CodeElement`, parse-time hidden text is stored as an ordered list of
-trivia slots — one slot before each terminal of that rule. The generated change
-listener in `model-converter.vm`
+trivia slots — one slot before each terminal of that rule. Token **text** is
+not stored in trivia; it is rendered from the property value. The generated
+change listener in `model-converter.vm`
 (`registerIgnoredPiecesOfTextChangeListener`) then:
 
 | Edit kind | What happens to trivia |
 |-----------|------------------------|
 | Change / insert a **model-typed** child (`CodeElement`) | Keep parent trivia; pad the new child’s leading trivia with a space if needed so tokens do not glue together |
-| Change a **non-model** property (primitive, `String`, flat `List<Integer>`, …) | **Clear all** trivia slots on that element |
+| **In-place** non-model rewrite (`list.set(i, …)`, or property set with both old and new non-null) | **Keep** all trivia (terminal footprint unchanged; only token text changes) |
+| Structural non-model change (list add/remove, or null↔value) | **Clear** all trivia slots on that element → conservative separators |
 
 After a clear, `DefaultFormatter` sees an empty trivia list and uses
 `separatorBeforeEdited` / `ConservativeSeparatorPolicy` (typically a single
@@ -113,40 +116,38 @@ space before lexer-rule tokens, none before string terminals like `,`).
 array: '(' values+=INT (',' values+=INT)* ')' EOF;   // flat primitives on one node
 ```
 
-`array.getValues().set(1, 99)` is a non-model list change on the single `Array`
-element, so **every** slot is dropped and the whole list reformats, e.g.
-`(1 ,  2,\n 3 )` → `( 1, 99, 3)`.
+`array.getValues().set(1, 99)` is an in-place list set: trivia is kept, so
+`(1 ,  2,\n 3 )` becomes `(1 ,  99,\n 3 )`. (On `lexical-preservation-take-2`
+and VMF-Text ≤0.2.0 the same edit cleared all slots and reformatted to
+`( 1, 99, 3)`.)
 
-Java method/string edits look “surgical” because the changed property lives on
-a **nested** `CodeElement` (`MethodDeclaration`, `StringLiteral`, …). Only that
-node’s trivia is cleared; siblings keep theirs. JSON number edits behave
-similarly when each number is its own `NumberValue` model type.
+Java method/string edits also keep sibling whitespace because they either
+rewrite a property in place on a nested `CodeElement`, or only clear that
+child’s trivia. JSON number edits behave similarly when each number is its own
+`NumberValue` model type.
 
-**Source bundles do not help here.** They persist original source for
-restore-when-semantics-match; they are not consulted by the unparser after a
-live model edit.
+**Source bundles do not participate** in unparse-after-edit. They persist
+original source for restore-when-semantics-match.
 
-**`lexical-preservation-take-2` did not preserve ArrayLang value edits
-either.** It used the same policy (payload key `vmf-text:ignored-pieces-of-text`
-replaced with an empty list). Current main only moved that state onto typed
-`LexicalInfo.triviaPieces`.
+### Remaining gaps / what we can still improve
 
-There is no “anchor” API in the lexical layer today. What acts like an anchor
-is a **model-typed child** that owns its own trivia list.
+1. **Structural list add/remove:** still clears whole-rule trivia. A follow-up
+   can splice trivia slots by mapping list index → terminal indices for common
+   `head (sep item)*` patterns (the 2018 TODO in `model-converter.vm`).
+2. **Grammar shape workaround:** wrap each list item as a model type
+   (`value: n=INT`) so add/remove only invalidates that leaf.
+3. **True token rewriting:** per-occurrence original lexemes / stream indices —
+   larger redesign, not present today.
 
-### What we can do about it
+### What improved over `lexical-preservation-take-2`
 
-1. **Grammar shape (works today, no core change):** wrap each list item in a
-   parser rule so each value is a `CodeElement`:
-   `value: n=INT` / `array: '(' values+=value (',' values+=value)* ')'`.
-   Then `set` on one value only invalidates that leaf.
-2. **Surgical trivia update (core fix):** on indexed primitive list changes,
-   do not `clear()` the whole list; map the list index to the corresponding
-   terminal/trivia slots (the TODO in `model-converter.vm` from 2018) and leave
-   siblings alone.
-3. **True token rewriting (larger redesign):** per-occurrence original token
-   text / stream indices and splice edits — closer to `TokenStreamRewriter`,
-   not present today.
+Already on main before this fix: leading/inter-rule hidden text via the previous
+default-channel token; no space/tab collapsing; path-keyed `OptionalState`;
+typed `LexicalInfo` / `TriviaPiece`; pluggable `ProgrammaticSeparatorPolicy`.
+
+**This fix (0.2.1):** stop clearing trivia on in-place primitive/string
+rewrites. take-2 (and ≤0.2.0) always emptied the hidden-text list for any
+non-model property change.
 
 ## Recommended next design step: typed lexical metadata
 

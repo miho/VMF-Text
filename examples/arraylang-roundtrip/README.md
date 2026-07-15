@@ -7,24 +7,22 @@ What it demonstrates:
 
 - **Grammar → API.** One short labeled ANTLR4 file generates the typed model,
   parser and unparser.
-- **Exact lexical preservation for unedited parses.** Odd spaces and newlines
-  survive parse → unparse byte-for-byte.
-- **Primitive list edits fall back to conservative separators.**  
-  `array.getValues().set(1, 99)` clears trivia on the whole `Array` node
-  (flat `List<Integer>`, not nested model objects), so the list reformats to
-  something like `( 1, 99, 3, 4, 5)`. Source bundles do not change this —
-  they are for persistence/restore, not unparse-after-edit.
-
-For edits that keep surrounding bytes, see the Java 8 / Java 24 examples
-(nested `CodeElement`s). Details:
-[`LEXICAL_PRESERVATION_ASSESSMENT.md`](../../LEXICAL_PRESERVATION_ASSESSMENT.md)
-§ *Edit invalidation*.
+- **Exact lexical preservation.** Odd spaces and newlines survive parse →
+  unparse byte-for-byte.
+- **In-place value edits.** `array.getValues().set(1, 99)` changes only that
+  integer; surrounding whitespace stays (VMF-Text 0.2.1+).
 
 ## Run it
 
-Requires JDK 21. Everything resolves from Maven Central — no local builds:
+Requires JDK 21 and VMF-Text **0.2.1+** (the in-place list-edit fix). Until
+0.2.1 is on Maven Central, publish this repo locally first:
 
 ```
+# from the VMF-Text checkout
+cd core && sh ./gradlew publishToMavenLocal --no-daemon
+cd ../gradle-plugin && sh ./gradlew publishToMavenLocal --no-daemon
+
+cd ../examples/arraylang-roundtrip
 ./gradlew run
 ```
 
@@ -34,9 +32,8 @@ Expected output (abridged):
 [1] sample/numbers.txt (… chars) round-tripped byte-identically
   source:  (1 ,  2,\n 3 ,4\n,  5 )\n
 [2] replaced values[1]: 2 -> 99
-  after:  ( 1, 99, 3, 4, 5)
-[3] flat primitive list edit -> conservative separators for that rule;
-    unedited round-trips stay byte-identical (step [1])
+  after:   (1 ,  99,\n 3 ,4\n,  5 )\n
+[3] one value edit; surrounding whitespace preserved
 ```
 
 ## Layout

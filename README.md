@@ -19,33 +19,29 @@ spacing included.
 ### What “exact” covers (and what it does not)
 
 - **Unedited parsed models** unparse byte-identically.
+- **In-place value rewrites** (non-null property set, or `list.set(i, …)`) keep
+  that rule’s trivia: only the token text changes. ArrayLang
+  `array.getValues().set(1, 99)` turns `(1 ,  2,\n 3 )` into
+  `(1 ,  99,\n 3 )` — sibling whitespace stays (0.2.1+).
 - **Edits on nested model objects** (e.g. a `MethodDeclaration` or
-  `StringLiteral` child) invalidate trivia only on that object. Siblings keep
-  their whitespace/comments, so a method rename or string replace typically
-  changes just those tokens.
-- **Edits to primitive / string properties on a rule** (including flat lists
-  like ArrayLang `values+=INT`) clear **all** trivia slots on that rule’s
-  `CodeElement`. The formatter then falls back to
-  `ConservativeSeparatorPolicy` (usually a single space before lexer tokens).
-  So `array.getValues().set(1, 99)` can turn
-  `(1 ,  2,\n 3 )` into `( 1, 99, 3)` even though only one value changed.
-- **Source bundles** are unrelated to this path: they store original source for
-  persistence/restore when semantics still match. They do not improve
-  unparse-after-edit formatting.
+  `StringLiteral` child) only affect that object’s own trivia; siblings keep
+  theirs.
+- **Structural shape changes** (list add/remove, or null↔value on an optional
+  property) still clear trivia on that rule and fall back to
+  `ConservativeSeparatorPolicy`. Wrapping list items as model-typed children
+  (e.g. `value: n=INT`) isolates invalidation to the edited leaf.
+- **Source bundles** are unrelated to unparse-after-edit: they store original
+  source for persistence/restore when semantics still match.
 
-There is no separate “anchor” API today. Isolation comes from **model-typed
-children**: each child `CodeElement` owns its own trivia. Wrapping list items
-in a parser rule (e.g. `value: n=INT`) would make ArrayLang behave like the
-Java examples. A future core improvement is surgical trivia updates for indexed
-primitive list edits (see `LEXICAL_PRESERVATION_ASSESSMENT.md`).
+See `LEXICAL_PRESERVATION_ASSESSMENT.md` § *Edit invalidation* for details.
 
 Runnable showcases live under [`examples/`](examples/) and climb in
-complexity (all resolve released VMF-Text from Maven Central):
+complexity:
 
 1. **[`examples/arraylang-roundtrip`](examples/arraylang-roundtrip)** — the
-   tiny `ArrayLang` grammar from this README. Exact round-trip of an
-   irregularly spaced `(1,2,3)` list; then a primitive list edit that
-   demonstrates the conservative-separator fallback above.
+   tiny `ArrayLang` grammar from this README. Exact round-trip, then an
+   in-place list value edit that keeps surrounding whitespace (needs
+   VMF-Text 0.2.1+ / local publish until Central catches up).
 
 2. **[`examples/java8-roundtrip`](examples/java8-roundtrip)** — a small Java 8
    source file with a full Java 8 grammar. Rename a method and replace a
@@ -265,15 +261,10 @@ from the schema or use source bundles for source-preserving persistence.
 Programmatically created models (no parse-time lexical info) consult a pluggable
 `ProgrammaticSeparatorPolicy` inside the default formatter. The built-in
 `ConservativeSeparatorPolicy` reproduces today's single-space fallback; custom
-policies are consulted only where exact preservation is undefined by construction.
-
-The same fallback applies after **primitive property edits** on a parsed
-`CodeElement`: changing a non-model-typed property (or a flat primitive list
-entry) clears that element’s `TriviaPiece` list, so the formatter no longer has
-per-token whitespace to replay. Nested model-typed children keep their own
-trivia, which is why Java method/string edits usually preserve surrounding
-bytes while ArrayLang `values+=INT` does not. Details and fix options:
-`LEXICAL_PRESERVATION_ASSESSMENT.md`.
+policies are consulted only where exact preservation is undefined by construction
+(fresh programmatic nodes, or rules whose trivia was cleared after a
+**structural** edit such as list add/remove). In-place value rewrites keep
+parsed trivia — see `LEXICAL_PRESERVATION_ASSESSMENT.md` § *Edit invalidation*.
 
 ## Building VMF-Text (Core)
 

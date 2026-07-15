@@ -135,10 +135,10 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 - **Formatter policy for programmatically created models** — pluggable
   pretty-printing / grammar-aware separators where exact preservation is
   undefined by construction.
-- **Surgical trivia invalidation for primitive list edits** — today, changing
-  one entry in a flat primitive list (e.g. ArrayLang `values+=INT`) clears all
-  trivia on that rule; keep sibling whitespace by updating only the slots that
-  belong to the edited occurrence (see
+- **Surgical trivia splicing for structural list add/remove** — in-place
+  `list.set` / non-null property rewrites already keep trivia (0.2.1); add/remove
+  still clears the whole rule. Map list index → terminal slots for common
+  `head (sep item)*` patterns (see
   `LEXICAL_PRESERVATION_ASSESSMENT.md` § Edit invalidation).
 - **Written LSP stance** — document how to feed the generated model into an
   LSP4J-based server; deliberately do not build a language workbench.

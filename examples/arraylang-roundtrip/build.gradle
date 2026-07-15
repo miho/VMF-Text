@@ -1,9 +1,10 @@
-// Round-trip showcase: everything resolves from Maven Central — no local
-// builds required. See README.md in this directory.
+// Demonstrates the 0.2.1+ in-place primitive list edit fix. Prefers a local
+// publish of this repo (mavenLocal); falls back to Maven Central once 0.2.1
+// is released. See README.md in this directory.
 plugins {
     id 'java'
     id 'application'
-    id 'eu.mihosoft.vmftext' version '0.2.0'
+    id 'eu.mihosoft.vmftext' version '0.2.1-SNAPSHOT'
 }
 
 java {
@@ -13,6 +14,7 @@ java {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 

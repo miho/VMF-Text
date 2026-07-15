@@ -18,12 +18,8 @@ import java.util.List;
 
 /**
  * Smallest round-trip showcase: the ArrayLang grammar from the VMF-Text README.
- * Parse an irregularly spaced {@code (1,2,3)} list and prove byte-identical
- * unparse. Then replace one list value: because {@code values} is a flat
- * {@code List<Integer>} on one {@code CodeElement}, that edit clears the rule's
- * trivia and the formatter uses conservative separators (not source bundles —
- * those are for persistence/restore). Nested model edits preserve better; see
- * the Java 8 / Java 24 examples and {@code LEXICAL_PRESERVATION_ASSESSMENT.md}.
+ * Parse an irregularly spaced {@code (1,2,3)} list, prove byte-identical
+ * unparse, then replace one list value in place — surrounding whitespace stays.
  */
 public class Main {
 
@@ -59,19 +55,14 @@ public class Main {
                 "expected second value to be 2");
         array.getValues().set(1, 99);
 
-        // 4) unparse the edited model: value changes; edited primitives use
-        //    conservative separators (exact shape is preserved for unedited
-        //    parses — see Java 8 / Java 24 examples for in-place token edits)
+        // 4) unparse: only the edited token changes; sibling whitespace stays
+        String expected = source.replaceFirst("2", "99");
         String edited = new ArrayLangModelUnparser().unparse(model);
-        ArrayLangModel reparsed = parser.parse(edited);
-        require(Integer.valueOf(99).equals(reparsed.getRoot().getValues().get(1)),
-                "expected replaced value 99 after reparse");
+        require(expected.equals(edited),
+                "expected preserved whitespace with 2->99, got: " + visible(edited));
         System.out.println("[2] replaced values[1]: 2 -> 99");
         System.out.println("  after:  " + visible(edited));
-        System.out.println("[3] flat primitive list edit -> conservative separators"
-                + " for that rule;");
-        System.out.println("    unedited round-trips stay byte-identical (step [1]);"
-                + " see LEXICAL_PRESERVATION_ASSESSMENT.md");
+        System.out.println("[3] one value edit; surrounding whitespace preserved");
     }
 
     private static String visible(String s) {

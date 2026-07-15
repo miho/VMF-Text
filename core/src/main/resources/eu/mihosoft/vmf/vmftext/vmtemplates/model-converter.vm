@@ -289,9 +289,33 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                             forEach(codeElement -> addWhiteSpaceInFrontOfElementIfNotAlreadyPresent(codeElement));
                 }
             } else {
-                if(element.getLexicalInfo()!=null) {
-                    element.getLexicalInfo().getTriviaPieces().clear();
+                // Non-model (primitive/string) edits: token *text* comes from the
+                // property value on unparse; trivia only stores hidden text *before*
+                // each terminal. Keep trivia when the terminal footprint is unchanged
+                // (in-place list set / non-null property rewrite). Structural
+                // add/remove or null↔value still clears (terminal count may change).
+                if(element.getLexicalInfo()==null) {
+                    return;
                 }
+                if(evt.getType() == eu.mihosoft.vmf.runtime.core.Change.ChangeType.LIST) {
+                    eu.mihosoft.vcollections.VListChangeEvent<?> listChange =
+                            evt.listChange().orElse(null);
+                    if(listChange != null && listChange.wasSet()) {
+                        return;
+                    }
+                    element.getLexicalInfo().getTriviaPieces().clear();
+                    return;
+                }
+                if(evt.getType() == eu.mihosoft.vmf.runtime.core.Change.ChangeType.PROPERTY) {
+                    eu.mihosoft.vmf.runtime.core.PropertyChange propertyChange =
+                            evt.propertyChange().orElse(null);
+                    if(propertyChange != null
+                            && propertyChange.oldValue() != null
+                            && propertyChange.newValue() != null) {
+                        return;
+                    }
+                }
+                element.getLexicalInfo().getTriviaPieces().clear();
             }
         }, false);
     }
