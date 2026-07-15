@@ -1130,14 +1130,13 @@ public class UnparserCodeGenerator {
 
         for(String pName : propertiesNotUsedInAlt) {
 
-// TODO 19.06.2018 check for set/unset
-//            if(propertyNamesInRuleWithListFlag.get(pName)) {
-//                w.append("    if( !obj.get" + StringUtil.firstToUpper(pName) + "().isEmpty() ) return false;").append('\n');
-//            } else {
-//                w.append("    if( obj.get" + StringUtil.firstToUpper(pName) + "() !=null ) return false;").append('\n');
-//            }
-
-            w.append("    if( obj.vmf().reflect().propertyByName(\"" + StringUtil.firstToLower(pName) + "\").get().isSet() ) return false;").append('\n');
+            // List properties stay "set" when empty after removes; empty alts like
+            // JSON '[]' must accept an empty list. Non-list props still use isSet().
+            if(Boolean.TRUE.equals(propertyNamesInRuleWithListFlag.get(pName))) {
+                w.append("    if( !obj.get" + StringUtil.firstToUpper(pName) + "().isEmpty() ) return false;").append('\n');
+            } else {
+                w.append("    if( obj.vmf().reflect().propertyByName(\"" + StringUtil.firstToLower(pName) + "\").get().isSet() ) return false;").append('\n');
+            }
         }
     }
 

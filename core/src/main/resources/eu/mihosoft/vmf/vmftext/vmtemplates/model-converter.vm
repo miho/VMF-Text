@@ -310,7 +310,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                     try {
                         // Splice parent bracket/comma trivia for '[ a (',' a)* ]' / '{ a (',' a)* }'
                         // shapes; fall back to add-only WS padding if unrecognized.
-                        if(!spliceModelTypedDelimitedListTrivia(element, listChange)) {
+                        boolean spliced = spliceModelTypedDelimitedListTrivia(element, listChange);
+                        if(!spliced) {
                             if(listChange != null) {
                                 listChange.added().elements().stream().
                                         filter(o->o instanceof CodeElement).map(o->(CodeElement)o).

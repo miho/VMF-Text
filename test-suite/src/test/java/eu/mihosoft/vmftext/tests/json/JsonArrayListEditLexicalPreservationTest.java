@@ -76,15 +76,14 @@ public class JsonArrayListEditLexicalPreservationTest {
     }
 
     @Test
-    public void removeToEmptyUpdatesTriviaToBrackets() {
+    public void removeToEmptyUnparsesBrackets() {
         String source = "[1.0]";
         JSONModel model = parser.parse(source);
         Array array = onlyArray(model);
         array.getValues().remove(0);
-        Assert.assertEquals(2, array.getLexicalInfo().getTriviaPieces().size());
-        // Empty alt may still need optional-state alignment; at least trivia is
-        // bracket-shaped and the model remains structurally empty.
         Assert.assertTrue(array.getValues().isEmpty());
+        Assert.assertEquals("[]", unparser.unparse(model));
+        Assert.assertEquals(2, array.getLexicalInfo().getTriviaPieces().size());
     }
 
     private static Array onlyArray(JSONModel model) {

@@ -148,9 +148,11 @@ Already on main before this work: leading/inter-rule hidden text via the previou
 default-channel token; no space/tab collapsing; path-keyed `OptionalState`;
 typed `LexicalInfo` / `TriviaPiece`; pluggable `ProgrammaticSeparatorPolicy`.
 
-**This fix (0.2.1):** keep trivia on in-place primitive/string rewrites, and
-surgically splice trivia for ArrayLang-style delimited list add/remove (with a
-re-entrancy guard so nested `triviaPieces` mutations do not clear the list).
+**This fix (0.2.1):** keep trivia on in-place primitive/string rewrites; surgically
+splice trivia for ArrayLang/CombinedLexer-style delimited primitive lists
+(including bulk ops and no-EOF footprints); splice **parent** comma/bracket
+trivia for JSON-style model-typed delimited lists. Re-entrancy guard prevents
+nested `triviaPieces` mutations from clearing state mid-splice.
 take-2 (and ≤0.2.0) always emptied the hidden-text list for any non-model
 property change.
 
