@@ -20,16 +20,15 @@ spacing included.
 
 - **Unedited parsed models** unparse byte-identically.
 - **In-place value rewrites** (non-null property set, or `list.set(i, …)`) keep
-  that rule’s trivia: only the token text changes. ArrayLang
-  `array.getValues().set(1, 99)` turns `(1 ,  2,\n 3 )` into
-  `(1 ,  99,\n 3 )` — sibling whitespace stays (0.2.1+).
+  that rule’s trivia: only the token text changes.
+- **Structural add/remove on delimited primitive lists** shaped like
+  `'(' item (',' item)* ')'` (ArrayLang) surgically splice trivia slots so
+  sibling whitespace survives (0.2.1+).
 - **Edits on nested model objects** (e.g. a `MethodDeclaration` or
   `StringLiteral` child) only affect that object’s own trivia; siblings keep
   theirs.
-- **Structural shape changes** (list add/remove, or null↔value on an optional
-  property) still clear trivia on that rule and fall back to
-  `ConservativeSeparatorPolicy`. Wrapping list items as model-typed children
-  (e.g. `value: n=INT`) isolates invalidation to the edited leaf.
+- **Unrecognized structural shapes** (or emptying the list) still clear trivia
+  on that rule and fall back to `ConservativeSeparatorPolicy`.
 - **Source bundles** are unrelated to unparse-after-edit: they store original
   source for persistence/restore when semantics still match.
 
@@ -39,8 +38,8 @@ Runnable showcases live under [`examples/`](examples/) and climb in
 complexity:
 
 1. **[`examples/arraylang-roundtrip`](examples/arraylang-roundtrip)** — the
-   tiny `ArrayLang` grammar from this README. Exact round-trip, then an
-   in-place list value edit that keeps surrounding whitespace (needs
+   tiny `ArrayLang` grammar from this README. Exact round-trip, then
+   `set` / `add` / `remove` while keeping sibling whitespace (needs
    VMF-Text 0.2.1+ / local publish until Central catches up).
 
 2. **[`examples/java8-roundtrip`](examples/java8-roundtrip)** — a small Java 8

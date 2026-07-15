@@ -247,7 +247,20 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         // replace ignored-pieces-of-text info if a property backed by terminal/lexer rule
         // (non-model type) has been changed
         // TODO 08.10.2018 maybe analyze the grammar to check whether we can reuse the information
+        // Re-entrancy guard: splicing/clearing triviaPieces fires nested change events;
+        // those must not be treated as semantic edits.
+        final boolean[] mutatingTrivia = new boolean[]{false};
         element.vmf().changes().addListener((evt)->{
+
+            if(mutatingTrivia[0]) {
+                return;
+            }
+
+            // Only react to changes on this CodeElement. Contained objects
+            // (LexicalInfo, TriviaPiece, …) also bubble here.
+            if(evt.object() != element) {
+                return;
+            }
 
             // ignore changes to parent (irrelevant for hidden text)
             if("parent".equals(evt.propertyName())) {
@@ -292,8 +305,9 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 // Non-model (primitive/string) edits: token *text* comes from the
                 // property value on unparse; trivia only stores hidden text *before*
                 // each terminal. Keep trivia when the terminal footprint is unchanged
-                // (in-place list set / non-null property rewrite). Structural
-                // add/remove or null↔value still clears (terminal count may change).
+                // (in-place list set / non-null property rewrite). For structural
+                // head-separator list add/remove ('(' item (',' item)* ')'), splice
+                // trivia slots; otherwise clear (conservative separators).
                 if(element.getLexicalInfo()==null) {
                     return;
                 }
@@ -303,7 +317,14 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                     if(listChange != null && listChange.wasSet()) {
                         return;
                     }
-                    element.getLexicalInfo().getTriviaPieces().clear();
+                    mutatingTrivia[0] = true;
+                    try {
+                        if(!spliceDelimitedPrimitiveListTrivia(element, listChange)) {
+                            element.getLexicalInfo().getTriviaPieces().clear();
+                        }
+                    } finally {
+                        mutatingTrivia[0] = false;
+                    }
                     return;
                 }
                 if(evt.getType() == eu.mihosoft.vmf.runtime.core.Change.ChangeType.PROPERTY) {
@@ -315,9 +336,122 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                         return;
                     }
                 }
-                element.getLexicalInfo().getTriviaPieces().clear();
+                mutatingTrivia[0] = true;
+                try {
+                    element.getLexicalInfo().getTriviaPieces().clear();
+                } finally {
+                    mutatingTrivia[0] = false;
+                }
             }
         }, false);
+    }
+
+    /**
+     * Surgical trivia splice for delimited primitive lists shaped like
+     * {@code '(' item (',' item)* ')' EOF} (ArrayLang and similar).
+     * Recognized when {@code trivia.size() == 2 * nBefore + 3}. Returns
+     * {@code false} when the pattern does not match so the caller can
+     * {@code clear()} and fall back to conservative separators.
+     */
+    private boolean spliceDelimitedPrimitiveListTrivia(
+            CodeElement element,
+            eu.mihosoft.vcollections.VListChangeEvent<?> listChange) {
+
+        if(listChange == null || element.getLexicalInfo() == null) {
+            return false;
+        }
+
+        boolean added = listChange.wasAdded();
+        boolean removed = listChange.wasRemoved();
+        // Structural op must be add XOR remove (wasSet already handled by caller)
+        if(added == removed) {
+            return false;
+        }
+
+        int[] indices = added
+                ? listChange.added().indices()
+                : listChange.removed().indices();
+        if(indices == null || indices.length != 1) {
+            return false; // bulk ops: fall back
+        }
+        int i = indices[0];
+
+        java.util.List<?> list = listChange.source();
+        int nAfter = list.size();
+        int nBefore = added ? nAfter - 1 : nAfter + 1;
+        if(nBefore < 1) {
+            return false;
+        }
+
+        java.util.List<TriviaPiece> trivia =
+                element.getLexicalInfo().getTriviaPieces();
+        // '(' + N values + (N-1) commas + ')' + EOF + pad  == 2N+3
+        if(trivia.size() != 2 * nBefore + 3) {
+            return false;
+        }
+
+        final int P = 1; // one prefix terminal: '('
+
+        if(removed) {
+            if(nBefore == 1) {
+                return false; // empty list not representable; clear
+            }
+            // i==0: drop value0 + following comma at [P, P+1]
+            // i>=1: drop comma + valuei at [P+2*i-1, P+2*i]
+            int start = (i == 0) ? P : (P + 2 * i - 1);
+            if(start < 0 || start + 1 >= trivia.size()) {
+                return false;
+            }
+            // Rebuild the trivia list under the caller's re-entrancy guard.
+            // Avoid VList.remove*/removeAll mid-iteration side effects.
+            java.util.List<TriviaPiece> kept =
+                    new java.util.ArrayList<>(trivia.size() - 2);
+            for(int t = 0; t < trivia.size(); t++) {
+                if(t == start || t == start + 1) {
+                    continue;
+                }
+                kept.add(trivia.get(t));
+            }
+            trivia.clear();
+            trivia.addAll(kept);
+            return trivia.size() == 2 * (nBefore - 1) + 3;
+        }
+
+        // added / insert
+        if(i < 0 || i > nBefore) {
+            return false;
+        }
+        if(i == 0) {
+            // insert value then comma right after '('
+            trivia.add(P, newTriviaPiece(""));
+            trivia.add(P + 1, newTriviaPiece(""));
+            // ensure space before the former first value (now after new comma)
+            TriviaPiece afterComma = trivia.get(P + 2);
+            if(afterComma.getText() == null || afterComma.getText().isEmpty()) {
+                afterComma.setText(" ");
+                afterComma.setKind(classifyTriviaKind(" "));
+            }
+        } else if(i == nBefore) {
+            // append: insert comma then value before ')'
+            int at = 2 * nBefore; // index of ')'
+            trivia.add(at, newTriviaPiece(""));
+            trivia.add(at + 1, newTriviaPiece(" "));
+        } else {
+            // Insert before the existing comma+value at i so a later
+            // remove(i) (comma-before + value) undoes cleanly:
+            //   ..., v_{i-1}, NEW_COMMA, NEW, OLD_COMMA, v_i, ...
+            int at = P + 2 * i - 1; // old comma before value i
+            trivia.add(at, newTriviaPiece(""));
+            trivia.add(at + 1, newTriviaPiece(" "));
+        }
+        return trivia.size() == 2 * (nBefore + 1) + 3;
+    }
+
+    private TriviaPiece newTriviaPiece(String text) {
+        return TriviaPiece.newBuilder().
+                withText(text).
+                withKind(classifyTriviaKind(text)).
+                build();
     }
 
     /**

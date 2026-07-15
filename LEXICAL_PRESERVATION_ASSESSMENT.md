@@ -104,7 +104,8 @@ change listener in `model-converter.vm`
 |-----------|------------------------|
 | Change / insert a **model-typed** child (`CodeElement`) | Keep parent trivia; pad the new child’s leading trivia with a space if needed so tokens do not glue together |
 | **In-place** non-model rewrite (`list.set(i, …)`, or property set with both old and new non-null) | **Keep** all trivia (terminal footprint unchanged; only token text changes) |
-| Structural non-model change (list add/remove, or null↔value) | **Clear** all trivia slots on that element → conservative separators |
+| **Structural** add/remove on delimited primitive lists `'(' item (',' item)* ')'` when `trivia.size()==2N+3` | **Splice** two trivia slots (comma+value or value+comma) so siblings keep their whitespace |
+| Other structural non-model change (unknown shape, bulk ops, empty list, null↔value) | **Clear** all trivia slots on that element → conservative separators |
 
 After a clear, `DefaultFormatter` sees an empty trivia list and uses
 `separatorBeforeEdited` / `ConservativeSeparatorPolicy` (typically a single
@@ -117,9 +118,10 @@ array: '(' values+=INT (',' values+=INT)* ')' EOF;   // flat primitives on one n
 ```
 
 `array.getValues().set(1, 99)` is an in-place list set: trivia is kept, so
-`(1 ,  2,\n 3 )` becomes `(1 ,  99,\n 3 )`. (On `lexical-preservation-take-2`
-and VMF-Text ≤0.2.0 the same edit cleared all slots and reformatted to
-`( 1, 99, 3)`.)
+`(1 ,  2,\n 3 )` becomes `(1 ,  99,\n 3 )`. `add` / `remove` on the same shape
+splice two trivia slots (recognized when `trivia.size() == 2N+3`). (On
+`lexical-preservation-take-2` and VMF-Text ≤0.2.0 any non-model edit cleared
+all slots and reformatted to `( 1, 99, 3)`.)
 
 Java method/string edits also keep sibling whitespace because they either
 rewrite a property in place on a nested `CodeElement`, or only clear that
@@ -131,9 +133,9 @@ original source for restore-when-semantics-match.
 
 ### Remaining gaps / what we can still improve
 
-1. **Structural list add/remove:** still clears whole-rule trivia. A follow-up
-   can splice trivia slots by mapping list index → terminal indices for common
-   `head (sep item)*` patterns (the 2018 TODO in `model-converter.vm`).
+1. **Other list shapes:** only the delimited `'(' item (',' item)* ')'`
+   footprint (`size == 2N+3`) is spliced today; bare `T (',' T)*` / multi-list
+   rules still `clear()`. Extend via codegen hints from the unparser model.
 2. **Grammar shape workaround:** wrap each list item as a model type
    (`value: n=INT`) so add/remove only invalidates that leaf.
 3. **True token rewriting:** per-occurrence original lexemes / stream indices —
@@ -141,13 +143,15 @@ original source for restore-when-semantics-match.
 
 ### What improved over `lexical-preservation-take-2`
 
-Already on main before this fix: leading/inter-rule hidden text via the previous
+Already on main before this work: leading/inter-rule hidden text via the previous
 default-channel token; no space/tab collapsing; path-keyed `OptionalState`;
 typed `LexicalInfo` / `TriviaPiece`; pluggable `ProgrammaticSeparatorPolicy`.
 
-**This fix (0.2.1):** stop clearing trivia on in-place primitive/string
-rewrites. take-2 (and ≤0.2.0) always emptied the hidden-text list for any
-non-model property change.
+**This fix (0.2.1):** keep trivia on in-place primitive/string rewrites, and
+surgically splice trivia for ArrayLang-style delimited list add/remove (with a
+re-entrancy guard so nested `triviaPieces` mutations do not clear the list).
+take-2 (and ≤0.2.0) always emptied the hidden-text list for any non-model
+property change.
 
 ## Recommended next design step: typed lexical metadata
 

@@ -9,16 +9,15 @@ What it demonstrates:
   parser and unparser.
 - **Exact lexical preservation.** Odd spaces and newlines survive parse →
   unparse byte-for-byte.
-- **In-place value edits.** `array.getValues().set(1, 99)` changes only that
-  integer; surrounding whitespace stays (VMF-Text 0.2.1+).
+- **In-place and structural edits (0.2.1+).** `values.set`, `add`, and
+  `remove` keep sibling whitespace for the `'(' item (',' item)* ')'` shape.
 
 ## Run it
 
-Requires JDK 21 and VMF-Text **0.2.1+** (the in-place list-edit fix). Until
-0.2.1 is on Maven Central, publish this repo locally first:
+Requires JDK 21 and VMF-Text **0.2.1+**. Until 0.2.1 is on Maven Central,
+publish this repo locally first:
 
 ```
-# from the VMF-Text checkout
 cd core && sh ./gradlew publishToMavenLocal --no-daemon
 cd ../gradle-plugin && sh ./gradlew publishToMavenLocal --no-daemon
 
@@ -29,18 +28,17 @@ cd ../examples/arraylang-roundtrip
 Expected output (abridged):
 
 ```
-[1] sample/numbers.txt (… chars) round-tripped byte-identically
-  source:  (1 ,  2,\n 3 ,4\n,  5 )\n
-[2] replaced values[1]: 2 -> 99
-  after:   (1 ,  99,\n 3 ,4\n,  5 )\n
-[3] one value edit; surrounding whitespace preserved
+[1] sample/numbers.txt (…) round-tripped byte-identically
+[2] values.set(1, 99)   → surrounding whitespace kept
+[3] values.remove(1)    → surgical trivia splice
+[4] values.add(42)      → comma + value inserted
+[5] set/add/remove keep sibling whitespace (0.2.1+)
 ```
 
 ## Layout
 
 - `src/main/vmf-text/demo/arraylang/ArrayLang.g4` — the README grammar
 - `src/main/java/demo/arraylang/Main.java` — the showcase
-- `sample/numbers.txt` — the input list; edit it and re-run
+- `sample/numbers.txt` — the input list
 
-This is step 1 of the example ladder (ArrayLang → Java 8 → Java 24). See
-[`../README.md`](../README.md).
+See also `ArrayLangListEditLexicalPreservationTest` in the test suite.
