@@ -16,18 +16,40 @@ into a typed model, change what you need, unparse — everything you did not
 touch is reproduced byte-for-byte, comments, blank lines and irregular
 spacing included.
 
-The runnable [`examples/java24-roundtrip`](examples/java24-roundtrip)
-showcase parses a real Java 24 source file (sealed types, records, pattern
-switches with guards, text blocks) with a full Java 24 grammar, verifies the
-unedited unparse is byte-identical, then renames one method *on the model*:
+Runnable showcases live under [`examples/`](examples/) and climb in
+complexity (all resolve released VMF-Text from Maven Central):
+
+1. **[`examples/arraylang-roundtrip`](examples/arraylang-roundtrip)** — the
+   tiny `ArrayLang` grammar from this README. Parse an irregularly spaced
+   `(1,2,3)` list, prove byte-identical unparse, then replace one integer:
+
+```java
+array.getValues().set(1, 99); // 2 -> 99; surrounding whitespace stays
+```
+
+2. **[`examples/java8-roundtrip`](examples/java8-roundtrip)** — a small Java 8
+   source file with a full Java 8 grammar. Rename a method and replace a
+   string literal on the model; every other byte stays untouched:
+
+```java
+model.vmf().content().stream(MethodDeclaration.class)
+     .filter(m -> "greet".equals(m.getMethodName()))
+     .forEach(m -> m.setMethodName("sayHello"));
+
+model.vmf().content().stream(StringLiteral.class)
+     .filter(lit -> "\"hello\"".equals(lit.getStringValue()))
+     .forEach(lit -> lit.setStringValue("\"hello, world\""));
+```
+
+3. **[`examples/java24-roundtrip`](examples/java24-roundtrip)** — a real Java
+   24 source file (sealed types, records, pattern switches with guards, text
+   blocks) with a full Java 24 grammar. One method rename on the model:
 
 ```java
 model.vmf().content().stream(MethodDeclaration.class)
      .filter(m -> "describe".equals(m.getMethodName().getText()))
      .forEach(m -> m.getMethodName().setText("render"));
 ```
-
-The diff against the original file is exactly one line:
 
 ```
 [1] sample/Shapes.java (955 chars) round-tripped byte-identically
@@ -36,11 +58,10 @@ The diff against the original file is exactly one line:
 [2] one model edit -> one changed line; every other byte is untouched
 ```
 
-Run it yourself — it resolves the released VMF-Text straight from Maven
-Central:
+Run any of them:
 
 ```
-cd examples/java24-roundtrip
+cd examples/arraylang-roundtrip   # or java8-roundtrip / java24-roundtrip
 ./gradlew run
 ```
 
@@ -91,7 +112,8 @@ Now just add the labeled [ANTLR4](https://github.com/antlr/antlr4) grammar file 
 src/main/vmf-text/my/pkg/ArrayLang.g4
 ```
 
-Sample grammar for parsing strings of the form `(1,2,3)`:
+Sample grammar for parsing strings of the form `(1,2,3)` (see the runnable
+[`examples/arraylang-roundtrip`](examples/arraylang-roundtrip) showcase):
 
 ```antlr
 grammar ArrayLang;

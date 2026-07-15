@@ -1,0 +1,30 @@
+// Round-trip showcase: everything resolves from Maven Central — no local
+// builds required. See README.md in this directory.
+plugins {
+    id 'java'
+    id 'application'
+    id 'eu.mihosoft.vmftext' version '0.2.0'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+vmfText {
+    vmfVersion   = '0.2.10'
+    antlrVersion = '4.13.2'
+}
+
+application {
+    mainClass = 'demo.arraylang.Main'
+}
+
+tasks.named('run') {
+    workingDir = projectDir
+}
