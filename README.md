@@ -16,17 +16,40 @@ into a typed model, change what you need, unparse — everything you did not
 touch is reproduced byte-for-byte, comments, blank lines and irregular
 spacing included.
 
+### What “exact” covers (and what it does not)
+
+- **Unedited parsed models** unparse byte-identically.
+- **Edits on nested model objects** (e.g. a `MethodDeclaration` or
+  `StringLiteral` child) invalidate trivia only on that object. Siblings keep
+  their whitespace/comments, so a method rename or string replace typically
+  changes just those tokens.
+- **Edits to primitive / string properties on a rule** (including flat lists
+  like ArrayLang `values+=INT`) clear **all** trivia slots on that rule’s
+  `CodeElement`. The formatter then falls back to
+  `ConservativeSeparatorPolicy` (usually a single space before lexer tokens).
+  So `array.getValues().set(1, 99)` can turn
+  `(1 ,  2,\n 3 )` into `( 1, 99, 3)` even though only one value changed.
+- **Source bundles** are unrelated to this path: they store original source for
+  persistence/restore when semantics still match. They do not improve
+  unparse-after-edit formatting.
+
+There is no separate “anchor” API today. Isolation comes from **model-typed
+children**: each child `CodeElement` owns its own trivia. Wrapping list items
+in a parser rule (e.g. `value: n=INT`) would make ArrayLang behave like the
+Java examples. A future core improvement is surgical trivia updates for indexed
+primitive list edits (see `LEXICAL_PRESERVATION_ASSESSMENT.md`).
+
 Runnable showcases live under [`examples/`](examples/) and climb in
 complexity (all resolve released VMF-Text from Maven Central):
 
 1. **[`examples/arraylang-roundtrip`](examples/arraylang-roundtrip)** — the
-   tiny `ArrayLang` grammar from this README. Parse an irregularly spaced
-   `(1,2,3)` list, prove byte-identical unparse, then replace one integer on
-   the model with `array.getValues().set(1, 99)`.
+   tiny `ArrayLang` grammar from this README. Exact round-trip of an
+   irregularly spaced `(1,2,3)` list; then a primitive list edit that
+   demonstrates the conservative-separator fallback above.
 
 2. **[`examples/java8-roundtrip`](examples/java8-roundtrip)** — a small Java 8
    source file with a full Java 8 grammar. Rename a method and replace a
-   string literal on the model; every other byte stays untouched:
+   string literal on nested model objects; every other byte stays untouched:
 
 ```java
 model.vmf().content().stream(MethodDeclaration.class)
@@ -63,9 +86,7 @@ cd examples/arraylang-roundtrip   # or java8-roundtrip / java24-roundtrip
 ```
 
 None of this is Java-specific: the same parse → edit → unparse API is
-generated for any labeled ANTLR4 grammar. (Exact preservation applies to
-parsed content; values you set programmatically use conservative separators —
-see `LEXICAL_PRESERVATION_ASSESSMENT.md`.)
+generated for any labeled ANTLR4 grammar.
 
 ## Using VMF-Text
 
@@ -245,6 +266,14 @@ Programmatically created models (no parse-time lexical info) consult a pluggable
 `ProgrammaticSeparatorPolicy` inside the default formatter. The built-in
 `ConservativeSeparatorPolicy` reproduces today's single-space fallback; custom
 policies are consulted only where exact preservation is undefined by construction.
+
+The same fallback applies after **primitive property edits** on a parsed
+`CodeElement`: changing a non-model-typed property (or a flat primitive list
+entry) clears that element’s `TriviaPiece` list, so the formatter no longer has
+per-token whitespace to replay. Nested model-typed children keep their own
+trivia, which is why Java method/string edits usually preserve surrounding
+bytes while ArrayLang `values+=INT` does not. Details and fix options:
+`LEXICAL_PRESERVATION_ASSESSMENT.md`.
 
 ## Building VMF-Text (Core)
 

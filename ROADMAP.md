@@ -135,6 +135,11 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 - **Formatter policy for programmatically created models** — pluggable
   pretty-printing / grammar-aware separators where exact preservation is
   undefined by construction.
+- **Surgical trivia invalidation for primitive list edits** — today, changing
+  one entry in a flat primitive list (e.g. ArrayLang `values+=INT`) clears all
+  trivia on that rule; keep sibling whitespace by updating only the slots that
+  belong to the edited occurrence (see
+  `LEXICAL_PRESERVATION_ASSESSMENT.md` § Edit invalidation).
 - **Written LSP stance** — document how to feed the generated model into an
   LSP4J-based server; deliberately do not build a language workbench.
 - **Isolate Java-target ANTLR action injection** — keeps a future door open

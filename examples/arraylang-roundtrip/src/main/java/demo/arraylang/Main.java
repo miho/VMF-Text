@@ -19,8 +19,11 @@ import java.util.List;
 /**
  * Smallest round-trip showcase: the ArrayLang grammar from the VMF-Text README.
  * Parse an irregularly spaced {@code (1,2,3)} list and prove byte-identical
- * unparse. Then replace one value on the model (edited primitives use the
- * conservative separator fallback; see {@code LEXICAL_PRESERVATION_ASSESSMENT.md}).
+ * unparse. Then replace one list value: because {@code values} is a flat
+ * {@code List<Integer>} on one {@code CodeElement}, that edit clears the rule's
+ * trivia and the formatter uses conservative separators (not source bundles —
+ * those are for persistence/restore). Nested model edits preserve better; see
+ * the Java 8 / Java 24 examples and {@code LEXICAL_PRESERVATION_ASSESSMENT.md}.
  */
 public class Main {
 
@@ -65,8 +68,10 @@ public class Main {
                 "expected replaced value 99 after reparse");
         System.out.println("[2] replaced values[1]: 2 -> 99");
         System.out.println("  after:  " + visible(edited));
-        System.out.println("[3] edited primitive values use conservative separators;");
-        System.out.println("    unedited round-trips stay byte-identical (step [1])");
+        System.out.println("[3] flat primitive list edit -> conservative separators"
+                + " for that rule;");
+        System.out.println("    unedited round-trips stay byte-identical (step [1]);"
+                + " see LEXICAL_PRESERVATION_ASSESSMENT.md");
     }
 
     private static String visible(String s) {

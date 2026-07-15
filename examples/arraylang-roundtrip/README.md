@@ -1,18 +1,24 @@
 # ArrayLang Round-Trip Showcase
 
 The smallest lexical-preservation example: the `ArrayLang` grammar from the
-VMF-Text README (`(1,2,3)` integer lists). Parses an irregularly spaced list
-and proves the unparse is byte-identical, then replaces one value on the model.
+VMF-Text README (`(1,2,3)` integer lists).
 
 What it demonstrates:
 
 - **Grammar → API.** One short labeled ANTLR4 file generates the typed model,
   parser and unparser.
-- **Exact lexical preservation.** Odd spaces and newlines survive parse →
-  unparse byte-for-byte when you do not edit.
-- **Value edits.** `array.getValues().set(1, 99)` updates the model; edited
-  primitive values use conservative separators (in-place token edits that keep
-  surrounding bytes are shown in the Java 8 / Java 24 examples).
+- **Exact lexical preservation for unedited parses.** Odd spaces and newlines
+  survive parse → unparse byte-for-byte.
+- **Primitive list edits fall back to conservative separators.**  
+  `array.getValues().set(1, 99)` clears trivia on the whole `Array` node
+  (flat `List<Integer>`, not nested model objects), so the list reformats to
+  something like `( 1, 99, 3, 4, 5)`. Source bundles do not change this —
+  they are for persistence/restore, not unparse-after-edit.
+
+For edits that keep surrounding bytes, see the Java 8 / Java 24 examples
+(nested `CodeElement`s). Details:
+[`LEXICAL_PRESERVATION_ASSESSMENT.md`](../../LEXICAL_PRESERVATION_ASSESSMENT.md)
+§ *Edit invalidation*.
 
 ## Run it
 
@@ -29,7 +35,7 @@ Expected output (abridged):
   source:  (1 ,  2,\n 3 ,4\n,  5 )\n
 [2] replaced values[1]: 2 -> 99
   after:  ( 1, 99, 3, 4, 5)
-[3] edited primitive values use conservative separators;
+[3] flat primitive list edit -> conservative separators for that rule;
     unedited round-trips stay byte-identical (step [1])
 ```
 
