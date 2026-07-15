@@ -102,9 +102,17 @@ public class ParseTreeUtil {
     }
 
     /**
-     * Indicates whether the specified element context is a string literal / terminal or a dot (any char) '.'.
+     * Indicates whether the specified element context is a string literal / terminal
+     * or a parser-rule wildcard {@code '.'} (any token except EOF).
+     * <p>
+     * Labeled wildcards ({@code label=.} / {@code label+=.}) are supported as
+     * token-typed {@code String} properties (issue #8). In the ANTLR meta-grammar
+     * {@code '.'} is an {@code atom}/{@code DOT}, not a {@code terminal}, so this
+     * method treats it like a terminal for model/unparser generation.
+     * </p>
      * @param e the element context to check
-     * @return {@code true} if the specified element context is a string literal; {@code false} otherwise
+     * @return {@code true} if the specified element context is a string literal
+     *         or wildcard terminal; {@code false} otherwise
      */
     public static boolean isStringLiteral(ANTLRv4Parser.ElementContext e) {
 
@@ -113,19 +121,47 @@ public class ParseTreeUtil {
         if(atom==null) return false;
 
         String atomText = atom.getText().trim();
-        boolean isDot = ".".equals(atomText);
-
-        // detect simple dot (see issue #8)
-        if(isDot && isListAssignment(e)) {
-            throw new RuntimeException("Cannot label simple dot via '+=' assignment, e.g., 'myLabel+=.'. See issue #8 for updates and explanations.\nparent-rule-text: " + (e.getParent()==null?"<null>":e.getParent().getText()));
-        }
 
         // detect literals with not operator
         if(atomText.startsWith("~'")) return true;
 
-        return isDot 
+        return isDotWildcard(e)
             || (atom.terminal() != null &&
                 atom.terminal().TOKEN_REF() == null);
+    }
+
+    /**
+     * Indicates whether the specified element context is the parser wildcard atom {@code '.'}
+     * (matches any token except EOF). Lexer catch-alls such as {@code ANY: .;} are
+     * {@link #isLexerRule(ANTLRv4Parser.ElementContext) lexer rules}, not wildcards.
+     * @param e the element context to check
+     * @return {@code true} if the atom text is {@code .}; {@code false} otherwise
+     */
+    public static boolean isDotWildcard(ANTLRv4Parser.ElementContext e) {
+        ANTLRv4Parser.AtomContext atom = getAtom(e);
+        if(atom==null) return false;
+        return ".".equals(atom.getText().trim());
+    }
+
+    /**
+     * Indicates whether the element is a reference to the synthetic
+     * {@link LabeledDotRewriter#ANY_TOKEN_RULE} stand-in injected for list-labeled
+     * wildcards ({@code label+=.}).
+     * @param e the element context to check
+     * @return {@code true} if this is a labeled ref of the synthetic any-token rule
+     */
+    public static boolean isWildcardTokenProxy(ANTLRv4Parser.ElementContext e) {
+        return isParserRule(e)
+                && LabeledDotRewriter.ANY_TOKEN_RULE.equals(getElementText(e));
+    }
+
+    /**
+     * Indicates whether {@code ruleName} is the synthetic any-token proxy rule.
+     * @param ruleName parser rule name
+     * @return {@code true} if {@code ruleName} is {@link LabeledDotRewriter#ANY_TOKEN_RULE}
+     */
+    public static boolean isWildcardTokenProxyRule(String ruleName) {
+        return LabeledDotRewriter.ANY_TOKEN_RULE.equals(ruleName);
     }
 
     /**

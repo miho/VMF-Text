@@ -154,6 +154,14 @@ public class VMFText {
             e.printStackTrace();
         }
 
+        // Rewrite list-labeled wildcards (label+=.) before optional wrapping / AntlrTool
+        // so ANTLR emits valid List-backed labels (issue #8).
+        try {
+            grammar = LabeledDotRewriter.rewrite(grammar);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         // rewrite grammar
         try {
             grammar = rewriteGrammar(grammar);

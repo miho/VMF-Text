@@ -82,7 +82,19 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
         property.setCodeRange(ParseTreeUtil.ctxToCodeRange(e));
 
-        if (ParseTreeUtil.isParserRule(e)) {
+        // Synthetic stand-in for list-labeled '.' (issue #8 / LabeledDotRewriter):
+        // expose as a token-typed String property, not a nested rule class.
+        if (ParseTreeUtil.isWildcardTokenProxy(e) || ParseTreeUtil.isDotWildcard(e)) {
+            System.out.println("   -> labeled wildcard / any-token proxy. Using String conversion.");
+
+            property.setType(Type.newBuilder().
+                    withArrayType(isListType).
+                    withPackageName("java.lang").
+                    withName("String").
+                    withAntlrRuleName("").
+                    build());
+
+        } else if (ParseTreeUtil.isParserRule(e)) {
             Type t = typeFromRuleClass(
                        rules.get(ParseTreeUtil.getElementText(e)),isListType);
 
@@ -154,6 +166,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
                         build());
             }
         } else {
+            // String literals map to token-typed String properties.
             System.out.println("   -> no rule. Using String conversion.");
 
             property.setType(Type.newBuilder().
@@ -186,6 +199,14 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         System.out.println("ParserRule: " + ruleName);
         System.out.println("------------------------------------------------------");
 
+        // Hide the synthetic any-token stand-in from the public model (issue #8).
+        if (ParseTreeUtil.isWildcardTokenProxyRule(ruleName)) {
+            System.out.println("  -> [SKIP] synthetic labeled-dot stand-in");
+            currentRule = null;
+            super.enterParserRuleSpec(ctx);
+            return;
+        }
+
         Optional<RuleClass> currentRuleOpt = model.getRuleClasses().stream().
                 filter(rc->Objects.equals(rc.getName(),ruleName)).findAny();
 
@@ -202,7 +223,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         model.getRuleClasses().add(currentRule);
         superClassRule = currentRule;
 
-        super.exitParserRuleSpec(ctx);
+        super.enterParserRuleSpec(ctx);
     }
 
 
@@ -239,6 +260,11 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
     @Override
     public void enterAlternative(ANTLRv4Parser.AlternativeContext ctx) {
+        if (currentRule == null) {
+            super.enterAlternative(ctx);
+            return;
+        }
+
         InitRulePropertiesTask task = new InitRulePropertiesTask(
                 this.ruleClassesByName, currentRule, typeMappings, ctx.element());
         this.initPropertyTasks.add(task);
