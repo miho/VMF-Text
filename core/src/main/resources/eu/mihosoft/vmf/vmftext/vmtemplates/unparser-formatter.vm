@@ -489,6 +489,34 @@ public interface Formatter {
         counters.put(path, value==null ? 1 : value+1);
     }
 
+    /**
+     * Looks up a recorded optional state by path and occurrence index.
+     * Returns {@code null} when no indexed state exists for that pair
+     * (caller may fall back to encounter-order).
+     */
+    private Boolean findOptionalStateByOccurrence(
+            CodeElement e, String path, int occurrenceIndex) {
+        if(e.getLexicalInfo()==null) {
+            return null;
+        }
+        boolean sawIndexed = false;
+        for(OptionalState s : e.getLexicalInfo().getOptionalStates()) {
+            if(!path.equals(s.getGrammarElementPath())) {
+                continue;
+            }
+            if(s.getOccurrenceIndex() < 0) {
+                continue;
+            }
+            sawIndexed = true;
+            if(s.getOccurrenceIndex() == occurrenceIndex) {
+                return s.isPresent();
+            }
+        }
+        // Indexed states exist for this path but this occurrence was never
+        // recorded → absent.
+        return sawIndexed ? Boolean.FALSE : null;
+    }
+
     @Override
     public void pre(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
         if(!(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE)) {
@@ -509,13 +537,15 @@ public interface Formatter {
                 java.util.List<Boolean> pathStates = getOptionalStatesForPath(e, ruleInfo.getRulePath());
 
                 if(pathStates != null) {
-                  // Path-keyed consumption: states recorded for this grammar
-                  // element path are consumed in occurrence order. A missing
-                  // entry means the element is absent (recording skips absent
-                  // non-EBNF optionals), and states recorded for other paths
-                  // can never be misassigned to this element.
+                  // Prefer exact (path, occurrenceIndex) match when indices are
+                  // recorded (>=0). Fall back to encounter-order for legacy
+                  // states with occurrenceIndex < 0.
                   int pos = getOptionalPathCounter(e, ruleInfo.getRulePath());
-                  if(pos < pathStates.size()) {
+                  Boolean indexed = findOptionalStateByOccurrence(
+                          e, ruleInfo.getRulePath(), pos);
+                  if(indexed != null) {
+                    symbolState = indexed;
+                  } else if(pos < pathStates.size()) {
                     symbolState = pathStates.get(pos);
                   } else {
                     symbolState = false;

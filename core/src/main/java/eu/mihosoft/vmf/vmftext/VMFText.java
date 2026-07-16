@@ -200,14 +200,15 @@ public class VMFText {
             // generate model delegates
             generator.generateModelDelegates(model, outputDir);
 
-            // generate parser
-            generator.generateModelParser(model, outputDir);
-
             // generate source bundle persistence helper
             generator.generateSourceBundle(model, outputDir);
 
             // generate model unparser
             UnparserModel unparserModel = conversionResult.unparserModel;
+
+            // generate parser (needs unparser model for list-shape hints)
+            generator.generateModelParser(model, unparserModel, outputDir);
+
             generator.generateModelUnparser(model, unparserModel, grammar, outputDir);
 
             // generate model classes for in-memory compilation

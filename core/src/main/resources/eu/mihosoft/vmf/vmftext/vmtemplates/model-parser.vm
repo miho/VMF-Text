@@ -74,6 +74,10 @@ interface LexicalInfo {
   OriginalLexeme[] getOriginalLexemes();
 
   @eu.mihosoft.vmf.core.IgnoreEquals
+  @eu.mihosoft.vmf.core.Contains
+  ListShapeHint[] getListShapeHints();
+
+  @eu.mihosoft.vmf.core.IgnoreEquals
   String getGrammarElementPath();
 
   @eu.mihosoft.vmf.core.IgnoreEquals
@@ -87,7 +91,31 @@ interface TriviaPiece {
 
 interface OptionalState {
   String getGrammarElementPath();
+  /**
+   * Zero-based occurrence of this path on the owning rule instance.
+   * Consumed exactly (not via a shifting counter) so mixed presence of the
+   * same path cannot be reassigned to earlier encounters. {@code -1} means
+   * legacy / unknown (formatter falls back to encounter order).
+   */
+  int getOccurrenceIndex();
   boolean getPresent();
+}
+
+/**
+ * Codegen hint describing how a list property maps onto trivia slots, so
+ * structural add/remove can splice without guessing from {@code trivia.size()}.
+ */
+interface ListShapeHint {
+  String getPropertyName();
+  /** {@code PRIMITIVE_DELIMITED} or {@code MODEL_DELIMITED}. */
+  String getKind();
+  /** Terminals belonging to this list before the first item (e.g. {@code 1} for {@code '('}). */
+  int getPrefixCount();
+  /** Terminals belonging to this list after the last item (e.g. {@code ')'}, EOF). */
+  int getSuffixCount();
+  /** Declaration order among list properties on the same rule (0-based). */
+  int getOrderIndex();
+  boolean getModelTyped();
 }
 
 interface OriginalLexeme {

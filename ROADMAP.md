@@ -135,14 +135,13 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 - **Formatter policy for programmatically created models** — pluggable
   pretty-printing / grammar-aware separators where exact preservation is
   undefined by construction.
-- **Trivia splice for more list shapes** — bare and parenthesized
-  `T (',' T)*` add/remove (including no-EOF) are handled (0.2.1); multi-list
-  rules / exotic separators may still need unparser-model hints (see
-  `LEXICAL_PRESERVATION_ASSESSMENT.md` § Edit invalidation).
+- **Trivia splice + list-shape hints** — bare/parenthesized `T (',' T)*`,
+  multi-list rules via codegen `ListShapeHint` (0.2.1); exotic separators
+  may still need analyzer extensions (see assessment § Edit invalidation).
 - **Original lexeme preservation** — type-mapped lexer spellings round-trip
   when semantic values are unchanged (0.2.1).
-- **Optional null↔value** — presence metadata updates so optional groups
-  emit/drop correctly (0.2.1).
+- **Optional null↔value + occurrenceIndex** — presence metadata updates;
+  repeated optional paths use exact occurrence indices (0.2.1).
 - **Written LSP stance** — document how to feed the generated model into an
   LSP4J-based server; deliberately do not build a language workbench.
 - **Isolate Java-target ANTLR action injection** — keeps a future door open

@@ -347,7 +347,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                     }
                     mutatingTrivia[0] = true;
                     try {
-                        if(!spliceDelimitedPrimitiveListTrivia(element, listChange)) {
+                        if(!spliceDelimitedPrimitiveListTrivia(
+                                element, evt.propertyName(), listChange)) {
                             element.getLexicalInfo().getTriviaPieces().clear();
                         }
                         spliceOriginalLexemesForListChange(element, evt.propertyName(), listChange);
@@ -406,6 +407,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
      */
     private boolean spliceDelimitedPrimitiveListTrivia(
             CodeElement element,
+            String propertyName,
             eu.mihosoft.vcollections.VListChangeEvent<?> listChange) {
 
         if(listChange == null || element.getLexicalInfo() == null) {
@@ -436,6 +438,29 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
         java.util.List<TriviaPiece> trivia =
                 element.getLexicalInfo().getTriviaPieces();
+
+        // Prefer codegen list-shape hints when present for this property.
+        ListShapeHint hint = findListShapeHint(element, propertyName);
+        if(hint != null && "PRIMITIVE_DELIMITED".equals(hint.getKind())) {
+            int hintP = hint.getPrefixCount();
+            int base = computeTriviaBaseForList(element, hint);
+            // size = (2n-1) + prefix + suffix  ⇒ footprint for 2n+F form is P+S-1
+            int localFootprint =
+                    hint.getPrefixCount() + hint.getSuffixCount() - 1;
+            if(localFootprint < 0) {
+                localFootprint = 0;
+            }
+            int expectedLocal = 2 * nBefore + localFootprint;
+            if(base >= 0 && base + expectedLocal <= trivia.size()) {
+                return splicePrimitiveListInRange(
+                        trivia, base, hintP, localFootprint, nBefore, nAfter,
+                        added, indices);
+            }
+            // Hint present but footprint mismatch — refuse whole-trivia fallback
+            // so multi-list rules do not corrupt sibling list slots.
+            return false;
+        }
+
         int footprint = trivia.size() - 2 * nBefore;
         // F=0/1 → bare (P=0); F=2/3 → '(' … ')' [EOF] (P=1)
         final int P;
@@ -446,12 +471,33 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         } else {
             return false;
         }
+        return splicePrimitiveListInRange(
+                trivia, 0, P, footprint, nBefore, nAfter, added, indices);
+    }
 
-        if(removed) {
+    /**
+     * Splices a delimited primitive list inside {@code trivia[base ..)}.
+     * Indices {@code start}/{@code at} are local to that window; the method
+     * translates them to absolute trivia indices.
+     */
+    private boolean splicePrimitiveListInRange(
+            java.util.List<TriviaPiece> trivia,
+            int base,
+            int P,
+            int footprint,
+            int nBefore,
+            int nAfter,
+            boolean added,
+            int[] indices) {
+
+        if(nBefore < 1) {
+            return false;
+        }
+
+        if(!added) {
             if(nAfter < 1) {
-                return false; // empty list not representable for one-or-more shapes
+                return false;
             }
-            // Process high→low so each step uses the current footprint.
             int[] sorted = indices.clone();
             java.util.Arrays.sort(sorted);
             int nNow = nBefore;
@@ -460,10 +506,11 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 if(i < 0 || i >= nNow) {
                     return false;
                 }
-                if(trivia.size() != 2 * nNow + footprint) {
+                if(trivia.size() < base + 2 * nNow + footprint) {
                     return false;
                 }
-                int start = (i == 0) ? P : (P + 2 * i - 1);
+                int localStart = (i == 0) ? P : (P + 2 * i - 1);
+                int start = base + localStart;
                 if(start < 0 || start + 1 >= trivia.size()) {
                     return false;
                 }
@@ -477,12 +524,11 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 trivia.clear();
                 trivia.addAll(kept);
                 nNow--;
-                if(trivia.size() != 2 * nNow + footprint) {
+                if(trivia.size() < base + 2 * nNow + footprint) {
                     return false;
                 }
-                // Undo insert-at-0 separator padding on the former head (now at P).
-                if(i == 0 && P < trivia.size()) {
-                    TriviaPiece head = trivia.get(P);
+                if(i == 0 && base + P < trivia.size()) {
+                    TriviaPiece head = trivia.get(base + P);
                     if("LIST_INSERT_PADDING".equals(head.getKind())) {
                         head.setText("");
                         head.setKind(classifyTriviaKind(""));
@@ -492,7 +538,6 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             return nNow == nAfter;
         }
 
-        // added / insert — process low→high
         int[] sorted = indices.clone();
         java.util.Arrays.sort(sorted);
         int applied = 0;
@@ -503,33 +548,98 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             }
             int nNow = nBefore + applied;
             if(i == 0) {
-                trivia.add(P, newTriviaPiece(""));
-                trivia.add(P + 1, newTriviaPiece(""));
-                // Space after the new comma lives in the former head's leading
-                // slot; mark it so remove(0) can restore an originally-empty head.
-                TriviaPiece afterComma = trivia.get(P + 2);
+                trivia.add(base + P, newTriviaPiece(""));
+                trivia.add(base + P + 1, newTriviaPiece(""));
+                TriviaPiece afterComma = trivia.get(base + P + 2);
                 if(afterComma.getText() == null || afterComma.getText().isEmpty()) {
                     afterComma.setText(" ");
                     afterComma.setKind("LIST_INSERT_PADDING");
                 }
             } else if(i >= nNow) {
-                // Append before first suffix slot:
-                //   P=1 → index of ')' (= 2*nNow)
-                //   P=0 → index of EOF/pad (= 2*nNow - 1)
-                int at = (P == 0) ? (2 * nNow - 1) : (2 * nNow);
+                int localAt = (P == 0) ? (2 * nNow - 1) : (2 * nNow);
+                int at = base + localAt;
                 trivia.add(at, newTriviaPiece(""));
                 trivia.add(at + 1, newTriviaPiece(" "));
             } else {
-                int at = P + 2 * i - 1;
+                int at = base + P + 2 * i - 1;
                 trivia.add(at, newTriviaPiece(""));
                 trivia.add(at + 1, newTriviaPiece(" "));
             }
             applied++;
-            if(trivia.size() != 2 * (nBefore + applied) + footprint) {
-                return false;
+        }
+        return true;
+    }
+
+    private ListShapeHint findListShapeHint(CodeElement element, String propertyName) {
+        if(element.getLexicalInfo() == null || propertyName == null) {
+            return null;
+        }
+        for(ListShapeHint h : element.getLexicalInfo().getListShapeHints()) {
+            if(propertyName.equals(h.getPropertyName())) {
+                return h;
             }
         }
-        return trivia.size() == 2 * nAfter + footprint;
+        return null;
+    }
+
+    /**
+     * Trivia index where {@code hint}'s list segment begins, based on sibling
+     * list sizes and earlier hints' prefix/suffix counts.
+     */
+    private int computeTriviaBaseForList(CodeElement element, ListShapeHint hint) {
+        if(element.getLexicalInfo() == null) {
+            return 0;
+        }
+        int base = 0;
+        for(ListShapeHint h : element.getLexicalInfo().getListShapeHints()) {
+            if(h.getOrderIndex() >= hint.getOrderIndex()) {
+                break;
+            }
+            int n = listPropertySize(element, h.getPropertyName());
+            if(n < 0) {
+                return -1;
+            }
+            if("PRIMITIVE_DELIMITED".equals(h.getKind())) {
+                // size = 2n + (P + S - 1)
+                int footprint = h.getPrefixCount() + h.getSuffixCount() - 1;
+                if(footprint < 0) {
+                    footprint = 0;
+                }
+                base += 2 * n + footprint;
+            } else if("MODEL_DELIMITED".equals(h.getKind())) {
+                base += (n == 0 ? 2 : (n + 1));
+            }
+        }
+        return base;
+    }
+
+    private int listPropertySize(CodeElement element, String propertyName) {
+        try {
+            return element.vmf().reflect().propertyByName(propertyName).map(p -> {
+                Object v = p.get();
+                if(v instanceof java.util.Collection) {
+                    return ((java.util.Collection<?>) v).size();
+                }
+                return -1;
+            }).orElse(-1);
+        } catch(Exception ex) {
+            return -1;
+        }
+    }
+
+    private void attachListShapeHints(CodeElement e, LexicalInfo lexicalInfo) {
+#foreach($h in $listShapeHints)
+        if(e instanceof ${h.ruleClassName}) {
+            lexicalInfo.getListShapeHints().add(ListShapeHint.newBuilder().
+                    withPropertyName("${h.propertyName}").
+                    withKind("${h.kind}").
+                    withPrefixCount(${h.prefixCount}).
+                    withSuffixCount(${h.suffixCount}).
+                    withOrderIndex(${h.orderIndex}).
+                    withModelTyped(${h.modelTyped}).
+                    build());
+        }
+#end
     }
 
     private TriviaPiece newTriviaPiece(String text) {
@@ -867,13 +977,21 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             lexicalInfo.getOptionalSymbols().clear();
             lexicalInfo.getOptionalSymbols().addAll(optionalSymbols);
             lexicalInfo.getOptionalStates().clear();
+            java.util.Map<String,Integer> optionalOccurrenceCounters =
+                    new java.util.HashMap<>();
             for(String optionalStateEntry : optionalStateEntries) {
                 int sepIdx = optionalStateEntry.lastIndexOf('=');
+                String path = optionalStateEntry.substring(0, sepIdx);
+                int occurrence = optionalOccurrenceCounters.getOrDefault(path, 0);
+                optionalOccurrenceCounters.put(path, occurrence + 1);
                 lexicalInfo.getOptionalStates().add(OptionalState.newBuilder().
-                        withGrammarElementPath(optionalStateEntry.substring(0, sepIdx)).
+                        withGrammarElementPath(path).
+                        withOccurrenceIndex(occurrence).
                         withPresent(Boolean.parseBoolean(optionalStateEntry.substring(sepIdx+1))).
                         build());
             }
+            lexicalInfo.getListShapeHints().clear();
+            attachListShapeHints(e, lexicalInfo);
             lexicalInfo.setOriginalRange(e.getCodeRange());
             lexicalInfo.setGrammarElementPath(eCtx.getClass().getSimpleName());
 
