@@ -88,6 +88,19 @@ public class ArrayLangListEditLexicalPreservationTest {
     }
 
     @Test
+    public void insertAtZeroThenRemoveRestoresExact() {
+        String source = "(1.0 ,  2.0 )";
+        ArrayLangModel model = parser.parse(source);
+
+        model.getRoot().getValues().add(0, 0.5);
+        Assert.assertEquals("(0.5, 1.0 ,  2.0 )", unparser.unparse(model));
+
+        model.getRoot().getValues().remove(0);
+        Assert.assertEquals(source, unparser.unparse(model));
+        assertTriviaSize(model, 2);
+    }
+
+    @Test
     public void insertInMiddleKeepsExistingCommaTrivia() {
         String source = "(1.0 ,  2.0 )";
         ArrayLangModel model = parser.parse(source);

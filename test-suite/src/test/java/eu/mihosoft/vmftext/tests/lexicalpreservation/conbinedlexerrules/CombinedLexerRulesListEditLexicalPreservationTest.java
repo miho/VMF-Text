@@ -58,9 +58,8 @@ public class CombinedLexerRulesListEditLexicalPreservationTest {
         model.getRoot().getValues().add(0, "0.5");
         Assert.assertEquals("(0.5, 1.0 ,  2.0 )", unparser.unparse(model));
         model.getRoot().getValues().remove(0);
-        // Insert-at-0 may inject a separator space before the former head; after
-        // remove(0) that space can remain (still valid / parseable).
-        Assert.assertEquals("( 1.0 ,  2.0 )", unparser.unparse(model));
+        // Insert-at-0 padding is marked and cleared on remove(0) → exact undo.
+        Assert.assertEquals(source, unparser.unparse(model));
         assertTriviaSize(model, 2);
     }
 

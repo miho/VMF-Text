@@ -331,8 +331,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 // property value on unparse; trivia only stores hidden text *before*
                 // each terminal. Keep trivia when the terminal footprint is unchanged
                 // (in-place list set / non-null property rewrite). For structural
-                // head-separator list add/remove ('(' item (',' item)* ')'), splice
-                // trivia slots; otherwise clear (conservative separators).
+                // head-separator list add/remove (bare or parenthesized
+                // 'item (',' item)*'), splice trivia slots; otherwise clear.
                 if(element.getLexicalInfo()==null) {
                     return;
                 }
@@ -372,12 +372,16 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     }
 
     /**
-     * Surgical trivia splice for delimited primitive lists shaped like
-     * {@code '(' item (',' item)* ')' [EOF]} (ArrayLang, CombinedLexerRules, …).
-     * Recognized when {@code trivia.size() == 2*N + F} with footprint {@code F}
-     * in {@code {2,3}} (F = prefix+suffix+pad extras: {@code '(' + ')' [+EOF] + pad}).
-     * Supports single- and multi-index add/remove. Returns {@code false} when the
-     * pattern does not match so the caller can {@code clear()}.
+     * Surgical trivia splice for delimited primitive lists:
+     * <ul>
+     *   <li>Bare {@code item (',' item)* [EOF]} — {@code size == 2N} or {@code 2N+1}
+     *       (prefix {@code P=0})</li>
+     *   <li>Parenthesized {@code '(' item (',' item)* ')' [EOF]} —
+     *       {@code size == 2N+2} or {@code 2N+3} (prefix {@code P=1})</li>
+     * </ul>
+     * Footprint {@code F = size - 2N} distinguishes the shapes. Supports single-
+     * and multi-index add/remove. Returns {@code false} when the pattern does not
+     * match so the caller can {@code clear()}.
      */
     private boolean spliceDelimitedPrimitiveListTrivia(
             CodeElement element,
@@ -411,16 +415,20 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
         java.util.List<TriviaPiece> trivia =
                 element.getLexicalInfo().getTriviaPieces();
-        int footprint = trivia.size() - 2 * nBefore; // P + S  (pad included in S+P accounting)
-        // P=1 '(': F=2 → ')'+pad ; F=3 → ')'+EOF+pad
-        if(footprint != 2 && footprint != 3) {
+        int footprint = trivia.size() - 2 * nBefore;
+        // F=0/1 → bare (P=0); F=2/3 → '(' … ')' [EOF] (P=1)
+        final int P;
+        if(footprint == 0 || footprint == 1) {
+            P = 0;
+        } else if(footprint == 2 || footprint == 3) {
+            P = 1;
+        } else {
             return false;
         }
-        final int P = 1;
 
         if(removed) {
             if(nAfter < 1) {
-                return false; // empty list not representable for this shape
+                return false; // empty list not representable for one-or-more shapes
             }
             // Process high→low so each step uses the current footprint.
             int[] sorted = indices.clone();
@@ -451,21 +459,24 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 if(trivia.size() != 2 * nNow + footprint) {
                     return false;
                 }
+                // Undo insert-at-0 separator padding on the former head (now at P).
+                if(i == 0 && P < trivia.size()) {
+                    TriviaPiece head = trivia.get(P);
+                    if("LIST_INSERT_PADDING".equals(head.getKind())) {
+                        head.setText("");
+                        head.setKind(classifyTriviaKind(""));
+                    }
+                }
             }
             return nNow == nAfter;
         }
 
-        // added / insert — process low→high, adjusting subsequent indices
+        // added / insert — process low→high
         int[] sorted = indices.clone();
         java.util.Arrays.sort(sorted);
         int applied = 0;
         for(int raw : sorted) {
-            int i = raw; // index in the list as of this insertion step
-            // When multiple inserts are reported against the final list, indices
-            // already reflect positions in the post-add list for VList addAll.
-            // For sequential single adds they are positions at each step.
-            // Use the event index directly; VList reports indices in the list
-            // after each element is placed for multi-add.
+            int i = raw;
             if(i < 0 || i > nBefore + applied) {
                 return false;
             }
@@ -473,14 +484,18 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             if(i == 0) {
                 trivia.add(P, newTriviaPiece(""));
                 trivia.add(P + 1, newTriviaPiece(""));
+                // Space after the new comma lives in the former head's leading
+                // slot; mark it so remove(0) can restore an originally-empty head.
                 TriviaPiece afterComma = trivia.get(P + 2);
                 if(afterComma.getText() == null || afterComma.getText().isEmpty()) {
                     afterComma.setText(" ");
-                    afterComma.setKind(classifyTriviaKind(" "));
+                    afterComma.setKind("LIST_INSERT_PADDING");
                 }
             } else if(i >= nNow) {
-                // append before ')'
-                int at = 2 * nNow; // index of ')'
+                // Append before first suffix slot:
+                //   P=1 → index of ')' (= 2*nNow)
+                //   P=0 → index of EOF/pad (= 2*nNow - 1)
+                int at = (P == 0) ? (2 * nNow - 1) : (2 * nNow);
                 trivia.add(at, newTriviaPiece(""));
                 trivia.add(at + 1, newTriviaPiece(" "));
             } else {
