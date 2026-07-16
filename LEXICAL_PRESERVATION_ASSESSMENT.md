@@ -140,13 +140,15 @@ original source for restore-when-semantics-match.
 
 ### Remaining gaps / what we can still improve
 
-1. **Other list shapes:** only the delimited `'(' item (',' item)* ')'`
-   footprint (`size == 2N+3`) is spliced today; bare `T (',' T)*` / multi-list
-   rules still `clear()`. Extend via codegen hints from the unparser model.
+1. **Unusual list shapes / multi-list rules:** delimited bare and
+   parenthesized `T (',' T)*` footprints are spliced via size heuristics;
+   multiple primitive lists on one parent or exotic separators may still
+   `clear()`. Codegen list-shape hints from the unparser model would remove
+   the heuristic.
 2. **Grammar shape workaround:** wrap each list item as a model type
    (`value: n=INT`) so add/remove only invalidates that leaf.
-3. **True token rewriting:** per-occurrence original lexemes / stream indices —
-   larger redesign, not present today.
+3. **Optional occurrence identity:** `OptionalState` still lacks an explicit
+   `occurrenceIndex` for mixed presence of the same path (legacy counters).
 
 ### What improved over `lexical-preservation-take-2`
 
@@ -156,9 +158,11 @@ typed `LexicalInfo` / `TriviaPiece`; pluggable `ProgrammaticSeparatorPolicy`.
 
 **This fix (0.2.1):** keep trivia on in-place primitive/string rewrites; surgically
 splice trivia for ArrayLang/CombinedLexer-style delimited primitive lists
-(including bulk ops and no-EOF footprints); splice **parent** comma/bracket
-trivia for JSON-style model-typed delimited lists. Re-entrancy guard prevents
-nested `triviaPieces` mutations from clearing state mid-splice.
+(including bare `T (',' T)*`, bulk ops, and no-EOF footprints) with exact
+insert-at-0 undo; splice **parent** comma/bracket trivia for JSON-style
+model-typed delimited lists; update optional presence on null↔value; preserve
+original type-mapped lexemes when values are unchanged. Re-entrancy guard
+prevents nested `triviaPieces` mutations from clearing state mid-splice.
 take-2 (and ≤0.2.0) always emptied the hidden-text list for any non-model
 property change.
 

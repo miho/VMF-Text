@@ -18,17 +18,21 @@ spacing included.
 
 ### What “exact” covers (and what it does not)
 
-- **Unedited parsed models** unparse byte-identically.
+- **Unedited parsed models** unparse byte-identically (including original
+  type-mapped lexemes such as `1` vs `1.0`).
 - **In-place value rewrites** (non-null property set, or `list.set(i, …)`) keep
-  that rule’s trivia: only the token text changes.
+  that rule’s trivia: only the token text changes; unchanged siblings keep
+  their original spellings.
 - **Structural add/remove on delimited primitive lists** shaped like
-  `'(' item (',' item)* ')'` (ArrayLang) surgically splice trivia slots so
-  sibling whitespace survives (0.2.1+).
+  `'(' item (',' item)* ')'` or bare `item (',' item)*` surgically splice
+  trivia slots so sibling whitespace survives (0.2.1+).
+- **Optional null↔value** updates optional presence so groups appear/disappear
+  correctly while keeping leading inter-rule whitespace.
 - **Edits on nested model objects** (e.g. a `MethodDeclaration` or
   `StringLiteral` child) only affect that object’s own trivia; siblings keep
   theirs.
-- **Unrecognized structural shapes** (or emptying the list) still clear trivia
-  on that rule and fall back to `ConservativeSeparatorPolicy`.
+- **Unrecognized structural shapes** (or emptying a one-or-more list) still
+  clear trivia on that rule and fall back to `ConservativeSeparatorPolicy`.
 - **Source bundles** are unrelated to unparse-after-edit: they store original
   source for persistence/restore when semantics still match.
 
