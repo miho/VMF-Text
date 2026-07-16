@@ -104,8 +104,8 @@ change listener in `model-converter.vm`
 |-----------|------------------------|
 | Change / insert a **model-typed** child (`CodeElement`) | Keep parent trivia; pad the new child’s leading trivia with a space if needed so tokens do not glue together |
 | **In-place** non-model rewrite (`list.set(i, …)`, or property set with both old and new non-null) | **Keep** all trivia (terminal footprint unchanged; only token text changes) |
-| **Structural** add/remove on delimited primitive lists `'(' item (',' item)* ')'` when `trivia.size()` is `2N+2` or `2N+3`, or bare `item (',' item)*` when size is `2N`/`2N+1` | **Splice** two trivia slots (comma+value) so siblings keep their whitespace; supports bulk index ops; insert-at-0 padding is undoable |
-| **Structural** add/remove on model-typed delimited lists `'['/'{' item (',' item)* ']'/'}'` when parent trivia size is `N+1` (or `2` if empty) | **Splice** parent comma/bracket slots (JSON arrays/objects); child leading trivia stays on each item |
+| **Structural** add/remove on delimited primitive lists | **Splice** via `ListShapeHint` (`prefix` / `separatorCount` / `suffix`): size `P + n + (n-1)*K + S` — covers `,`, `\|`, multi-token `',' 'and'`, and separator-less `ID (ID)*` (`K=0`); insert-at-0 padding undoable |
+| **Structural** add/remove on model-typed delimited lists | **Splice** parent prefix/sep/suffix slots (JSON `N+1`, bare model `N`, etc.); child leading trivia stays on each item; `K=0` is a no-op on the parent |
 | **Optional** null↔value on a non-model property | **Update** optional presence (flip recorded states / legacy all-true symbols) and keep leading trivia; insert a trivia slot for a newly present value terminal |
 | Other structural non-model change (unknown shape, emptying a one-or-more primitive list) | **Clear** all trivia slots on that element → conservative separators |
 
@@ -162,7 +162,8 @@ splice trivia for ArrayLang/CombinedLexer-style delimited primitive lists
 insert-at-0 undo; splice **parent** comma/bracket trivia for JSON-style
 model-typed delimited lists; update optional presence on null↔value; pin
 repeated optionals with `OptionalState.occurrenceIndex`; attach codegen
-`ListShapeHint`s for multi-list rules; preserve original type-mapped lexemes
+`ListShapeHint`s (multi-list, opener-after-trailer, `separatorCount` for
+multi-token and separator-less lists); preserve original type-mapped lexemes
 when values are unchanged. Re-entrancy guard prevents nested `triviaPieces`
 mutations from clearing state mid-splice. take-2 (and ≤0.2.0) always emptied
 the hidden-text list for any non-model property change.

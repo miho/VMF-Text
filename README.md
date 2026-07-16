@@ -44,7 +44,7 @@ See `LEXICAL_PRESERVATION_ASSESSMENT.md` § *Edit invalidation* for details.
 Runnable showcases live under [`examples/`](examples/) and climb in
 complexity (see that README for the full ladder: ArrayLang → bare lists →
 original lexemes → optional null↔value / occurrenceIndex → JSON lists →
-multi-list `ListShapeHint` → Java 8 / Java 24). Highlights:
+multi-list `ListShapeHint` → `separatorCount` → Java 8 / Java 24). Highlights:
 
 1. **[`examples/arraylang-roundtrip`](examples/arraylang-roundtrip)** — the
    tiny `ArrayLang` grammar from this README. Exact round-trip, then
