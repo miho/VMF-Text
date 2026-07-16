@@ -360,6 +360,21 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                             && propertyChange.newValue() != null) {
                         return;
                     }
+                    // null↔value: update optional presence; preserve leading trivia so
+                    // rule keywords keep their inter-rule whitespace. Value→null leaves
+                    // states alone (unparser skips property-required optional groups).
+                    if(propertyChange != null
+                            && (propertyChange.oldValue() == null)
+                            != (propertyChange.newValue() == null)) {
+                        mutatingTrivia[0] = true;
+                        try {
+                            updateOptionalPresenceForNullValueToggle(
+                                    element, propertyChange.newValue() != null);
+                        } finally {
+                            mutatingTrivia[0] = false;
+                        }
+                        return;
+                    }
                 }
                 mutatingTrivia[0] = true;
                 try {
@@ -516,6 +531,74 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 withText(text).
                 withKind(classifyTriviaKind(text)).
                 build();
+    }
+
+    /**
+     * Updates lexical metadata when a non-model property toggles between
+     * {@code null} and a value (typical optional {@code name=ID} inside
+     * {@code ('(' name ')')?}).
+     * <ul>
+     *   <li>null→value with recorded optional states: mark them present and
+     *       insert an empty trivia slot for the new terminal before the
+     *       closing-delimiter slot</li>
+     *   <li>null→value with no recorded states (fully absent group): enable
+     *       legacy all-{@code true} optional symbols and ensure trivia slots
+     *       for {@code '(' value ')'} with a space before {@code '('}</li>
+     *   <li>value→null: leave trivia and states intact so leading whitespace
+     *       survives; the unparser skips property-required optional groups</li>
+     * </ul>
+     */
+    private void updateOptionalPresenceForNullValueToggle(
+            CodeElement element, boolean toValue) {
+
+        if(!toValue || element.getLexicalInfo() == null) {
+            return;
+        }
+
+        LexicalInfo info = element.getLexicalInfo();
+        java.util.List<OptionalState> states = info.getOptionalStates();
+        java.util.List<TriviaPiece> trivia = info.getTriviaPieces();
+
+        if(states != null && !states.isEmpty()) {
+            for(OptionalState s : states) {
+                s.setPresent(true);
+            }
+            info.getOptionalSymbols().clear();
+            for(OptionalState s : states) {
+                info.getOptionalSymbols().add(s.isPresent());
+            }
+            // Insert a slot for the newly present value terminal before the
+            // last existing slot (usually the closing ')' / pad carrier).
+            if(trivia.size() >= 2) {
+                trivia.add(trivia.size() - 1, newTriviaPiece(""));
+            } else {
+                trivia.add(newTriviaPiece(""));
+            }
+            return;
+        }
+
+        // Fully absent optional group: no path-keyed states were recorded.
+        // Fall back to legacy positional "all present" symbols so '(' / ')'
+        // render, and ensure a 4-slot trivia footprint:
+        //   [leading][before '('][before value][before ')']
+        info.getOptionalStates().clear();
+        info.getOptionalSymbols().clear();
+        for(int i = 0; i < 16; i++) {
+            info.getOptionalSymbols().add(Boolean.TRUE);
+        }
+        if(trivia.isEmpty()) {
+            trivia.add(newTriviaPiece(""));
+        }
+        if(trivia.size() == 1) {
+            trivia.add(newTriviaPiece(" "));
+            trivia.add(newTriviaPiece(""));
+            trivia.add(newTriviaPiece(""));
+        } else if(trivia.size() == 2) {
+            trivia.add(newTriviaPiece(""));
+            trivia.add(newTriviaPiece(""));
+        } else if(trivia.size() == 3) {
+            trivia.add(trivia.size() - 1, newTriviaPiece(""));
+        }
     }
 
     /**
