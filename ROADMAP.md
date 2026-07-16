@@ -136,12 +136,15 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
   pretty-printing / grammar-aware separators where exact preservation is
   undefined by construction.
 - **Trivia splice + list-shape hints** — bare/parenthesized `T (',' T)*`,
-  multi-list rules via codegen `ListShapeHint` (0.2.1); exotic separators
-  may still need analyzer extensions (see assessment § Edit invalidation).
+  multi-list rules via codegen `ListShapeHint`, non-comma single-terminal
+  separators, opener-after-trailer, bare model-typed lists, insert-at-0
+  padding after sibling trailers (0.2.1); multi-token separators still fall
+  back (see assessment § Edit invalidation).
 - **Original lexeme preservation** — type-mapped lexer spellings round-trip
   when semantic values are unchanged (0.2.1).
 - **Optional null↔value + occurrenceIndex** — presence metadata updates;
-  repeated optional paths use exact occurrence indices (0.2.1).
+  repeated optional paths use exact occurrence indices; `optionalSymbols`
+  soft-deprecated (0.2.1).
 - **Written LSP stance** — document how to feed the generated model into an
   LSP4J-based server; deliberately do not build a language workbench.
 - **Isolate Java-target ANTLR action injection** — keeps a future door open

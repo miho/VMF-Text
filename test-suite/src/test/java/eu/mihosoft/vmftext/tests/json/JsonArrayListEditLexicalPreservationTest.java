@@ -94,7 +94,8 @@ public class JsonArrayListEditLexicalPreservationTest {
         NumberValue n = NumberValue.newInstance();
         n.setValue(1.0);
         array.getValues().add(n);
-        Assert.assertEquals("[1.0]", unparser.unparse(model));
+        // New child gets a leading space pad so '[' and the value do not glue.
+        Assert.assertEquals("[ 1.0]", unparser.unparse(model));
         assertParentTriviaSize(array, 1);
     }
 
@@ -106,7 +107,7 @@ public class JsonArrayListEditLexicalPreservationTest {
         NumberValue n = NumberValue.newInstance();
         n.setValue(0.0);
         array.getValues().add(0, n);
-        Assert.assertEquals("[0.0, 1.0 ,  2.0]", unparser.unparse(model));
+        Assert.assertEquals("[ 0.0,1.0 ,  2.0]", unparser.unparse(model));
         assertParentTriviaSize(array, 3);
     }
 
@@ -130,15 +131,20 @@ public class JsonArrayListEditLexicalPreservationTest {
         n.setValue(3.0);
         p.setValue(n);
         obj.getPairs().add(p);
-        Assert.assertEquals("{\"a\": 1.0 ,  \"b\": 2.0, \"c\": 3.0}", unparser.unparse(model));
+        // Programmatic pair gets conservative separators around ':' .
+        Assert.assertEquals("{\"a\": 1.0 ,  \"b\": 2.0, \"c\" : 3.0}", unparser.unparse(model));
     }
 
     @Test
     public void nestedArrayEditKeepsOuterBytes() {
         String source = "[1.0, [2.0 ,  3.0], 4.0]";
         JSONModel model = parser.parse(source);
-        Array outer = onlyArray(model);
-        Array inner = (Array) outer.getValues().get(1);
+        Array outer = model.vmf().content().stream(Array.class)
+                .filter(a -> a.getValues().size() == 3)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no outer Array"));
+        ArrayValue innerVal = (ArrayValue) outer.getValues().get(1);
+        Array inner = innerVal.getValue();
         ((NumberValue) inner.getValues().get(0)).setValue(9.0);
         Assert.assertEquals("[1.0, [9.0 ,  3.0], 4.0]", unparser.unparse(model));
     }

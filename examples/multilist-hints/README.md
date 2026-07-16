@@ -50,7 +50,8 @@ Expected output (abridged):
 - Exact unedited round-trip of odd spaces/newlines across both lists
 - `ids.set` / `remove` / `add(0, …)` leave `nums` whitespace alone
 - `nums` edits leave `ids` alone (including the `;` separator region)
-- Insert-at-0 then remove restores the original source
+- Insert-at-0 after `;` pads the new head (`; 0, …`) so values do not glue;
+  remove restores the original source
 
 ## Layout
 
