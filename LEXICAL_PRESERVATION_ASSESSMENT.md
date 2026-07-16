@@ -21,8 +21,11 @@ on the current JDK 21-based VM.
   subrule wrapper itself. The contained optional terminals/lexer elements carry
   the relevant presence state, avoiding positional desynchronization for cases
   like `('(' names+=IDENTIFIER* ')')?`.
-- Model edits keep lexical trivia for model-type/list changes where possible,
-  while edited primitive values get conservative separator fallback.
+- Model edits keep lexical trivia for model-type changes and for **in-place**
+  primitive/string rewrites (`list.set`, non-null property set). Structural
+  add/remove (or null↔value) still clears trivia on that element and falls
+  back to conservative separators — see
+  [Edit invalidation](#edit-invalidation-primitive-vs-model-typed).
 
 ## Current test evidence
 
@@ -89,6 +92,94 @@ optional-presence is order-sensitive.
   **Resolved (0.2.1):** `ProgrammaticSeparatorPolicy` is pluggable; default
   policy matches the previous conservative separator fallback.
 
+## Edit invalidation (primitive vs model-typed)
+
+On each `CodeElement`, parse-time hidden text is stored as an ordered list of
+trivia slots — one slot before each terminal of that rule. Token **text** is
+not stored in trivia; it is rendered from the property value. The generated
+change listener in `model-converter.vm`
+(`registerIgnoredPiecesOfTextChangeListener`) then:
+
+| Edit kind | What happens to trivia |
+|-----------|------------------------|
+| Change / insert a **model-typed** child (`CodeElement`) | Keep parent trivia; pad the new child’s leading trivia with a space if needed so tokens do not glue together |
+| **In-place** non-model rewrite (`list.set(i, …)`, or property set with both old and new non-null) | **Keep** all trivia (terminal footprint unchanged; only token text changes) |
+| **Structural** add/remove on delimited primitive lists | **Splice** via `ListShapeHint` (`prefix` / `separatorCount` / `suffix`): size `P + n + (n-1)*K + S` — covers `,`, `\|`, multi-token `',' 'and'`, and separator-less `ID (ID)*` (`K=0`); insert-at-0 padding undoable |
+| **Structural** add/remove on model-typed delimited lists | **Splice** parent prefix/sep/suffix slots (JSON `N+1`, bare model `N`, etc.); child leading trivia stays on each item; `K=0` is a no-op on the parent |
+| **Optional** null↔value on a non-model property | **Update** optional presence (flip recorded states / legacy all-true symbols) and keep leading trivia; insert a trivia slot for a newly present value terminal |
+| Other structural non-model change (unknown shape, emptying a one-or-more primitive list) | **Clear** all trivia slots on that element → conservative separators |
+
+After a clear, `DefaultFormatter` sees an empty trivia list and uses
+`separatorBeforeEdited` / `ConservativeSeparatorPolicy` (typically a single
+space before lexer-rule tokens, none before string terminals like `,`).
+
+**Original lexemes:** type-mapped lexer tokens store their parse-time spelling
+on `LexicalInfo.originalLexemes`. Unparse reuses that text when
+`String.valueOf(value)` still matches the recorded key, so `(1, 2)` stays
+`(1, 2)` and sibling edits keep unchanged spellings.
+
+### ArrayLang vs Java / JSON
+
+```antlr
+array: '(' values+=INT (',' values+=INT)* ')' EOF;   // flat primitives on one node
+```
+
+`array.getValues().set(1, 99)` is an in-place list set: trivia is kept, so
+`(1 ,  2,\n 3 )` becomes `(1 ,  99,\n 3 )`. `add` / `remove` on the same shape
+splice two trivia slots (recognized when `trivia.size() == 2N+3`). (On
+`lexical-preservation-take-2` and VMF-Text ≤0.2.0 any non-model edit cleared
+all slots and reformatted to `( 1, 99, 3)`.)
+
+Java method/string edits also keep sibling whitespace because they either
+rewrite a property in place on a nested `CodeElement`, or only clear that
+child’s trivia. JSON number edits behave similarly when each number is its own
+`NumberValue` model type.
+
+**Source bundles do not participate** in unparse-after-edit. They persist
+original source for restore-when-semantics-match.
+
+### Remaining gaps / what we can still improve
+
+**Resolved in 0.2.1 (follow-ups):**
+
+1. **Multi-alt list hints** — every top-level alternative is analyzed;
+   `ListShapeHint.alternativeIndex` scopes multi-list math; the converter
+   picks the candidate whose expected size matches the trivia footprint.
+2. **Optional trailing separator** (`… ','?`) — `optionalTrailingCount` is
+   separate from fixed `suffixCount`; present/absent is resolved from trivia
+   size and preserved across splice (while `n > 0`).
+
+**User recommendation (docs only — not a missing codegen feature):** wrap list
+items as model types (`value: n=INT`) when a shape is still unrecognized so
+add/remove only touches a leaf.
+
+**Needs a CST / per-gap node model (do not expect in 0.2.x splice polish):**
+
+- Separators that differ by **index** (Oxford: `,` then `, and`)
+- Unlabeled alt separators (`(('+'|'-') t)*` with no model property)
+- Optional separator **per gap** (`(','? item)*`)
+- Arbitrary cross-rule structural moves with perfect outer-container fidelity
+
+How unparsing works end-to-end: [`docs/UNPARSING.md`](docs/UNPARSING.md).
+
+### What improved over `lexical-preservation-take-2`
+
+Already on main before this work: leading/inter-rule hidden text via the previous
+default-channel token; no space/tab collapsing; path-keyed `OptionalState`;
+typed `LexicalInfo` / `TriviaPiece`; pluggable `ProgrammaticSeparatorPolicy`.
+
+**This fix (0.2.1):** keep trivia on in-place primitive/string rewrites; surgically
+splice trivia for ArrayLang/CombinedLexer-style delimited primitive lists
+(including bare `T (',' T)*`, bulk ops, and no-EOF footprints) with exact
+insert-at-0 undo; splice **parent** comma/bracket trivia for JSON-style
+model-typed delimited lists; update optional presence on null↔value; pin
+repeated optionals with `OptionalState.occurrenceIndex`; attach codegen
+`ListShapeHint`s (multi-list, opener-after-trailer, `separatorCount` for
+multi-token and separator-less lists); preserve original type-mapped lexemes
+when values are unchanged. Re-entrancy guard prevents nested `triviaPieces`
+mutations from clearing state mid-splice. take-2 (and ≤0.2.0) always emptied
+the hidden-text list for any non-model property change.
+
 ## Recommended next design step: typed lexical metadata
 
 **Status (0.2.1):** implemented — `LexicalInfo` carries typed `TriviaPiece`
@@ -110,8 +201,14 @@ LexicalInfo
 
 OptionalState
   - String grammarElementPath
-  - int occurrenceIndex
+  - int occurrenceIndex   // per-path occurrence; formatter prefers exact match
   - boolean present
+
+ListShapeHint
+  - String propertyName
+  - String kind
+  - int prefixCount / suffixCount / separatorCount / orderIndex
+  - boolean modelTyped
 
 TriviaPiece
   - String text

@@ -16,18 +16,65 @@ into a typed model, change what you need, unparse — everything you did not
 touch is reproduced byte-for-byte, comments, blank lines and irregular
 spacing included.
 
-The runnable [`examples/java24-roundtrip`](examples/java24-roundtrip)
-showcase parses a real Java 24 source file (sealed types, records, pattern
-switches with guards, text blocks) with a full Java 24 grammar, verifies the
-unedited unparse is byte-identical, then renames one method *on the model*:
+### What “exact” covers (and what it does not)
+
+- **Unedited parsed models** unparse byte-identically (including original
+  type-mapped lexemes such as `1` vs `1.0`).
+- **In-place value rewrites** (non-null property set, or `list.set(i, …)`) keep
+  that rule’s trivia: only the token text changes; unchanged siblings keep
+  their original spellings.
+- **Structural add/remove on delimited primitive lists** shaped like
+  `'(' item (',' item)* ')'` or bare `item (',' item)*` surgically splice
+  trivia slots so sibling whitespace survives (0.2.1+).
+- **Optional null↔value** updates optional presence so groups appear/disappear
+  correctly while keeping leading inter-rule whitespace; repeated optional
+  paths use `OptionalState.occurrenceIndex` (0.2.1+).
+- **Multi-list rules** get codegen `ListShapeHint`s so splicing one list does
+  not clear another (0.2.1+).
+- **Edits on nested model objects** (e.g. a `MethodDeclaration` or
+  `StringLiteral` child) only affect that object’s own trivia; siblings keep
+  theirs.
+- **Unrecognized structural shapes** (or emptying a one-or-more list) still
+  clear trivia on that rule and fall back to `ConservativeSeparatorPolicy`.
+- **Source bundles** are unrelated to unparse-after-edit: they store original
+  source for persistence/restore when semantics still match.
+
+How unparsing works in detail: [`docs/UNPARSING.md`](docs/UNPARSING.md).
+Edit-invalidation matrix and gaps: `LEXICAL_PRESERVATION_ASSESSMENT.md`.
+
+Runnable showcases live under [`examples/`](examples/) and climb in
+complexity (see that README for the full ladder: ArrayLang → bare lists →
+original lexemes → optional null↔value / occurrenceIndex → JSON lists →
+multi-list `ListShapeHint` → `separatorCount` → Java 8 / Java 24). Highlights:
+
+1. **[`examples/arraylang-roundtrip`](examples/arraylang-roundtrip)** — the
+   tiny `ArrayLang` grammar from this README. Exact round-trip, then
+   `set` / `add` / `remove` while keeping sibling whitespace (needs
+   VMF-Text 0.2.1+ / local publish until Central catches up).
+
+2. **[`examples/java8-roundtrip`](examples/java8-roundtrip)** — a small Java 8
+   source file with a full Java 8 grammar. Rename a method and replace a
+   string literal on nested model objects; every other byte stays untouched:
+
+```java
+model.vmf().content().stream(MethodDeclaration.class)
+     .filter(m -> "greet".equals(m.getMethodName()))
+     .forEach(m -> m.setMethodName("sayHello"));
+
+model.vmf().content().stream(StringLiteral.class)
+     .filter(lit -> "\"hello\"".equals(lit.getStringValue()))
+     .forEach(lit -> lit.setStringValue("\"hello, world\""));
+```
+
+3. **[`examples/java24-roundtrip`](examples/java24-roundtrip)** — a real Java
+   24 source file (sealed types, records, pattern switches with guards, text
+   blocks) with a full Java 24 grammar. One method rename on the model:
 
 ```java
 model.vmf().content().stream(MethodDeclaration.class)
      .filter(m -> "describe".equals(m.getMethodName().getText()))
      .forEach(m -> m.getMethodName().setText("render"));
 ```
-
-The diff against the original file is exactly one line:
 
 ```
 [1] sample/Shapes.java (955 chars) round-tripped byte-identically
@@ -36,18 +83,15 @@ The diff against the original file is exactly one line:
 [2] one model edit -> one changed line; every other byte is untouched
 ```
 
-Run it yourself — it resolves the released VMF-Text straight from Maven
-Central:
+Run any of them:
 
 ```
-cd examples/java24-roundtrip
+cd examples/arraylang-roundtrip   # or java8-roundtrip / java24-roundtrip
 ./gradlew run
 ```
 
 None of this is Java-specific: the same parse → edit → unparse API is
-generated for any labeled ANTLR4 grammar. (Exact preservation applies to
-parsed content; values you set programmatically use conservative separators —
-see `LEXICAL_PRESERVATION_ASSESSMENT.md`.)
+generated for any labeled ANTLR4 grammar.
 
 ## Using VMF-Text
 
@@ -71,7 +115,7 @@ Then add the plugin (click [here](https://plugins.gradle.org/plugin/eu.mihosoft.
 
 ```gradle
 plugins {
-  id "eu.mihosoft.vmftext" version "0.2.0" // use latest version
+  id "eu.mihosoft.vmftext" version "0.2.1" // use latest version
 }
 ```
 (optionally) configure VMF-Text:
@@ -91,7 +135,8 @@ Now just add the labeled [ANTLR4](https://github.com/antlr/antlr4) grammar file 
 src/main/vmf-text/my/pkg/ArrayLang.g4
 ```
 
-Sample grammar for parsing strings of the form `(1,2,3)`:
+Sample grammar for parsing strings of the form `(1,2,3)` (see the runnable
+[`examples/arraylang-roundtrip`](examples/arraylang-roundtrip) showcase):
 
 ```antlr
 grammar ArrayLang;
@@ -205,11 +250,11 @@ names.
 ## Typed Lexical Metadata
 
 Parsed `CodeElement`s expose typed lexical metadata via `getLexicalInfo()`.
-The typed mirror contains `TriviaPiece` entries (text plus kind), optional-symbol
-states, the original code range and a grammar element identifier. Optional-element
-presence is available as path-keyed `OptionalState` entries (`getOptionalStates()`),
-which the unparser consumes keyed by grammar element path — robust against ordering
-divergence, with the flat positional list kept as a derived legacy view.
+The typed mirror contains `TriviaPiece` entries (text plus kind), path-keyed
+`OptionalState` entries (`getOptionalStates()` with `occurrenceIndex`),
+`ListShapeHint` / `OriginalLexeme` data, the original code range and a grammar
+element identifier. The unparser consumes optional presence by
+`(grammarElementPath, occurrenceIndex)` — see [`docs/UNPARSING.md`](docs/UNPARSING.md).
 
 Freshly parsed models no longer write `vmf-text:` entries into
 `CodeElement.getPayload()`; lexical metadata lives exclusively on `LexicalInfo`.
@@ -225,7 +270,10 @@ from the schema or use source bundles for source-preserving persistence.
 Programmatically created models (no parse-time lexical info) consult a pluggable
 `ProgrammaticSeparatorPolicy` inside the default formatter. The built-in
 `ConservativeSeparatorPolicy` reproduces today's single-space fallback; custom
-policies are consulted only where exact preservation is undefined by construction.
+policies are consulted only where exact preservation is undefined by construction
+(fresh programmatic nodes, or rules whose trivia was cleared after a
+**structural** edit such as list add/remove). In-place value rewrites keep
+parsed trivia — see `LEXICAL_PRESERVATION_ASSESSMENT.md` § *Edit invalidation*.
 
 ## Building VMF-Text (Core)
 

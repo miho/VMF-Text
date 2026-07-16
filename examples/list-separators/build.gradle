@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'eu.mihosoft.vmftext' version '0.2.1'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+vmfText {
+    vmfVersion   = '0.2.10'
+    antlrVersion = '4.13.2'
+}
+
+application {
+    mainClass = 'demo.listsep.Main'
+}
+
+tasks.named('run') {
+    workingDir = projectDir
+}

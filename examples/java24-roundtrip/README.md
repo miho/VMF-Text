@@ -1,8 +1,9 @@
 # Java 24 Round-Trip Showcase
 
-Parses a real Java 24 source file into a typed VMF model, proves the unparse
-is byte-identical, then applies one surgical model edit and shows that
-exactly one line changes.
+The most complex step in the example ladder (ArrayLang → Java 8 → Java 24;
+see [`../README.md`](../README.md)). Parses a real Java 24 source file into a
+typed VMF model, proves the unparse is byte-identical, then applies one
+surgical model edit and shows that exactly one line changes.
 
 What it demonstrates:
 

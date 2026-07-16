@@ -1,6 +1,6 @@
 # VMF-Text Roadmap
 
-*Last updated: 2026-07-13*
+*Last updated: 2026-07-16*
 
 VMF-Text occupies a niche no other framework covers: **a plain (labeled or
 auto-labeled) ANTLR4 grammar in → a rich, typed VMF model plus an exact
@@ -52,9 +52,22 @@ The first non-preview release in the project's history (previous releases:
       [#7](https://github.com/miho/VMF-Text/issues/7) labeled `roadmap`
       (feed Phase 2)
 
+## Ship 0.2.1 (prep 2026-07-16)
+
+Lexical-preservation polish release. Details: [`CHANGELOG.md`](CHANGELOG.md),
+[`docs/UNPARSING.md`](docs/UNPARSING.md).
+
+- [x] Multi-alt list hints + optional trailing `','?` splice
+- [x] Remove positional `optionalSymbols`; empty-list splice; `separatorCount`
+- [x] Version → `0.2.1` (`config/common.properties`), README / examples aligned
+- [x] Full-chain validation: `sh ./build-and-test-all.sh`
+- [ ] Publish `eu.mihosoft.vmf:vmf-text:0.2.1` to Maven Central
+- [ ] Publish `vmf-text-gradle-plugin:0.2.1` + Plugin Portal / markers
+- [ ] Tag `v0.2.1`, GitHub release
+
 ### 0.2.1 / 0.2.11 build cleanup queue
 
-Small papercuts found during the release, none user-visible — tracked in
+Small papercuts found during the 0.2.0 release, none user-visible — tracked in
 [#19](https://github.com/miho/VMF-Text/issues/19):
 
 - Set `project.group` and `project.version` at project level in **both**
@@ -130,11 +143,21 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 - **Complete the typed lexical metadata migration** — a typed `LexicalInfo`
   mirror already ships (see README "Typed Lexical Metadata"); retire the
   untyped payload-map fallback for a clean VMF-Jackson / JSON-schema story.
-- **Path-keyed optional-presence state** — remove the positional coupling of
-  `optionalSymbols`.
+- **Path-keyed optional-presence state** — `OptionalState` only; positional
+  `optionalSymbols` removed (0.2.1).
 - **Formatter policy for programmatically created models** — pluggable
   pretty-printing / grammar-aware separators where exact preservation is
   undefined by construction.
+- **Trivia splice + list-shape hints** — bare/parenthesized `T (',' T)*`,
+  multi-list `ListShapeHint`, `separatorCount`, optional trailing `','?`,
+  multi-alt hints, opener-after-trailer, bare model-typed lists,
+  insert-at-0 padding/undo (0.2.1); irregular/context-sensitive separators
+  still fall back (see assessment § Edit invalidation).
+- **Original lexeme preservation** — type-mapped lexer spellings round-trip
+  when semantic values are unchanged (0.2.1).
+- **Optional null↔value + occurrenceIndex** — presence metadata updates;
+  repeated optional paths use exact occurrence indices (0.2.1).
+- **Unparsing guide** — [`docs/UNPARSING.md`](docs/UNPARSING.md) (0.2.1).
 - **Written LSP stance** — document how to feed the generated model into an
   LSP4J-based server; deliberately do not build a language workbench.
 - **Isolate Java-target ANTLR action injection** — keeps a future door open

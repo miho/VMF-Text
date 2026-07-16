@@ -47,6 +47,10 @@ jobs:
         working-directory: test-suite
         run: sh ./gradlew test --no-daemon
 
+      - name: Run ArrayLang round-trip example (local 0.2.1-SNAPSHOT)
+        working-directory: examples/arraylang-roundtrip
+        run: sh ./gradlew run --no-daemon
+
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4

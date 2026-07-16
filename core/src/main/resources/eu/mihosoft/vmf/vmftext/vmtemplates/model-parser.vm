@@ -57,11 +57,22 @@ interface LexicalInfo {
   TriviaPiece[] getTriviaPieces();
 
   @eu.mihosoft.vmf.core.IgnoreEquals
-  Boolean[] getOptionalSymbols();
+  @eu.mihosoft.vmf.core.Contains
+  OptionalState[] getOptionalStates();
+
+  /**
+   * Original lexer-rule spellings captured at parse time, keyed by property
+   * name and list index ({@code -1} for singular properties). Used on unparse
+   * when the semantic value is unchanged so {@code 1} stays {@code 1} instead
+   * of {@code 1.0}.
+   */
+  @eu.mihosoft.vmf.core.IgnoreEquals
+  @eu.mihosoft.vmf.core.Contains
+  OriginalLexeme[] getOriginalLexemes();
 
   @eu.mihosoft.vmf.core.IgnoreEquals
   @eu.mihosoft.vmf.core.Contains
-  OptionalState[] getOptionalStates();
+  ListShapeHint[] getListShapeHints();
 
   @eu.mihosoft.vmf.core.IgnoreEquals
   String getGrammarElementPath();
@@ -77,7 +88,62 @@ interface TriviaPiece {
 
 interface OptionalState {
   String getGrammarElementPath();
+  /**
+   * Zero-based occurrence of this path on the owning rule instance.
+   * Consumed exactly (not via a shifting counter) so mixed presence of the
+   * same path cannot be reassigned to earlier encounters. {@code -1} means
+   * legacy / unknown (formatter falls back to encounter order).
+   */
+  int getOccurrenceIndex();
   boolean getPresent();
+}
+
+/**
+ * Codegen hint describing how a list property maps onto trivia slots, so
+ * structural add/remove can splice without guessing from {@code trivia.size()}.
+ *
+ * <p>Slot math (primitive lists, where each item also owns a value slot):
+ * {@code size = prefix + n + (n-1)*separatorCount + suffix}
+ * ({@code + optionalTrailingCount} when a trailing {@code ','?} is present and
+ * {@code n > 0}). Model-typed lists omit per-item value slots on the parent:
+ * {@code size = prefix + (n-1)*separatorCount + suffix} (empty → {@code prefix+suffix}).
+ *
+ * <p>Multiple hints may exist for the same property when a rule has several
+ * alternatives; the converter picks the candidate whose expected size matches
+ * the actual trivia footprint ({@code alternativeIndex} scopes multi-list math).
+ */
+interface ListShapeHint {
+  String getPropertyName();
+  /** {@code PRIMITIVE_DELIMITED} or {@code MODEL_DELIMITED}. */
+  String getKind();
+  /** Terminals belonging to this list before the first item (e.g. {@code 1} for {@code '('}). */
+  int getPrefixCount();
+  /** Fixed terminals after the last item / optional trailing (e.g. {@code ')'}, EOF pad). */
+  int getSuffixCount();
+  /**
+   * Terminals between consecutive items ({@code 1} for {@code ','}, {@code 2} for
+   * {@code ',' 'and'}, {@code 0} for {@code item+ } / no separator).
+   */
+  int getSeparatorCount();
+  /**
+   * Optional trailing separator terminals after the last item ({@code 1} for {@code ','?}).
+   * Not included in {@link #getSuffixCount()}; present-or-absent is resolved from
+   * trivia size at splice time.
+   */
+  int getOptionalTrailingCount();
+  /** Declaration order among list properties on the same alternative (0-based). */
+  int getOrderIndex();
+  /** Top-level alternative index this shape was derived from (0-based). */
+  int getAlternativeIndex();
+  boolean getModelTyped();
+}
+
+interface OriginalLexeme {
+  String getPropertyName();
+  int getIndex();
+  String getText();
+  /** {@code String.valueOf(semanticValue)} at parse / last successful bind. */
+  String getValueKey();
 }
 
 @eu.mihosoft.vmf.core.InterfaceOnly

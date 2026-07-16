@@ -8,9 +8,6 @@ import eu.mihosoft.vmftext.tests.lexicalpreservation.unnamedoptionalscomplex.unp
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
 public class PathKeyedOptionalStateTest {
 
     @Test
@@ -28,44 +25,44 @@ public class PathKeyedOptionalStateTest {
 
         Assert.assertTrue("expected recorded optional states", stateCount > 0);
 
-        // the legacy positional view must stay derivable from the keyed states
+        // Every recorded state carries a non-negative occurrence index.
         model.getRoot().vmf().content().stream(CodeElement.class)
                 .filter(e -> e.getLexicalInfo() != null)
-                .forEach(e -> Assert.assertEquals(
-                        e.getLexicalInfo().getOptionalStates().stream()
-                                .map(OptionalState::isPresent)
-                                .collect(Collectors.toList()),
-                        new java.util.ArrayList<>(e.getLexicalInfo().getOptionalSymbols())));
+                .flatMap(e -> e.getLexicalInfo().getOptionalStates().stream())
+                .forEach(s -> Assert.assertTrue(s.getOccurrenceIndex() >= 0));
     }
 
     @Test
-    public void pathKeyedStatesAreAuthoritativeOverPositional() {
+    public void pathKeyedRoundTripIsExact() {
         String[] sources = {
                 "r1, r2",
                 "r1 (), r2",
                 "r1, r2 (test123), r3 (), r4, r5 ()",
                 "r1 (), r2 (test123), r3 (abc), r4 (def), r5 (a b c)"
         };
+        NestedUnnamedModelUnparser unparser = new NestedUnnamedModelUnparser();
+        NestedUnnamedModelParser parser = new NestedUnnamedModelParser();
         for (String source : sources) {
-            NestedUnnamedModel model = new NestedUnnamedModelParser().parse(source);
-
-            // corrupt every legacy positional carrier; only the path-keyed
-            // typed states remain intact
-            model.getRoot().vmf().content().stream(CodeElement.class).forEach(e -> {
-                if (e.getLexicalInfo() != null) {
-                    e.getLexicalInfo().getOptionalSymbols().clear();
-                }
-            });
-
-            Assert.assertEquals(source, new NestedUnnamedModelUnparser().unparse(model));
+            Assert.assertEquals(source, unparser.unparse(parser.parse(source)));
         }
     }
 
     @Test
-    public void pathKeyedRoundTripSurvivesWithoutLexicalPayloadEntries() {
-        String source = "r1 (), r2 (test123), r3 (), r4 (def), r5 (a b)";
+    public void flippingPresentFalseMakesOptionalGroupDisappear() {
+        String source = "r1 (), r2 (test123)";
         NestedUnnamedModel model = new NestedUnnamedModelParser().parse(source);
+        CodeElement withGroup = model.getRoot().vmf().content().stream(CodeElement.class)
+                .filter(e -> e.getLexicalInfo() != null
+                        && e.getLexicalInfo().getOptionalStates().stream()
+                        .anyMatch(OptionalState::isPresent))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no present optional"));
 
-        Assert.assertEquals(source, new NestedUnnamedModelUnparser().unparse(model));
+        for (OptionalState s : withGroup.getLexicalInfo().getOptionalStates()) {
+            s.setPresent(false);
+        }
+
+        String out = new NestedUnnamedModelUnparser().unparse(model);
+        Assert.assertFalse(out.contains("()"));
     }
 }

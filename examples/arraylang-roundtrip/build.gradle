@@ -1,0 +1,32 @@
+// Demonstrates the 0.2.1+ in-place primitive list edit fix. Prefers a local
+// publish of this repo (mavenLocal); falls back to Maven Central once 0.2.1
+// is released. See README.md in this directory.
+plugins {
+    id 'java'
+    id 'application'
+    id 'eu.mihosoft.vmftext' version '0.2.1'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+vmfText {
+    vmfVersion   = '0.2.10'
+    antlrVersion = '4.13.2'
+}
+
+application {
+    mainClass = 'demo.arraylang.Main'
+}
+
+tasks.named('run') {
+    workingDir = projectDir
+}

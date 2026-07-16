@@ -75,4 +75,39 @@ import org.antlr.v4.runtime.ANTLRErrorStrategy;
 
 #end##end each rule
 
+/**
+ * Resolves parse-time lexer spellings when the semantic value is unchanged.
+ */
+/*package private*/ final class OriginalLexemeSupport {
+
+    private OriginalLexemeSupport() {
+        throw new AssertionError("Don't instantiate me!");
+    }
+
+    static String resolve(
+            ${packageName}.CodeElement parent,
+            String propertyName,
+            int index,
+            Object value,
+            String converted) {
+
+        if(parent == null || propertyName == null || value == null || converted == null) {
+            return converted;
+        }
+        ${packageName}.LexicalInfo info = parent.getLexicalInfo();
+        if(info == null) {
+            return converted;
+        }
+        String key = String.valueOf(value);
+        for(${packageName}.OriginalLexeme lex : info.getOriginalLexemes()) {
+            if(propertyName.equals(lex.getPropertyName())
+                    && lex.getIndex() == index
+                    && key.equals(lex.getValueKey())) {
+                return lex.getText();
+            }
+        }
+        return converted;
+    }
+}
+
 

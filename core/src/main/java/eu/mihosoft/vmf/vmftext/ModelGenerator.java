@@ -73,13 +73,17 @@ public class ModelGenerator {
     }
 
     private static void generateModelParser(
-            Writer out, VelocityEngine engine, String modelPackageName, String packageName, GrammarModel model) throws IOException {
+            Writer out, VelocityEngine engine, String modelPackageName, String packageName,
+            GrammarModel model, UnparserModel unparserModel) throws IOException {
         VelocityContext context = new VelocityContext();
         context.put("model", model);
         context.put("TEMPLATE_PATH",TEMPLATE_PATH);
         context.put("modelPackageName", modelPackageName);
         context.put("packageName", packageName);
         context.put("Util", StringUtil.class);
+        context.put("listShapeHints",
+                eu.mihosoft.vmf.vmftext.grammar.unparser.ListShapeAnalyzer.analyze(
+                        model, unparserModel));
 
         mergeTemplate("model-converter", engine, context, out);
     }
@@ -138,6 +142,11 @@ public class ModelGenerator {
     }
 
     public void generateModelParser(GrammarModel model, ResourceSet fileset) {
+        generateModelParser(model, null, fileset);
+    }
+
+    public void generateModelParser(
+            GrammarModel model, UnparserModel unparserModel, ResourceSet fileset) {
 
         if(engine==null) {
             engine = createDefaultEngine();
@@ -150,7 +159,7 @@ public class ModelGenerator {
              Writer w = resource.open()) {
 
             generateModelParser(w, engine, model.getPackageName(),
-                    model.getPackageName()+".parser", model);
+                    model.getPackageName()+".parser", model, unparserModel);
         } catch (IOException e) {
             e.printStackTrace();
         }

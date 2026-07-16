@@ -24,7 +24,7 @@ public class TypedLexicalInfoTest {
         Assert.assertFalse(root.getLexicalInfo().getTriviaPieces().isEmpty());
         Assert.assertNotNull(root.getLexicalInfo().getTriviaPieces().get(0).getText());
         Assert.assertNotNull(root.getLexicalInfo().getTriviaPieces().get(0).getKind());
-        Assert.assertNotNull(root.getLexicalInfo().getOptionalSymbols());
+        Assert.assertNotNull(root.getLexicalInfo().getOptionalStates());
         Assert.assertNotNull(root.getLexicalInfo().getOriginalRange());
         Assert.assertTrue(root.getLexicalInfo().getGrammarElementPath().endsWith("Context"));
     }
