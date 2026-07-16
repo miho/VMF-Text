@@ -1411,6 +1411,33 @@ public class UnparserCodeGenerator {
         return eText;
     }
 
+    private static void appendLexemeAwareListConvert(
+            Writer w, String indent, String ruleName, String propName,
+            String lexerRuleName, boolean mappingExists, String targetTypeName,
+            String indexName) throws IOException {
+        String convertMethod = "TypeToStringConverterForRule" + StringUtil.firstToUpper(ruleName)
+                + ".convertToString" + (mappingExists ? "ForRule" + lexerRuleName : "");
+        w.append(indent + "int __vmfLexIdx = " + indexName + ".getAndInc();").append('\n');
+        w.append(indent + targetTypeName + " __vmfLexVal = obj.get"
+                + StringUtil.firstToUpper(propName) + "().get(__vmfLexIdx);").append('\n');
+        w.append(indent + "String s = OriginalLexemeSupport.resolve(obj, \"" + propName
+                + "\", __vmfLexIdx, __vmfLexVal, "
+                + convertMethod + "(__vmfLexVal));").append('\n');
+    }
+
+    private static void appendLexemeAwareScalarConvert(
+            Writer w, String indent, String ruleName, String propName,
+            String lexerRuleName, boolean mappingExists, String targetTypeName)
+            throws IOException {
+        String convertMethod = "TypeToStringConverterForRule" + StringUtil.firstToUpper(ruleName)
+                + ".convertToString" + (mappingExists ? "ForRule" + lexerRuleName : "");
+        w.append(indent + targetTypeName + " __vmfLexVal = obj.get"
+                + StringUtil.firstToUpper(propName) + "();").append('\n');
+        w.append(indent + "String s = OriginalLexemeSupport.resolve(obj, \"" + propName
+                + "\", -1, __vmfLexVal, "
+                + convertMethod + "(__vmfLexVal));").append('\n');
+    }
+
     private static void generateNamedElementCode(Writer w, String indent, UnparserModel model, UPNamedElement sre,
                                                  UPRule rule, RuleClass gRule, GrammarModel gModel, String altName,
                                                  boolean noCheck) throws IOException {
@@ -1439,8 +1466,8 @@ public class UnparserCodeGenerator {
                         w.append(indent+"      {").append('\n');
                         String targetTypeOfMapping = gModel.getTypeMappings().targetTypeNameOfMapping(rule.getName(), lexerRuleName);
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
-                        w.append(indent+"        " + targetTypeOfMapping + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc());").append('\n');
-                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString" + (mappingExists?"ForRule"+lexerRuleName:"") + "( listElemObj )").append('\n');
+                        appendLexemeAwareListConvert(w, indent+"        ", rule.getName(), sre.getName(),
+                                lexerRuleName, mappingExists, targetTypeOfMapping, indexName);
                         w.append(indent+"        if(s!=null) {").append('\n');
 
                         String rulePath = UPRuleUtil.getPath(sre);
@@ -1491,7 +1518,9 @@ public class UnparserCodeGenerator {
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"      {").append('\n');
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
-                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
+                        String targetTypeOfMapping = gModel.getTypeMappings().targetTypeNameOfMapping(rule.getName(), lexerRuleName);
+                        appendLexemeAwareListConvert(w, indent+"        ", rule.getName(), sre.getName(),
+                                lexerRuleName, mappingExists, targetTypeOfMapping, indexName);
                         w.append(indent+"        if(s!=null) {").append('\n');
 
                         String rulePath = UPRuleUtil.getPath(sre);
@@ -1544,7 +1573,9 @@ public class UnparserCodeGenerator {
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"      {").append('\n');
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
-                        w.append(indent+"        String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
+                        String targetTypeOfMapping = gModel.getTypeMappings().targetTypeNameOfMapping(rule.getName(), lexerRuleName);
+                        appendLexemeAwareListConvert(w, indent+"        ", rule.getName(), sre.getName(),
+                                lexerRuleName, mappingExists, targetTypeOfMapping, indexName);
                         w.append(indent+"        if(s!=null) {").append('\n');
 
                         String rulePath = UPRuleUtil.getPath(sre);
@@ -1595,7 +1626,9 @@ public class UnparserCodeGenerator {
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"        {").append('\n');
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
-                        w.append(indent+"          String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()) );").append('\n');
+                        String targetTypeOfMapping = gModel.getTypeMappings().targetTypeNameOfMapping(rule.getName(), lexerRuleName);
+                        appendLexemeAwareListConvert(w, indent+"          ", rule.getName(), sre.getName(),
+                                lexerRuleName, mappingExists, targetTypeOfMapping, indexName);
                         w.append(indent+"          if(s!=null) {").append('\n');
 
                         String rulePath = UPRuleUtil.getPath(sre);
@@ -1655,7 +1688,9 @@ public class UnparserCodeGenerator {
                 w.append(indent + "    {").append('\n');
                 w.append(indent + "      prop" + StringUtil.firstToUpper(sre.getName()) + "Used.set(true);").append('\n');
                 boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
-                w.append(indent + "      String s = TypeToStringConverterForRule"+ StringUtil.firstToUpper(rule.getName()) + ".convertToString"+(mappingExists?"ForRule"+lexerRuleName:"")+"( obj.get" + StringUtil.firstToUpper(sre.getName()) + "() );").append('\n');
+                String targetTypeOfMapping = gModel.getTypeMappings().targetTypeNameOfMapping(rule.getName(), lexerRuleName);
+                appendLexemeAwareScalarConvert(w, indent + "      ", rule.getName(), sre.getName(),
+                        lexerRuleName, mappingExists, targetTypeOfMapping);
                 w.append(indent + "      if(s!=null) {").append('\n');
 
                 String rulePath = UPRuleUtil.getPath(sre);

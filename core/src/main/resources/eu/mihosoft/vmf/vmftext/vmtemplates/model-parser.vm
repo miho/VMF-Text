@@ -63,6 +63,16 @@ interface LexicalInfo {
   @eu.mihosoft.vmf.core.Contains
   OptionalState[] getOptionalStates();
 
+  /**
+   * Original lexer-rule spellings captured at parse time, keyed by property
+   * name and list index ({@code -1} for singular properties). Used on unparse
+   * when the semantic value is unchanged so {@code 1} stays {@code 1} instead
+   * of {@code 1.0}.
+   */
+  @eu.mihosoft.vmf.core.IgnoreEquals
+  @eu.mihosoft.vmf.core.Contains
+  OriginalLexeme[] getOriginalLexemes();
+
   @eu.mihosoft.vmf.core.IgnoreEquals
   String getGrammarElementPath();
 
@@ -78,6 +88,14 @@ interface TriviaPiece {
 interface OptionalState {
   String getGrammarElementPath();
   boolean getPresent();
+}
+
+interface OriginalLexeme {
+  String getPropertyName();
+  int getIndex();
+  String getText();
+  /** {@code String.valueOf(semanticValue)} at parse / last successful bind. */
+  String getValueKey();
 }
 
 @eu.mihosoft.vmf.core.InterfaceOnly

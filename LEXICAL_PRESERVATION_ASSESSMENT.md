@@ -104,13 +104,19 @@ change listener in `model-converter.vm`
 |-----------|------------------------|
 | Change / insert a **model-typed** child (`CodeElement`) | Keep parent trivia; pad the new child’s leading trivia with a space if needed so tokens do not glue together |
 | **In-place** non-model rewrite (`list.set(i, …)`, or property set with both old and new non-null) | **Keep** all trivia (terminal footprint unchanged; only token text changes) |
-| **Structural** add/remove on delimited primitive lists `'(' item (',' item)* ')'` when `trivia.size()` is `2N+2` or `2N+3` | **Splice** two trivia slots (comma+value) so siblings keep their whitespace; supports bulk index ops |
+| **Structural** add/remove on delimited primitive lists `'(' item (',' item)* ')'` when `trivia.size()` is `2N+2` or `2N+3`, or bare `item (',' item)*` when size is `2N`/`2N+1` | **Splice** two trivia slots (comma+value) so siblings keep their whitespace; supports bulk index ops; insert-at-0 padding is undoable |
 | **Structural** add/remove on model-typed delimited lists `'['/'{' item (',' item)* ']'/'}'` when parent trivia size is `N+1` (or `2` if empty) | **Splice** parent comma/bracket slots (JSON arrays/objects); child leading trivia stays on each item |
-| Other structural non-model change (unknown shape, emptying a one-or-more primitive list, null↔value) | **Clear** all trivia slots on that element → conservative separators |
+| **Optional** null↔value on a non-model property | **Update** optional presence (flip recorded states / legacy all-true symbols) and keep leading trivia; insert a trivia slot for a newly present value terminal |
+| Other structural non-model change (unknown shape, emptying a one-or-more primitive list) | **Clear** all trivia slots on that element → conservative separators |
 
 After a clear, `DefaultFormatter` sees an empty trivia list and uses
 `separatorBeforeEdited` / `ConservativeSeparatorPolicy` (typically a single
 space before lexer-rule tokens, none before string terminals like `,`).
+
+**Original lexemes:** type-mapped lexer tokens store their parse-time spelling
+on `LexicalInfo.originalLexemes`. Unparse reuses that text when
+`String.valueOf(value)` still matches the recorded key, so `(1, 2)` stays
+`(1, 2)` and sibling edits keep unchanged spellings.
 
 ### ArrayLang vs Java / JSON
 

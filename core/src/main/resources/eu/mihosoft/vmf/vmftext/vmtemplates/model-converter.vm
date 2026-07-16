@@ -340,6 +340,9 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                     eu.mihosoft.vcollections.VListChangeEvent<?> listChange =
                             evt.listChange().orElse(null);
                     if(listChange != null && listChange.wasSet()) {
+                        // in-place value rewrite: keep trivia; drop original lexeme
+                        // for the replaced index so unparse uses the converter.
+                        invalidateOriginalLexemes(element, evt.propertyName(), listChange);
                         return;
                     }
                     mutatingTrivia[0] = true;
@@ -347,6 +350,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                         if(!spliceDelimitedPrimitiveListTrivia(element, listChange)) {
                             element.getLexicalInfo().getTriviaPieces().clear();
                         }
+                        spliceOriginalLexemesForListChange(element, evt.propertyName(), listChange);
                     } finally {
                         mutatingTrivia[0] = false;
                     }
@@ -358,6 +362,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                     if(propertyChange != null
                             && propertyChange.oldValue() != null
                             && propertyChange.newValue() != null) {
+                        invalidateOriginalLexeme(element, evt.propertyName(), -1);
                         return;
                     }
                     // null↔value: update optional presence; preserve leading trivia so
@@ -370,6 +375,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                         try {
                             updateOptionalPresenceForNullValueToggle(
                                     element, propertyChange.newValue() != null);
+                            invalidateOriginalLexeme(element, evt.propertyName(), -1);
                         } finally {
                             mutatingTrivia[0] = false;
                         }
@@ -598,6 +604,83 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             trivia.add(newTriviaPiece(""));
         } else if(trivia.size() == 3) {
             trivia.add(trivia.size() - 1, newTriviaPiece(""));
+        }
+    }
+
+    private void invalidateOriginalLexeme(
+            CodeElement element, String propertyName, int index) {
+        if(element.getLexicalInfo() == null || propertyName == null) {
+            return;
+        }
+        java.util.List<OriginalLexeme> lexemes =
+                element.getLexicalInfo().getOriginalLexemes();
+        lexemes.removeIf(lex -> propertyName.equals(lex.getPropertyName())
+                && lex.getIndex() == index);
+    }
+
+    private void invalidateOriginalLexemes(
+            CodeElement element, String propertyName,
+            eu.mihosoft.vcollections.VListChangeEvent<?> listChange) {
+        if(element.getLexicalInfo() == null || propertyName == null
+                || listChange == null) {
+            return;
+        }
+        int[] indices = listChange.added().indices();
+        if(indices == null) {
+            indices = listChange.removed().indices();
+        }
+        if(indices == null) {
+            return;
+        }
+        for(int i : indices) {
+            invalidateOriginalLexeme(element, propertyName, i);
+        }
+    }
+
+    private void spliceOriginalLexemesForListChange(
+            CodeElement element, String propertyName,
+            eu.mihosoft.vcollections.VListChangeEvent<?> listChange) {
+        if(element.getLexicalInfo() == null || propertyName == null
+                || listChange == null) {
+            return;
+        }
+        java.util.List<OriginalLexeme> lexemes =
+                element.getLexicalInfo().getOriginalLexemes();
+        boolean added = listChange.wasAdded();
+        boolean removed = listChange.wasRemoved();
+        if(added == removed) {
+            return;
+        }
+        int[] indices = added
+                ? listChange.added().indices()
+                : listChange.removed().indices();
+        if(indices == null || indices.length == 0) {
+            return;
+        }
+        int[] sorted = indices.clone();
+        java.util.Arrays.sort(sorted);
+        if(removed) {
+            for(int k = sorted.length - 1; k >= 0; k--) {
+                int i = sorted[k];
+                lexemes.removeIf(lex -> propertyName.equals(lex.getPropertyName())
+                        && lex.getIndex() == i);
+                for(OriginalLexeme lex : lexemes) {
+                    if(propertyName.equals(lex.getPropertyName())
+                            && lex.getIndex() > i) {
+                        lex.setIndex(lex.getIndex() - 1);
+                    }
+                }
+            }
+        } else {
+            for(int i : sorted) {
+                for(OriginalLexeme lex : lexemes) {
+                    if(propertyName.equals(lex.getPropertyName())
+                            && lex.getIndex() >= i) {
+                        lex.setIndex(lex.getIndex() + 1);
+                    }
+                }
+                // Newly inserted values have no original lexeme (converter text).
+            }
         }
     }
 
@@ -1151,6 +1234,24 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         //    map(entry->entry.getText()).collect(Collectors.toList());
         // assign elements to model entity
         ${rcls.nameWithLower()}.get${p.nameWithUpper()}().addAll(convertedElements$p.nameWithUpper());
+        // capture original lexer spellings for exact unparse
+        {
+            LexicalInfo __lexInfo = ${rcls.nameWithLower()}.getLexicalInfo();
+            if(__lexInfo == null) {
+                __lexInfo = LexicalInfo.newInstance();
+                ${rcls.nameWithLower()}.setLexicalInfo(__lexInfo);
+            }
+            for(int __i = 0; __i < ctx.${p.nameWithLower()}.size(); __i++) {
+                var entry = ctx.${p.nameWithLower()}.get(__i);
+                Object __val = convertedElements${p.nameWithUpper()}.get(__i);
+                __lexInfo.getOriginalLexemes().add(OriginalLexeme.newBuilder().
+                        withPropertyName("${p.nameWithLower()}").
+                        withIndex(__i).
+                        withText(entry.getText()).
+                        withValueKey(String.valueOf(__val)).
+                        build());
+            }
+        }
 #else## if array type
         // TODO proper conversion of primitives, e.g., lexer rules to int, double etc.
         // convert and assign rule attribute $rcls.nameWithUpper().$p.nameWithLower()
@@ -1162,6 +1263,20 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             // any-token stand-in injected for list-labeled '.' (issue #8). Both expose getText().
             var entry = ctx.${p.nameWithLower()};
             ${rcls.nameWithLower()}.set${p.nameWithUpper()}(${model.getTypeMappings().conversionCodeOfMappingStringToType($rcls.nameWithUpper(), $p.type.getAntlrRuleName())});
+            {
+                LexicalInfo __lexInfo = ${rcls.nameWithLower()}.getLexicalInfo();
+                if(__lexInfo == null) {
+                    __lexInfo = LexicalInfo.newInstance();
+                    ${rcls.nameWithLower()}.setLexicalInfo(__lexInfo);
+                }
+                Object __val = ${rcls.nameWithLower()}.get${p.nameWithUpper()}();
+                __lexInfo.getOriginalLexemes().add(OriginalLexeme.newBuilder().
+                        withPropertyName("${p.nameWithLower()}").
+                        withIndex(-1).
+                        withText(entry.getText()).
+                        withValueKey(String.valueOf(__val)).
+                        build());
+            }
         }
 #end## if array type
 #end## if rule type
