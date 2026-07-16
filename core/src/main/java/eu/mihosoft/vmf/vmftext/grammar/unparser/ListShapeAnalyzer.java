@@ -137,10 +137,17 @@ public final class ListShapeAnalyzer {
     private static final class FlatTerminal {
         final String listProp; // null if not a list item carrier
         final boolean terminal;
+        /** Grammar text of a terminal/lexer element (for opener detection). */
+        final String text;
 
         FlatTerminal(String listProp, boolean terminal) {
+            this(listProp, terminal, null);
+        }
+
+        FlatTerminal(String listProp, boolean terminal, String text) {
             this.listProp = listProp;
             this.terminal = terminal;
+            this.text = text;
         }
     }
 
@@ -187,8 +194,23 @@ public final class ListShapeAnalyzer {
         }
         if (el.isTerminal() || el.isLexerRule()) {
             // EOF counts as a suffix terminal for footprint purposes
-            out.add(new FlatTerminal(null, true));
+            out.add(new FlatTerminal(null, true, el.getText()));
         }
+    }
+
+    /** True for string terminals that open a following list group. */
+    private static boolean isOpenerTerminal(FlatTerminal t) {
+        if (t == null || !t.terminal || t.text == null) {
+            return false;
+        }
+        String s = t.text.trim();
+        // Strip EBNF / quotes commonly left on terminal text: '(' or '('
+        if (s.startsWith("'") && s.endsWith("'") && s.length() >= 3) {
+            s = s.substring(1, s.length() - 1);
+        } else if (s.startsWith("\"") && s.endsWith("\"") && s.length() >= 3) {
+            s = s.substring(1, s.length() - 1);
+        }
+        return "(".equals(s) || "[".equals(s) || "{".equals(s);
     }
 
     private static Map<String, ListSegment> segmentLists(List<FlatTerminal> flat) {
@@ -210,12 +232,35 @@ public final class ListShapeAnalyzer {
             }
         }
         List<String> order = new ArrayList<>(segments.keySet());
+        // Pre-compute how many trailing openers between list s and s+1 belong
+        // to the *next* list's prefix (e.g. '(' in ids… ';' '(' nums… ')').
+        int[] openerPrefixForNext = new int[order.size()];
+        for (int s = 0; s + 1 < order.size(); s++) {
+            ListSegment cur = segments.get(order.get(s));
+            ListSegment next = segments.get(order.get(s + 1));
+            int openers = 0;
+            for (int i = next.firstItem - 1; i > cur.lastItem; i--) {
+                FlatTerminal t = flat.get(i);
+                if (!t.terminal) {
+                    break;
+                }
+                if (isOpenerTerminal(t)) {
+                    openers++;
+                } else {
+                    break;
+                }
+            }
+            openerPrefixForNext[s + 1] = openers;
+        }
         for (int s = 0; s < order.size(); s++) {
             String prop = order.get(s);
             ListSegment seg = segments.get(prop);
             int nextStart = (s + 1 < order.size())
                     ? segments.get(order.get(s + 1)).firstItem
                     : flat.size();
+            int openersForNext = (s + 1 < order.size())
+                    ? openerPrefixForNext[s + 1]
+                    : 0;
             if (s == 0) {
                 int prefix = 0;
                 for (int i = 0; i < seg.firstItem; i++) {
@@ -225,14 +270,13 @@ public final class ListShapeAnalyzer {
                 }
                 seg.prefixCount = prefix;
             } else {
-                // Terminals between lists belong to the previous list's suffix
-                // only (e.g. ';' in ids…; nums…). Do not double-count them as
-                // this list's prefix. Openers glued to this list are uncommon;
-                // extend here if a real grammar needs '(' after a sibling list.
-                seg.prefixCount = 0;
+                // Trailing openers after a sibling trailer (e.g. ';' then '(')
+                // belong to this list; earlier inter-list terminals do not.
+                seg.prefixCount = openerPrefixForNext[s];
             }
             int suffix = 0;
-            for (int i = seg.lastItem + 1; i < nextStart; i++) {
+            int suffixEnd = nextStart - openersForNext;
+            for (int i = seg.lastItem + 1; i < suffixEnd; i++) {
                 if (flat.get(i).terminal) {
                     suffix++;
                 }

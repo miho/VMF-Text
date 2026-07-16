@@ -119,9 +119,9 @@ public class MultiListShapeHintTest {
         String source = "a ,  b; 1,\n 2";
         MultiListModel model = parser.parse(source);
         model.getRoot().getNums().add(0, 0);
-        // Insert-at-0 does not invent a space after ';'; former head keeps its
-        // leading trivia after the new comma (same policy as bare-list heads).
-        Assert.assertEquals("a ,  b;0, 1,\n 2", unparser.unparse(model));
+        // Insert-at-0 after a sibling trailer pads the new head so the value is
+        // not glued to ';' (LIST_INSERT_PADDING); former head WS stays after ','.
+        Assert.assertEquals("a ,  b; 0, 1,\n 2", unparser.unparse(model));
     }
 
     @Test
@@ -162,6 +162,16 @@ public class MultiListShapeHintTest {
         model.getRoot().getIds().add("c");
         model.getRoot().getNums().add(0, 7);
 
-        Assert.assertEquals("aa ,  b, c;7,\n 2", unparser.unparse(model));
+        Assert.assertEquals("aa ,  b, c; 7,\n 2", unparser.unparse(model));
+    }
+
+    @Test
+    public void insertAtZeroOnNumsThenRemoveRestoresExact() {
+        String source = "a ,  b; 1,\n 2";
+        MultiListModel model = parser.parse(source);
+        model.getRoot().getNums().add(0, 0);
+        Assert.assertEquals("a ,  b; 0, 1,\n 2", unparser.unparse(model));
+        model.getRoot().getNums().remove(0);
+        Assert.assertEquals(source, unparser.unparse(model));
     }
 }

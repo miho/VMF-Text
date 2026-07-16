@@ -140,14 +140,15 @@ original source for restore-when-semantics-match.
 
 ### Remaining gaps / what we can still improve
 
-1. **Exotic separators / openers after sibling lists:** `ListShapeHint` covers
-   common bare/parenthesized `T (',' T)*` and multi-list rules; separators
-   other than `','` or an opener glued after another list’s trailer may still
-   need analyzer extensions.
+1. **Multi-terminal separators / zero-separator `item+`:** single-terminal
+   separators (`,`, `|`, …) and opener-after-trailer (`';' '('`) are covered;
+   multi-token separators or separator-less repetition still fall back to clear.
 2. **Grammar shape workaround:** wrap each list item as a model type
-   (`value: n=INT`) so add/remove only invalidates that leaf.
-3. **Legacy `optionalSymbols`:** still derived for old consumers; occurrence-
-   indexed `OptionalState` is authoritative when `occurrenceIndex >= 0`.
+   (`value: n=INT`) so add/remove only invalidates that leaf when a shape is
+   still unrecognized.
+3. **Legacy `optionalSymbols`:** still derived (deprecated) for old consumers;
+   occurrence-indexed `OptionalState` is authoritative — remove in a future
+   minor once external payloads no longer need the view.
 
 ### What improved over `lexical-preservation-take-2`
 
@@ -187,8 +188,14 @@ LexicalInfo
 
 OptionalState
   - String grammarElementPath
-  - int occurrenceIndex
+  - int occurrenceIndex   // per-path occurrence; formatter prefers exact match
   - boolean present
+
+ListShapeHint
+  - String propertyName
+  - String kind
+  - int prefixCount / suffixCount / orderIndex
+  - boolean modelTyped
 
 TriviaPiece
   - String text

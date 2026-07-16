@@ -27,7 +27,10 @@ spacing included.
   `'(' item (',' item)* ')'` or bare `item (',' item)*` surgically splice
   trivia slots so sibling whitespace survives (0.2.1+).
 - **Optional null↔value** updates optional presence so groups appear/disappear
-  correctly while keeping leading inter-rule whitespace.
+  correctly while keeping leading inter-rule whitespace; repeated optional
+  paths use `OptionalState.occurrenceIndex` (0.2.1+).
+- **Multi-list rules** get codegen `ListShapeHint`s so splicing one list does
+  not clear another (0.2.1+).
 - **Edits on nested model objects** (e.g. a `MethodDeclaration` or
   `StringLiteral` child) only affect that object’s own trivia; siblings keep
   theirs.
