@@ -555,9 +555,12 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 boolean formerHasText = formerHead.getText() != null
                         && !formerHead.getText().isEmpty();
                 // New value slot, then K separator slots (if any neighbor follows).
+                // Later separator terminals (e.g. 'and' after ',') get a leading
+                // space so multi-token separators do not glue.
                 trivia.add(base + P, newTriviaPiece(""));
                 for(int s = 0; s < K; s++) {
-                    trivia.add(base + P + 1 + s, newTriviaPiece(""));
+                    trivia.add(base + P + 1 + s,
+                            newTriviaPiece(s == 0 ? "" : " "));
                 }
                 if(formerHasText) {
                     TriviaPiece newHead = trivia.get(base + P);
@@ -585,7 +588,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                         ? (base + P + nNow)
                         : (base + P + (nNow - 1) * stride + 1);
                 for(int s = 0; s < K; s++) {
-                    trivia.add(insertAt + s, newTriviaPiece(""));
+                    trivia.add(insertAt + s,
+                            newTriviaPiece(s == 0 ? "" : " "));
                 }
                 trivia.add(insertAt + K, newTriviaPiece(" "));
             } else {
@@ -593,7 +597,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                         ? (base + P + i)
                         : (base + P + i * stride - K);
                 for(int s = 0; s < K; s++) {
-                    trivia.add(insertAt + s, newTriviaPiece(""));
+                    trivia.add(insertAt + s,
+                            newTriviaPiece(s == 0 ? "" : " "));
                 }
                 trivia.add(insertAt + K, newTriviaPiece(" "));
             }

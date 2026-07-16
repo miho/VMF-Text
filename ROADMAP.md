@@ -136,10 +136,10 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
   pretty-printing / grammar-aware separators where exact preservation is
   undefined by construction.
 - **Trivia splice + list-shape hints** — bare/parenthesized `T (',' T)*`,
-  multi-list rules via codegen `ListShapeHint`, non-comma single-terminal
-  separators, opener-after-trailer, bare model-typed lists, insert-at-0
-  padding after sibling trailers (0.2.1); multi-token separators still fall
-  back (see assessment § Edit invalidation).
+  multi-list `ListShapeHint`, `separatorCount` for multi-token separators and
+  separator-less `ID (ID)*`, opener-after-trailer, bare model-typed lists,
+  insert-at-0 padding/undo (0.2.1); irregular/context-sensitive separators
+  still fall back (see assessment § Edit invalidation).
 - **Original lexeme preservation** — type-mapped lexer spellings round-trip
   when semantic values are unchanged (0.2.1).
 - **Optional null↔value + occurrenceIndex** — presence metadata updates;

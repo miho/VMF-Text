@@ -38,9 +38,9 @@ public class ModelBareListLexicalPreservationTest {
         String source = "a ,  b,\n c";
         ModelBareListModel model = parser.parse(source);
         model.getRoot().getItems().remove(1);
-        // Comma trivia that belonged to the removed item can remain as the
-        // separator before the former neighbor (space before ',' kept).
-        Assert.assertEquals("a ,\n c", unparser.unparse(model));
+        // Removing the middle item drops its coupling separator group; the
+        // neighbor's leading trivia (`\n `) remains on the child.
+        Assert.assertEquals("a,\n c", unparser.unparse(model));
     }
 
     @Test
