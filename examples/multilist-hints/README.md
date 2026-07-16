@@ -29,7 +29,7 @@ easily clears the whole rule’s trivia. Codegen hints carry:
 
 ## Run
 
-Requires JDK 21 and VMF-Text **0.2.1+** from `mavenLocal`:
+Requires JDK 21 and VMF-Text **0.2.1+** from Maven Central (or `mavenLocal`):
 
 ```
 cd examples/multilist-hints

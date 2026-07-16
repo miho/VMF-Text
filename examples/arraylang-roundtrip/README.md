@@ -14,8 +14,8 @@ What it demonstrates:
 
 ## Run it
 
-Requires JDK 21 and VMF-Text **0.2.1+**. Until 0.2.1 is on Maven Central,
-publish this repo locally first:
+Requires JDK 21 and VMF-Text **0.2.1+** from Maven Central (or publish this
+repo locally first):
 
 ```
 cd core && sh ./gradlew publishToMavenLocal --no-daemon

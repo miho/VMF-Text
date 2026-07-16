@@ -24,7 +24,7 @@ the value you change should get a new rendering; siblings keep their text.
 
 ## Run
 
-Requires JDK 21 and VMF-Text **0.2.1+** from `mavenLocal`:
+Requires JDK 21 and VMF-Text **0.2.1+** from Maven Central (or `mavenLocal`):
 
 ```
 cd examples/original-lexemes

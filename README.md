@@ -115,7 +115,7 @@ Then add the plugin (click [here](https://plugins.gradle.org/plugin/eu.mihosoft.
 
 ```gradle
 plugins {
-  id "eu.mihosoft.vmftext" version "0.2.0" // use latest version
+  id "eu.mihosoft.vmftext" version "0.2.1" // use latest version
 }
 ```
 (optionally) configure VMF-Text:

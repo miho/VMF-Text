@@ -436,6 +436,26 @@ public interface Formatter {
     }
 
     /**
+     * Heuristic: parsed elements carry an original range, trivia slots, and/or
+     * a grammar-element path from {@code addHiddenTextToModel}. Programmatic
+     * builders usually have none of these.
+     */
+    private boolean looksLikeParsedElement(CodeElement e) {
+        if(e.getLexicalInfo()==null) {
+            return false;
+        }
+        LexicalInfo info = e.getLexicalInfo();
+        if(info.getOriginalRange() != null) {
+            return true;
+        }
+        if(info.getTriviaPieces() != null && !info.getTriviaPieces().isEmpty()) {
+            return true;
+        }
+        String path = info.getGrammarElementPath();
+        return path != null && !path.isEmpty();
+    }
+
+    /**
      * Returns the recorded optional-presence states for the given grammar
      * element path, in occurrence order, or {@code null} if the element
      * carries no path-keyed states at all.
@@ -550,9 +570,11 @@ public interface Formatter {
                     }
                     incOptionalPathCounter(e, ruleInfo.getRulePath());
                   } else {
-                    // No OptionalState at all: treat optionals as absent.
-                    // Parse-time presence/absence always records states.
-                    symbolState = false;
+                    // No OptionalState entries at all. Parse often omits absent
+                    // optionals entirely, so "empty states" is ambiguous:
+                    //   - parsed element (range / trivia / path set) → absent
+                    //   - programmatic bare model → present (pretty-print)
+                    symbolState = !looksLikeParsedElement(e);
                   }
                 }
 

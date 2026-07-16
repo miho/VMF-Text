@@ -6,7 +6,7 @@ Just add the plugin id to use this plugin (get this plugin from [here](https://p
 
 ```gradle
 plugins {
-  id "eu.mihosoft.vmftext" version "0.1.2.6" // use latest version
+  id "eu.mihosoft.vmftext" version "0.2.1" // use latest version
 }
 ```
 
@@ -14,8 +14,8 @@ and (optionally) configure VMF-Text:
 
 ```gradle
 vmfText {
-    vmfVersion   = '0.1.1'   // runtime version
-    antlrVersion = '4.7.1' // runtime version
+    vmfVersion   = '0.2.10'  // runtime version
+    antlrVersion = '4.13.2'  // runtime version
     autoLabel    = false     // opt-in inferred labels for unlabeled grammar refs
 }
 ```
@@ -28,7 +28,7 @@ model. Explicit ANTLR labels always take precedence.
 
 ### Requirements
 
-- Java: 1.8 <= version <= 11
+- Java: JDK 21 (toolchain; Gradle itself needs 17+)
 - Internet connection (dependencies are downloaded automatically)
 - IDE: [Gradle](http://www.gradle.org/) Plugin (not necessary for command line usage)
 

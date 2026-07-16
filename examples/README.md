@@ -1,7 +1,7 @@
 # VMF-Text Examples
 
-Runnable lexical-preservation showcases. Prefer **0.2.1+** from `mavenLocal`
-(publish `core` then `gradle-plugin`) unless noted.
+Runnable lexical-preservation showcases. Prefer **0.2.1+** from Maven Central
+(or `mavenLocal` after `core` then `gradle-plugin` `publishToMavenLocal`).
 
 | Step | Example | What it shows |
 |------|---------|---------------|

@@ -86,7 +86,10 @@ terminal:
 
 - Match found ⇒ use `present`
 - Path recorded for other occurrences but not this one ⇒ **absent**
-- No `optionalStates` at all ⇒ **absent** (parse always records presence)
+- No `optionalStates` at all:
+  - parsed element (original range / trivia / grammar path) ⇒ **absent**
+    (parse often omits absent optionals from the state list)
+  - programmatic bare model ⇒ **present** (pretty-print)
 - Wildcard state `path="*"` with `present=true` ⇒ **force all present**
   (used when null→value on a fully unrecorded optional group)
 
@@ -189,6 +192,8 @@ Trailing openers (`(` after `;`) belong to the **next** list’s prefix.
 | `t ('\|' t)*` | Non-comma single-terminal sep |
 | `t (',' 'and' t)*` | Multi-token sep (`K=2`) |
 | `t (t)*` | Separator-less (`K=0`); prefer this over a lone `t+` for unparse |
+| `'(' t (',' t)* ','? ')'` | Optional trailing comma (`T=1`) |
+| Multi-alt lists | Shapes on every alt; prefer distinct properties/keywords per alt |
 | Two lists + trailer/opener | `ids… ';' '(' nums… ')'` |
 | Model-typed `'[' v (',' v)* ']'` | JSON arrays/objects |
 | Bare model-typed `item (',' item)*` | Parent commas only |
@@ -218,9 +223,7 @@ scope without richer per-gap or CST state**:
 | Optional separator **per gap** (`(','? item)*`) | Presence varies by index |
 | Arbitrary cross-rule moves keeping outer container trivia perfectly | Trivia is rule-scoped |
 
-**Medium follow-ups (still this architecture, not required to ship):**
-multi-alt list hints (analyzer uses first alt today); optional trailing
-`,` in size math. See assessment § *Remaining gaps*.
+See assessment § *Remaining gaps* for the CST leap boundary.
 
 ---
 
@@ -251,7 +254,7 @@ sh ./build-and-test-all.sh
 cd test-suite
 sh ./gradlew test --tests "eu.mihosoft.vmftext.tests.lexicalpreservation.*" --no-daemon
 
-# examples (need 0.2.1-SNAPSHOT in mavenLocal)
+# examples (0.2.1 from Central, or mavenLocal after local publish)
 cd examples/list-separators && ./gradlew run
 ```
 

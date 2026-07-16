@@ -19,7 +19,7 @@ children keep their leading whitespace.
 
 ## Run
 
-Requires JDK 21 and VMF-Text **0.2.1+** from `mavenLocal`:
+Requires JDK 21 and VMF-Text **0.2.1+** from Maven Central (or `mavenLocal`):
 
 ```
 cd examples/json-list-edit
