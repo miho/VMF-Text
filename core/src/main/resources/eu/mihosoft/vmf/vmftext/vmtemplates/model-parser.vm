@@ -110,6 +110,11 @@ interface OptionalState {
 /**
  * Codegen hint describing how a list property maps onto trivia slots, so
  * structural add/remove can splice without guessing from {@code trivia.size()}.
+ *
+ * <p>Slot math (primitive lists, where each item also owns a value slot):
+ * {@code size = prefix + n + (n-1)*separatorCount + suffix}.
+ * Model-typed lists omit per-item value slots on the parent:
+ * {@code size = prefix + (n-1)*separatorCount + suffix} (empty → {@code prefix+suffix}).
  */
 interface ListShapeHint {
   String getPropertyName();
@@ -117,8 +122,13 @@ interface ListShapeHint {
   String getKind();
   /** Terminals belonging to this list before the first item (e.g. {@code 1} for {@code '('}). */
   int getPrefixCount();
-  /** Terminals belonging to this list after the last item (e.g. {@code ')'}, EOF). */
+  /** Terminals belonging to this list after the last item (e.g. {@code ')'}, EOF pad). */
   int getSuffixCount();
+  /**
+   * Terminals between consecutive items ({@code 1} for {@code ','}, {@code 2} for
+   * {@code ',' 'and'}, {@code 0} for {@code item+ } / no separator).
+   */
+  int getSeparatorCount();
   /** Declaration order among list properties on the same rule (0-based). */
   int getOrderIndex();
   boolean getModelTyped();

@@ -54,7 +54,7 @@ public class ModelBareListLexicalPreservationTest {
     }
 
     @Test
-    public void insertAtZeroThenRemoveKeepsRemainingItems() {
+    public void insertAtZeroThenRemoveRestoresExact() {
         String source = "a ,  b";
         ModelBareListModel model = parser.parse(source);
         Item z = Item.newInstance();
@@ -63,11 +63,6 @@ public class ModelBareListLexicalPreservationTest {
         String after = unparser.unparse(model);
         Assert.assertTrue(after, after.contains("z") && after.contains("a"));
         model.getRoot().getItems().remove(0);
-        String restored = unparser.unparse(model);
-        Assert.assertEquals(2, model.getRoot().getItems().size());
-        Assert.assertTrue(restored, restored.contains("a") && restored.contains("b"));
-        // Bare model-typed insert-at-0 may drop the first comma's leading WS on
-        // undo (comma-only parent trivia); remaining bytes stay well-formed.
-        Assert.assertTrue(restored.equals(source) || restored.equals("a,  b"));
+        Assert.assertEquals(source, unparser.unparse(model));
     }
 }

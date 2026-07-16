@@ -140,9 +140,9 @@ original source for restore-when-semantics-match.
 
 ### Remaining gaps / what we can still improve
 
-1. **Multi-terminal separators / zero-separator `item+`:** single-terminal
-   separators (`,`, `|`, …) and opener-after-trailer (`';' '('`) are covered;
-   multi-token separators or separator-less repetition still fall back to clear.
+1. **Irregular / context-sensitive separators:** `ListShapeHint.separatorCount`
+   covers fixed multi-token separators and `item+` (count 0); separators that
+   change by position or alternative still fall back to clear.
 2. **Grammar shape workaround:** wrap each list item as a model type
    (`value: n=INT`) so add/remove only invalidates that leaf when a shape is
    still unrecognized.

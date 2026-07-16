@@ -43,6 +43,8 @@ public class MultiListShapeHintTest {
         Assert.assertTrue("ids should own the ';' trailer, got suffix=" + ids.getSuffixCount(),
                 ids.getSuffixCount() >= 1);
         Assert.assertEquals(0, nums.getPrefixCount());
+        Assert.assertEquals(1, ids.getSeparatorCount());
+        Assert.assertEquals(1, nums.getSeparatorCount());
     }
 
     @Test

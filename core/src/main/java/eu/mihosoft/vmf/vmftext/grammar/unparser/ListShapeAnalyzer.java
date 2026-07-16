@@ -15,15 +15,15 @@
  */
 package eu.mihosoft.vmf.vmftext.grammar.unparser;
 
+import eu.mihosoft.vmf.vmftext.grammar.AlternativeBase;
 import eu.mihosoft.vmf.vmftext.grammar.GrammarModel;
 import eu.mihosoft.vmf.vmftext.grammar.Property;
 import eu.mihosoft.vmf.vmftext.grammar.RuleClass;
-import eu.mihosoft.vmf.vmftext.grammar.UnparserModel;
 import eu.mihosoft.vmf.vmftext.grammar.UPElement;
 import eu.mihosoft.vmf.vmftext.grammar.UPNamedElement;
 import eu.mihosoft.vmf.vmftext.grammar.UPRule;
 import eu.mihosoft.vmf.vmftext.grammar.UPSubRuleElement;
-import eu.mihosoft.vmf.vmftext.grammar.AlternativeBase;
+import eu.mihosoft.vmf.vmftext.grammar.UnparserModel;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,6 +35,11 @@ import java.util.Optional;
 /**
  * Derives {@code ListShapeHint} specs from the unparser model so generated
  * converters can splice trivia without guessing from {@code trivia.size()}.
+ *
+ * <p>Each hint carries prefix/suffix terminal counts plus
+ * {@code separatorCount} (terminals between consecutive items), covering
+ * {@code ','}, multi-token separators like {@code ',' 'and'}, and separator-less
+ * {@code item+} lists ({@code separatorCount == 0}).
  */
 public final class ListShapeAnalyzer {
 
@@ -44,17 +49,19 @@ public final class ListShapeAnalyzer {
         private final String kind;
         private final int prefixCount;
         private final int suffixCount;
+        private final int separatorCount;
         private final int orderIndex;
         private final boolean modelTyped;
 
         public HintSpec(String ruleName, String propertyName, String kind,
-                        int prefixCount, int suffixCount, int orderIndex,
-                        boolean modelTyped) {
+                        int prefixCount, int suffixCount, int separatorCount,
+                        int orderIndex, boolean modelTyped) {
             this.ruleName = ruleName;
             this.propertyName = propertyName;
             this.kind = kind;
             this.prefixCount = prefixCount;
             this.suffixCount = suffixCount;
+            this.separatorCount = separatorCount;
             this.orderIndex = orderIndex;
             this.modelTyped = modelTyped;
         }
@@ -64,9 +71,11 @@ public final class ListShapeAnalyzer {
         public String getKind() { return kind; }
         public int getPrefixCount() { return prefixCount; }
         public int getSuffixCount() { return suffixCount; }
+        public int getSeparatorCount() { return separatorCount; }
         public int getOrderIndex() { return orderIndex; }
         public boolean getModelTyped() { return modelTyped; }
         public boolean isModelTyped() { return modelTyped; }
+
         /** Capitalized rule class name for generated {@code instanceof} checks. */
         public String getRuleClassName() {
             if (ruleName == null || ruleName.isEmpty()) {
@@ -90,34 +99,48 @@ public final class ListShapeAnalyzer {
             if (rule.getAlternatives() == null || rule.getAlternatives().isEmpty()) {
                 continue;
             }
-            // Use the first alternative as the shape oracle (typical list rules
-            // share one structural alt for the delimited form).
+            // First alt is the shape oracle (delimited form / primary alt).
             AlternativeBase alt = rule.getAlternatives().get(0);
             List<FlatTerminal> flat = flatten(alt);
             Map<String, ListSegment> segments = segmentLists(flat);
-            int order = 0;
-            for (Map.Entry<String, ListSegment> e : segments.entrySet()) {
-                String prop = e.getKey();
-                ListSegment seg = e.getValue();
-                String key = rule.getName().toLowerCase(Locale.ROOT) + "#" + prop;
-                boolean modelTyped = Boolean.TRUE.equals(modelTypedByRuleProp.get(key));
-                // Also try exact rule name key
-                if (!modelTypedByRuleProp.containsKey(key)) {
-                    modelTyped = Boolean.TRUE.equals(
-                            modelTypedByRuleProp.get(rule.getName() + "#" + prop));
-                }
+            List<String> order = new ArrayList<>(segments.keySet());
+            int orderIndex = 0;
+            for (String prop : order) {
+                ListSegment seg = segments.get(prop);
+                boolean modelTyped = lookupModelTyped(modelTypedByRuleProp, rule.getName(), prop);
                 String kind = modelTyped ? "MODEL_DELIMITED" : "PRIMITIVE_DELIMITED";
+                int suffix = seg.suffixCount;
+                // Parse-time empty pad slot is appended for primitive lists
+                // (interleaved value slots). Model-typed parents match
+                // bracket/comma terminals only (e.g. JSON size N+1).
+                if (!modelTyped && orderIndex == order.size() - 1) {
+                    suffix += 1;
+                } else if (modelTyped && orderIndex == order.size() - 1
+                        && seg.prefixCount == 0 && seg.separatorCount > 0) {
+                    // Bare model-typed: parent is commas + pad.
+                    suffix += 1;
+                }
                 out.add(new HintSpec(
                         rule.getName(),
                         prop,
                         kind,
                         seg.prefixCount,
-                        seg.suffixCount,
-                        order++,
+                        suffix,
+                        seg.separatorCount,
+                        orderIndex++,
                         modelTyped));
             }
         }
         return out;
+    }
+
+    private static boolean lookupModelTyped(
+            Map<String, Boolean> map, String ruleName, String prop) {
+        String lowerKey = ruleName.toLowerCase(Locale.ROOT) + "#" + prop;
+        if (map.containsKey(lowerKey)) {
+            return Boolean.TRUE.equals(map.get(lowerKey));
+        }
+        return Boolean.TRUE.equals(map.get(ruleName + "#" + prop));
     }
 
     private static Map<String, Boolean> indexModelTypedListProps(GrammarModel grammarModel) {
@@ -137,12 +160,7 @@ public final class ListShapeAnalyzer {
     private static final class FlatTerminal {
         final String listProp; // null if not a list item carrier
         final boolean terminal;
-        /** Grammar text of a terminal/lexer element (for opener detection). */
         final String text;
-
-        FlatTerminal(String listProp, boolean terminal) {
-            this(listProp, terminal, null);
-        }
 
         FlatTerminal(String listProp, boolean terminal, String text) {
             this.listProp = listProp;
@@ -154,8 +172,11 @@ public final class ListShapeAnalyzer {
     private static final class ListSegment {
         int prefixCount;
         int suffixCount;
+        /** Terminals between consecutive item occurrences ({@code 0} for {@code item+}). */
+        int separatorCount = 1;
         int firstItem;
         int lastItem;
+        int itemOccurrences;
     }
 
     private static List<FlatTerminal> flatten(AlternativeBase alt) {
@@ -175,7 +196,7 @@ public final class ListShapeAnalyzer {
         }
         if (el.namedElement() && el.isListType()) {
             String name = ((UPNamedElement) el).getName();
-            out.add(new FlatTerminal(name, false));
+            out.add(new FlatTerminal(name, false, null));
             return;
         }
         if (el.unnamedSubRuleElement() && el instanceof UPSubRuleElement) {
@@ -193,29 +214,29 @@ public final class ListShapeAnalyzer {
             return;
         }
         if (el.isTerminal() || el.isLexerRule()) {
-            // EOF counts as a suffix terminal for footprint purposes
             out.add(new FlatTerminal(null, true, el.getText()));
         }
     }
 
-    /** True for string terminals that open a following list group. */
     private static boolean isOpenerTerminal(FlatTerminal t) {
         if (t == null || !t.terminal || t.text == null) {
             return false;
         }
-        String s = t.text.trim();
-        // Strip EBNF / quotes commonly left on terminal text: '(' or '('
-        if (s.startsWith("'") && s.endsWith("'") && s.length() >= 3) {
-            s = s.substring(1, s.length() - 1);
-        } else if (s.startsWith("\"") && s.endsWith("\"") && s.length() >= 3) {
-            s = s.substring(1, s.length() - 1);
-        }
+        String s = stripQuotes(t.text.trim());
         return "(".equals(s) || "[".equals(s) || "{".equals(s);
+    }
+
+    private static String stripQuotes(String s) {
+        if (s.length() >= 3
+                && ((s.startsWith("'") && s.endsWith("'"))
+                || (s.startsWith("\"") && s.endsWith("\"")))) {
+            return s.substring(1, s.length() - 1);
+        }
+        return s;
     }
 
     private static Map<String, ListSegment> segmentLists(List<FlatTerminal> flat) {
         Map<String, ListSegment> segments = new LinkedHashMap<>();
-        // Find each property's first/last item indices
         for (int i = 0; i < flat.size(); i++) {
             FlatTerminal t = flat.get(i);
             if (t.listProp == null) {
@@ -226,14 +247,32 @@ public final class ListShapeAnalyzer {
                 seg = new ListSegment();
                 seg.firstItem = i;
                 seg.lastItem = i;
+                seg.itemOccurrences = 1;
                 segments.put(t.listProp, seg);
             } else {
                 seg.lastItem = i;
+                seg.itemOccurrences++;
             }
         }
+
+        // Separator terminals between consecutive occurrences of the same prop.
+        for (ListSegment seg : segments.values()) {
+            if (seg.itemOccurrences <= 1) {
+                // Single flat occurrence → item+ / item* (no structural separator).
+                seg.separatorCount = 0;
+                continue;
+            }
+            int terminals = 0;
+            for (int i = seg.firstItem + 1; i < seg.lastItem; i++) {
+                if (flat.get(i).terminal) {
+                    terminals++;
+                }
+            }
+            int gaps = seg.itemOccurrences - 1;
+            seg.separatorCount = gaps > 0 ? terminals / gaps : 0;
+        }
+
         List<String> order = new ArrayList<>(segments.keySet());
-        // Pre-compute how many trailing openers between list s and s+1 belong
-        // to the *next* list's prefix (e.g. '(' in ids… ';' '(' nums… ')').
         int[] openerPrefixForNext = new int[order.size()];
         for (int s = 0; s + 1 < order.size(); s++) {
             ListSegment cur = segments.get(order.get(s));
@@ -252,9 +291,9 @@ public final class ListShapeAnalyzer {
             }
             openerPrefixForNext[s + 1] = openers;
         }
+
         for (int s = 0; s < order.size(); s++) {
-            String prop = order.get(s);
-            ListSegment seg = segments.get(prop);
+            ListSegment seg = segments.get(order.get(s));
             int nextStart = (s + 1 < order.size())
                     ? segments.get(order.get(s + 1)).firstItem
                     : flat.size();
@@ -270,8 +309,6 @@ public final class ListShapeAnalyzer {
                 }
                 seg.prefixCount = prefix;
             } else {
-                // Trailing openers after a sibling trailer (e.g. ';' then '(')
-                // belong to this list; earlier inter-list terminals do not.
                 seg.prefixCount = openerPrefixForNext[s];
             }
             int suffix = 0;
@@ -280,11 +317,6 @@ public final class ListShapeAnalyzer {
                 if (flat.get(i).terminal) {
                     suffix++;
                 }
-            }
-            // Parse-time pad slot (empty string) is appended after the last
-            // terminal of the rule — count it on the final list segment.
-            if (s == order.size() - 1) {
-                suffix += 1;
             }
             seg.suffixCount = suffix;
         }
@@ -300,5 +332,27 @@ public final class ListShapeAnalyzer {
             }
         }
         return Optional.empty();
+    }
+
+    /** Primitive parent+value trivia size for {@code n} items. */
+    public static int primitiveLocalSize(int n, int prefix, int suffix, int sepCount) {
+        if (n < 0) {
+            return -1;
+        }
+        if (n == 0) {
+            return prefix + suffix;
+        }
+        return prefix + n + (n - 1) * Math.max(0, sepCount) + suffix;
+    }
+
+    /** Model-typed parent-only trivia size for {@code n} items. */
+    public static int modelLocalSize(int n, int prefix, int suffix, int sepCount) {
+        if (n < 0) {
+            return -1;
+        }
+        if (n == 0) {
+            return prefix + suffix;
+        }
+        return prefix + (n - 1) * Math.max(0, sepCount) + suffix;
     }
 }
