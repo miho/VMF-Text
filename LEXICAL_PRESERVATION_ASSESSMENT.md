@@ -140,12 +140,14 @@ original source for restore-when-semantics-match.
 
 ### Remaining gaps / what we can still improve
 
-**Still this architecture (optional follow-ups, not blocking 0.2.1):**
+**Resolved in 0.2.1 (follow-ups):**
 
-1. **Multi-alt list hints** — analyzer uses the first alternative as shape
-   oracle; a pipe-alt list on a multi-alt rule can mismatch and clear.
-2. **Optional trailing separator** in size math (`… ','?`) — fixed `P/K/S`
-   may not match when the trailing comma is absent/present.
+1. **Multi-alt list hints** — every top-level alternative is analyzed;
+   `ListShapeHint.alternativeIndex` scopes multi-list math; the converter
+   picks the candidate whose expected size matches the trivia footprint.
+2. **Optional trailing separator** (`… ','?`) — `optionalTrailingCount` is
+   separate from fixed `suffixCount`; present/absent is resolved from trivia
+   size and preserved across splice (while `n > 0`).
 
 **User recommendation (docs only — not a missing codegen feature):** wrap list
 items as model types (`value: n=INT`) when a shape is still unrecognized so

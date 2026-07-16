@@ -440,19 +440,27 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         java.util.List<TriviaPiece> trivia =
                 element.getLexicalInfo().getTriviaPieces();
 
-        ListShapeHint hint = findListShapeHint(element, propertyName);
-        if(hint != null && "PRIMITIVE_DELIMITED".equals(hint.getKind())) {
+        ListShapeHint hint = findMatchingListShapeHint(
+                element, propertyName, "PRIMITIVE_DELIMITED", nBefore, trivia.size());
+        if(hint != null) {
             int P = hint.getPrefixCount();
             int S = hint.getSuffixCount();
             int K = Math.max(0, hint.getSeparatorCount());
-            int base = computeTriviaBaseForList(element, hint);
-            int expectedLocal = primitiveLocalSize(nBefore, P, S, K);
-            if(base < 0 || base + expectedLocal > trivia.size()) {
+            int T = Math.max(0, hint.getOptionalTrailingCount());
+            int base = computeTriviaBaseForList(element, hint, nBefore, propertyName);
+            if(base < 0) {
+                return false;
+            }
+            boolean trailing = detectTrailingPresent(
+                    trivia.size(), base, nBefore, P, S, K, T, true);
+            int expectedLocal = primitiveLocalSize(nBefore, P, S, K, T, trailing);
+            if(base + expectedLocal > trivia.size()) {
                 // Refuse whole-trivia fallback so multi-list siblings stay intact.
                 return false;
             }
             return splicePrimitiveListInRange(
-                    trivia, base, P, S, K, nBefore, nAfter, added, indices);
+                    trivia, base, P, S, K, T, trailing,
+                    nBefore, nAfter, added, indices);
         }
 
         // Heuristic (no hint): assume single-terminal separators (K=1).
@@ -460,12 +468,12 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             // Empty window is pure prefix+suffix — try paren then bare.
             if(trivia.size() >= 2) {
                 return splicePrimitiveListInRange(
-                        trivia, 0, 1, trivia.size() - 1, 1,
+                        trivia, 0, 1, trivia.size() - 1, 1, 0, false,
                         nBefore, nAfter, added, indices);
             }
             if(trivia.size() >= 1) {
                 return splicePrimitiveListInRange(
-                        trivia, 0, 0, trivia.size(), 1,
+                        trivia, 0, 0, trivia.size(), 1, 0, false,
                         nBefore, nAfter, added, indices);
             }
             return false;
@@ -483,7 +491,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             return false;
         }
         return splicePrimitiveListInRange(
-                trivia, 0, P, S, 1, nBefore, nAfter, added, indices);
+                trivia, 0, P, S, 1, 0, false, nBefore, nAfter, added, indices);
     }
 
     /** {@code prefix + n + (n-1)*K + suffix} for primitive lists. */
@@ -494,9 +502,54 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         return P + n + (n - 1) * K + S;
     }
 
+    private static int primitiveLocalSize(
+            int n, int P, int S, int K, int T, boolean trailingPresent) {
+        int base = primitiveLocalSize(n, P, S, K);
+        if(n > 0 && trailingPresent) {
+            return base + T;
+        }
+        return base;
+    }
+
+    /**
+     * Effective fixed+optional suffix for splice layout. Trailing separators are
+     * never kept when the list is empty.
+     */
+    private static int effectiveSuffix(int n, int S, int T, boolean trailingPresent) {
+        if(n <= 0) {
+            return S;
+        }
+        return S + (trailingPresent ? T : 0);
+    }
+
+    private static boolean detectTrailingPresent(
+            int triviaSize, int base, int n, int P, int S, int K, int T,
+            boolean primitive) {
+        if(T <= 0 || n <= 0) {
+            return false;
+        }
+        int without = primitive
+                ? primitiveLocalSize(n, P, S, K)
+                : modelLocalSize(n, P, S, K);
+        int with = without + T;
+        int avail = triviaSize - base;
+        if(avail == with) {
+            return true;
+        }
+        if(avail == without) {
+            return false;
+        }
+        // Multi-list: later siblings consume the remainder — prefer with-trailing
+        // when that window still fits.
+        if(avail > with) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Splices a primitive list window.
-     * Layout: {@code [P prefix][val][sep×K]…[val][S suffix]}.
+     * Layout: {@code [P prefix][val][sep×K]…[val][T optional trailing][S suffix]}.
      */
     private boolean splicePrimitiveListInRange(
             java.util.List<TriviaPiece> trivia,
@@ -504,6 +557,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             int P,
             int S,
             int K,
+            int T,
+            boolean trailingPresent,
             int nBefore,
             int nAfter,
             boolean added,
@@ -518,12 +573,14 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             int[] sorted = indices.clone();
             java.util.Arrays.sort(sorted);
             int nNow = nBefore;
+            boolean trail = trailingPresent;
             for(int k = sorted.length - 1; k >= 0; k--) {
                 int i = sorted[k];
                 if(i < 0 || i >= nNow) {
                     return false;
                 }
-                int localSize = primitiveLocalSize(nNow, P, S, K);
+                int Seff = effectiveSuffix(nNow, S, T, trail);
+                int localSize = primitiveLocalSize(nNow, P, Seff, K);
                 if(trivia.size() < base + localSize) {
                     return false;
                 }
@@ -531,8 +588,13 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 final int count;
                 if(i == 0) {
                     start = base + P;
-                    // Last remaining item: drop only its value slot; keep P/S.
-                    count = (nNow > 1) ? stride : 1;
+                    if(nNow > 1) {
+                        count = stride;
+                    } else {
+                        // Last remaining item: drop value (+ trailing if present).
+                        count = 1 + (trail ? T : 0);
+                        trail = false;
+                    }
                 } else {
                     // K seps before value i + the value
                     start = base + P + i * stride - K;
@@ -557,6 +619,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         int[] sorted = indices.clone();
         java.util.Arrays.sort(sorted);
         int applied = 0;
+        boolean trail = trailingPresent;
         for(int raw : sorted) {
             int i = raw;
             if(i < 0 || i > nBefore + applied) {
@@ -605,7 +668,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                     }
                 }
             } else if(i >= nNow) {
-                // Append after last value: K separator slots + new value slot.
+                // Append after last value (before optional trailing + fixed suffix).
                 int insertAt = (K == 0)
                         ? (base + P + nNow)
                         : (base + P + (nNow - 1) * stride + 1);
@@ -658,29 +721,153 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     }
 
     /**
-     * Trivia index where {@code hint}'s list segment begins, based on sibling
-     * list sizes and earlier hints' prefix/suffix/separator counts.
+     * Picks the list-shape candidate whose expected local size fits the actual
+     * trivia footprint. Multi-alt rules may attach several hints for the same
+     * property; {@code alternativeIndex} scopes sibling multi-list math.
      */
-    private int computeTriviaBaseForList(CodeElement element, ListShapeHint hint) {
-        if(element.getLexicalInfo() == null) {
-            return 0;
+    private ListShapeHint findMatchingListShapeHint(
+            CodeElement element,
+            String propertyName,
+            String kind,
+            int nBefore,
+            int triviaSize) {
+        if(element.getLexicalInfo() == null || propertyName == null) {
+            return null;
         }
-        int base = 0;
+        java.util.List<ListShapeHint> candidates = new java.util.ArrayList<>();
         for(ListShapeHint h : element.getLexicalInfo().getListShapeHints()) {
-            if(h.getOrderIndex() >= hint.getOrderIndex()) {
-                break;
+            if(propertyName.equals(h.getPropertyName())
+                    && kind.equals(h.getKind())) {
+                candidates.add(h);
             }
-            int n = listPropertySize(element, h.getPropertyName());
+        }
+        if(candidates.isEmpty()) {
+            return null;
+        }
+        if(candidates.size() == 1) {
+            return candidates.get(0);
+        }
+        ListShapeHint best = null;
+        int bestScore = Integer.MAX_VALUE;
+        for(ListShapeHint h : candidates) {
+            int base = computeTriviaBaseForList(element, h, nBefore, propertyName);
+            if(base < 0) {
+                continue;
+            }
+            int P = h.getPrefixCount();
+            int S = h.getSuffixCount();
+            int K = Math.max(0, h.getSeparatorCount());
+            int T = Math.max(0, h.getOptionalTrailingCount());
+            boolean primitive = "PRIMITIVE_DELIMITED".equals(kind);
+            boolean trailing = detectTrailingPresent(
+                    triviaSize, base, nBefore, P, S, K, T, primitive);
+            int expected = primitive
+                    ? primitiveLocalSize(nBefore, P, S, K, T, trailing)
+                    : modelLocalSize(nBefore, P, S, K, T, trailing);
+            if(base + expected > triviaSize) {
+                continue;
+            }
+            int altTotal = estimateAltTriviaSize(
+                    element, h.getAlternativeIndex(), propertyName, nBefore);
+            int score;
+            if(altTotal >= 0 && altTotal == triviaSize) {
+                score = 0;
+            } else if(base + expected == triviaSize) {
+                score = 1;
+            } else {
+                score = 2 + (triviaSize - (base + expected));
+            }
+            if(score < bestScore) {
+                bestScore = score;
+                best = h;
+            }
+        }
+        return best != null ? best : candidates.get(0);
+    }
+
+    /**
+     * Sum of expected local sizes for all list hints on {@code altIndex}, using
+     * {@code nOverride} for {@code propertyName} (pre-edit size).
+     */
+    private int estimateAltTriviaSize(
+            CodeElement element,
+            int altIndex,
+            String propertyName,
+            int nOverride) {
+        if(element.getLexicalInfo() == null) {
+            return -1;
+        }
+        int sum = 0;
+        for(ListShapeHint h : element.getLexicalInfo().getListShapeHints()) {
+            if(h.getAlternativeIndex() != altIndex) {
+                continue;
+            }
+            int n = propertyName.equals(h.getPropertyName())
+                    ? nOverride
+                    : listPropertySize(element, h.getPropertyName());
             if(n < 0) {
                 return -1;
             }
             int P = h.getPrefixCount();
             int S = h.getSuffixCount();
             int K = Math.max(0, h.getSeparatorCount());
+            // Prefer without-trailing for estimation; detectTrailingPresent on the
+            // full buffer refines the chosen candidate.
             if("PRIMITIVE_DELIMITED".equals(h.getKind())) {
-                base += primitiveLocalSize(n, P, S, K);
+                sum += primitiveLocalSize(n, P, S, K);
             } else if("MODEL_DELIMITED".equals(h.getKind())) {
-                base += modelLocalSize(n, P, S, K);
+                sum += modelLocalSize(n, P, S, K);
+            }
+        }
+        return sum;
+    }
+
+    /**
+     * Trivia index where {@code hint}'s list segment begins, based on sibling
+     * list sizes on the same alternative.
+     */
+    private int computeTriviaBaseForList(CodeElement element, ListShapeHint hint) {
+        return computeTriviaBaseForList(element, hint, -1, null);
+    }
+
+    private int computeTriviaBaseForList(
+            CodeElement element,
+            ListShapeHint hint,
+            int nOverride,
+            String overrideProperty) {
+        if(element.getLexicalInfo() == null) {
+            return 0;
+        }
+        int base = 0;
+        int alt = hint.getAlternativeIndex();
+        for(ListShapeHint h : element.getLexicalInfo().getListShapeHints()) {
+            if(h.getAlternativeIndex() != alt) {
+                continue;
+            }
+            if(h.getOrderIndex() >= hint.getOrderIndex()) {
+                continue;
+            }
+            int n = (overrideProperty != null
+                    && overrideProperty.equals(h.getPropertyName())
+                    && nOverride >= 0)
+                    ? nOverride
+                    : listPropertySize(element, h.getPropertyName());
+            if(n < 0) {
+                return -1;
+            }
+            int P = h.getPrefixCount();
+            int S = h.getSuffixCount();
+            int K = Math.max(0, h.getSeparatorCount());
+            int T = Math.max(0, h.getOptionalTrailingCount());
+            boolean trailing = false;
+            if(T > 0 && n > 0) {
+                // Sibling trailing: assume absent for base; rare for multi-list.
+                trailing = false;
+            }
+            if("PRIMITIVE_DELIMITED".equals(h.getKind())) {
+                base += primitiveLocalSize(n, P, S, K, T, trailing);
+            } else if("MODEL_DELIMITED".equals(h.getKind())) {
+                base += modelLocalSize(n, P, S, K, T, trailing);
             }
         }
         return base;
@@ -692,6 +879,15 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             return P + S;
         }
         return P + (n - 1) * K + S;
+    }
+
+    private static int modelLocalSize(
+            int n, int P, int S, int K, int T, boolean trailingPresent) {
+        int base = modelLocalSize(n, P, S, K);
+        if(n > 0 && trailingPresent) {
+            return base + T;
+        }
+        return base;
     }
 
     private int listPropertySize(CodeElement element, String propertyName) {
@@ -717,7 +913,9 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                     withPrefixCount(${h.prefixCount}).
                     withSuffixCount(${h.suffixCount}).
                     withSeparatorCount(${h.separatorCount}).
+                    withOptionalTrailingCount(${h.optionalTrailingCount}).
                     withOrderIndex(${h.orderIndex}).
+                    withAlternativeIndex(${h.alternativeIndex}).
                     withModelTyped(${h.modelTyped}).
                     build());
         }
@@ -917,42 +1115,50 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         int P;
         int S;
         int K;
-        ListShapeHint hint = findListShapeHint(element, propertyName);
-        if(hint != null && "MODEL_DELIMITED".equals(hint.getKind())) {
-            base = computeTriviaBaseForList(element, hint);
+        int T;
+        boolean trailing;
+        ListShapeHint hint = findMatchingListShapeHint(
+                element, propertyName, "MODEL_DELIMITED", nBefore, trivia.size());
+        if(hint != null) {
+            base = computeTriviaBaseForList(element, hint, nBefore, propertyName);
             if(base < 0) {
                 return false;
             }
             P = hint.getPrefixCount();
             S = hint.getSuffixCount();
             K = Math.max(0, hint.getSeparatorCount());
-            if(K == 0) {
+            T = Math.max(0, hint.getOptionalTrailingCount());
+            if(K == 0 && T == 0) {
                 // item+: parent has no inter-item terminals — keep trivia as-is.
                 return true;
             }
-            int expectedLocal = modelLocalSize(nBefore, P, S, K);
+            trailing = detectTrailingPresent(
+                    trivia.size(), base, nBefore, P, S, K, T, false);
+            int expectedLocal = modelLocalSize(nBefore, P, S, K, T, trailing);
             if(base + expectedLocal > trivia.size()) {
                 return false;
             }
             return spliceModelTypedListInRange(
-                    trivia, base, P, S, K, nBefore, nAfter, added, indices);
+                    trivia, base, P, S, K, T, trailing,
+                    nBefore, nAfter, added, indices);
         }
 
         // Heuristic: bracketed K=1 (JSON) or bare K=1.
         if(trivia.size() == modelLocalSize(nBefore, 1, 1, 1)) {
             return spliceModelTypedListInRange(
-                    trivia, 0, 1, 1, 1, nBefore, nAfter, added, indices);
+                    trivia, 0, 1, 1, 1, 0, false, nBefore, nAfter, added, indices);
         }
         if(trivia.size() == modelLocalSize(nBefore, 0, 1, 1)) {
             return spliceModelTypedListInRange(
-                    trivia, 0, 0, 1, 1, nBefore, nAfter, added, indices);
+                    trivia, 0, 0, 1, 1, 0, false, nBefore, nAfter, added, indices);
         }
         return false;
     }
 
     /**
-     * Parent layout: {@code [P prefix][sep×K]…[sep×K][S suffix]} (no value slots).
-     * Insert/remove adjusts exactly {@code K} separator slots per structural op.
+     * Parent layout: {@code [P prefix][sep×K]…[sep×K][T optional][S suffix]}
+     * (no value slots). Insert/remove adjusts exactly {@code K} separator slots
+     * per structural op; optional trailing is preserved when {@code n > 0}.
      */
     private boolean spliceModelTypedListInRange(
             java.util.List<TriviaPiece> trivia,
@@ -960,15 +1166,18 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             int P,
             int S,
             int K,
+            int T,
+            boolean trailingPresent,
             int nBefore,
             int nAfter,
             boolean added,
             int[] indices) {
 
-        if(K <= 0) {
+        if(K <= 0 && T <= 0) {
             return true;
         }
-        int expectedBefore = modelLocalSize(nBefore, P, S, K);
+        int Seff = effectiveSuffix(nBefore, S, T, trailingPresent);
+        int expectedBefore = modelLocalSize(nBefore, P, Seff, K);
         if(trivia.size() < base + expectedBefore) {
             return false;
         }
@@ -977,18 +1186,31 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             int[] sorted = indices.clone();
             java.util.Arrays.sort(sorted);
             int nNow = nBefore;
+            boolean trail = trailingPresent;
             for(int k = sorted.length - 1; k >= 0; k--) {
                 int i = sorted[k];
                 if(i < 0 || i >= nNow) {
                     return false;
                 }
-                int expectedNow = modelLocalSize(nNow, P, S, K);
+                int Snow = effectiveSuffix(nNow, S, T, trail);
+                int expectedNow = modelLocalSize(nNow, P, Snow, K);
                 if(trivia.size() < base + expectedNow) {
                     return false;
                 }
                 if(nNow == 1) {
-                    // Last element: no separator group to drop (leave brackets/pad).
+                    // Last element: drop optional trailing; leave brackets/pad.
+                    if(trail && T > 0) {
+                        int trailAt = base + expectedNow - Snow;
+                        if(trailAt >= base + P && trailAt + T <= trivia.size()) {
+                            removeTriviaRange(trivia, trailAt, T);
+                        }
+                        trail = false;
+                    }
                     nNow = 0;
+                    continue;
+                }
+                if(K <= 0) {
+                    nNow--;
                     continue;
                 }
                 // Separator group coupling item i to a neighbor starts at:
@@ -998,7 +1220,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                     sepAt = base + P + (nNow - 2) * K;
                 }
                 if(sepAt < base + P
-                        || sepAt + K > base + expectedNow - S) {
+                        || sepAt + K > base + expectedNow - Snow) {
                     // Allow S==0 edge; still require the K slots to exist.
                     if(sepAt < base || sepAt + K > trivia.size()) {
                         return false;
@@ -1007,16 +1229,19 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 removeTriviaRange(trivia, sepAt, K);
                 nNow--;
             }
+            int Safter = effectiveSuffix(nAfter, S, T, trail && nAfter > 0);
             return nNow == nAfter
-                    && trivia.size() >= base + modelLocalSize(nAfter, P, S, K);
+                    && trivia.size() >= base + modelLocalSize(nAfter, P, Safter, K);
         }
 
         int[] sorted = indices.clone();
         java.util.Arrays.sort(sorted);
         int applied = 0;
+        boolean trail = trailingPresent;
         for(int i : sorted) {
             int nNow = nBefore + applied;
-            int expectedNow = modelLocalSize(nNow, P, S, K);
+            int Snow = effectiveSuffix(nNow, S, T, trail);
+            int expectedNow = modelLocalSize(nNow, P, Snow, K);
             if(trivia.size() < base + expectedNow) {
                 return false;
             }
@@ -1030,10 +1255,14 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             if(i < 0 || i > nNow) {
                 return false;
             }
+            if(K <= 0) {
+                applied++;
+                continue;
+            }
             int sepAt;
             if(i >= nNow) {
-                // Append: insert separator group before suffix.
-                sepAt = base + expectedNow - S;
+                // Append: insert separator group before optional trailing + suffix.
+                sepAt = base + expectedNow - Snow;
             } else if(i == 0) {
                 sepAt = base + P;
             } else {
@@ -1050,7 +1279,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             }
             applied++;
         }
-        return trivia.size() >= base + modelLocalSize(nAfter, P, S, K);
+        int Safter = effectiveSuffix(nAfter, S, T, trail && nAfter > 0);
+        return trivia.size() >= base + modelLocalSize(nAfter, P, Safter, K);
     }
 
     /**

@@ -103,9 +103,14 @@ interface OptionalState {
  * structural add/remove can splice without guessing from {@code trivia.size()}.
  *
  * <p>Slot math (primitive lists, where each item also owns a value slot):
- * {@code size = prefix + n + (n-1)*separatorCount + suffix}.
- * Model-typed lists omit per-item value slots on the parent:
+ * {@code size = prefix + n + (n-1)*separatorCount + suffix}
+ * ({@code + optionalTrailingCount} when a trailing {@code ','?} is present and
+ * {@code n > 0}). Model-typed lists omit per-item value slots on the parent:
  * {@code size = prefix + (n-1)*separatorCount + suffix} (empty → {@code prefix+suffix}).
+ *
+ * <p>Multiple hints may exist for the same property when a rule has several
+ * alternatives; the converter picks the candidate whose expected size matches
+ * the actual trivia footprint ({@code alternativeIndex} scopes multi-list math).
  */
 interface ListShapeHint {
   String getPropertyName();
@@ -113,15 +118,23 @@ interface ListShapeHint {
   String getKind();
   /** Terminals belonging to this list before the first item (e.g. {@code 1} for {@code '('}). */
   int getPrefixCount();
-  /** Terminals belonging to this list after the last item (e.g. {@code ')'}, EOF pad). */
+  /** Fixed terminals after the last item / optional trailing (e.g. {@code ')'}, EOF pad). */
   int getSuffixCount();
   /**
    * Terminals between consecutive items ({@code 1} for {@code ','}, {@code 2} for
    * {@code ',' 'and'}, {@code 0} for {@code item+ } / no separator).
    */
   int getSeparatorCount();
-  /** Declaration order among list properties on the same rule (0-based). */
+  /**
+   * Optional trailing separator terminals after the last item ({@code 1} for {@code ','?}).
+   * Not included in {@link #getSuffixCount()}; present-or-absent is resolved from
+   * trivia size at splice time.
+   */
+  int getOptionalTrailingCount();
+  /** Declaration order among list properties on the same alternative (0-based). */
   int getOrderIndex();
+  /** Top-level alternative index this shape was derived from (0-based). */
+  int getAlternativeIndex();
   boolean getModelTyped();
 }
 

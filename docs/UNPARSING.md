@@ -101,13 +101,19 @@ edits can splice trivia without guessing from `trivia.size()` alone:
 |-------|------|
 | `propertyName` | List property (`values`, `ids`, …) |
 | `kind` | `PRIMITIVE_DELIMITED` or `MODEL_DELIMITED` |
-| `prefixCount` / `suffixCount` | Terminals before first / after last item |
+| `prefixCount` / `suffixCount` | Terminals before first / after last item (fixed suffix excludes trailing `','?`) |
 | `separatorCount` (`K`) | Terminals between consecutive items (`1` for `,`, `2` for `',' 'and'`, `0` for `ID (ID)*`) |
-| `orderIndex` | Left-to-right list order on the same rule |
+| `optionalTrailingCount` (`T`) | Optional trailing separator terminals (`1` for `','?`); present/absent from trivia size |
+| `orderIndex` | Left-to-right list order on the same alternative |
+| `alternativeIndex` | Top-level alternative the shape was derived from |
 | `modelTyped` | Children are `CodeElement`s vs primitives |
 
-**Primitive size:** `prefix + n + (n-1)*K + suffix`  
-**Model-typed parent size:** `prefix + (n-1)*K + suffix` (values live on children)
+**Primitive size:** `prefix + n + (n-1)*K + suffix` (+ `T` when trailing present and `n > 0`)  
+**Model-typed parent size:** `prefix + (n-1)*K + suffix` (+ `T` likewise; values live on children)
+
+Every top-level alternative is analyzed. When several candidates share a
+property name, the converter picks the hint whose expected size matches the
+actual trivia footprint (`alternativeIndex` scopes sibling multi-list math).
 
 ### 2.4 Original lexemes
 

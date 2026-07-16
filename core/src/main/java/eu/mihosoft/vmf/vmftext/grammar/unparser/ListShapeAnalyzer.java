@@ -39,7 +39,10 @@ import java.util.Optional;
  * <p>Each hint carries prefix/suffix terminal counts plus
  * {@code separatorCount} (terminals between consecutive items), covering
  * {@code ','}, multi-token separators like {@code ',' 'and'}, and separator-less
- * {@code item+} lists ({@code separatorCount == 0}).
+ * {@code item+} lists ({@code separatorCount == 0}). Optional trailing
+ * separators ({@code ','?}) are recorded separately as
+ * {@code optionalTrailingCount}. Every top-level alternative is analyzed so
+ * pipe-alt list shapes are not lost.
  */
 public final class ListShapeAnalyzer {
 
@@ -50,19 +53,24 @@ public final class ListShapeAnalyzer {
         private final int prefixCount;
         private final int suffixCount;
         private final int separatorCount;
+        private final int optionalTrailingCount;
         private final int orderIndex;
+        private final int alternativeIndex;
         private final boolean modelTyped;
 
         public HintSpec(String ruleName, String propertyName, String kind,
                         int prefixCount, int suffixCount, int separatorCount,
-                        int orderIndex, boolean modelTyped) {
+                        int optionalTrailingCount, int orderIndex,
+                        int alternativeIndex, boolean modelTyped) {
             this.ruleName = ruleName;
             this.propertyName = propertyName;
             this.kind = kind;
             this.prefixCount = prefixCount;
             this.suffixCount = suffixCount;
             this.separatorCount = separatorCount;
+            this.optionalTrailingCount = optionalTrailingCount;
             this.orderIndex = orderIndex;
+            this.alternativeIndex = alternativeIndex;
             this.modelTyped = modelTyped;
         }
 
@@ -72,7 +80,9 @@ public final class ListShapeAnalyzer {
         public int getPrefixCount() { return prefixCount; }
         public int getSuffixCount() { return suffixCount; }
         public int getSeparatorCount() { return separatorCount; }
+        public int getOptionalTrailingCount() { return optionalTrailingCount; }
         public int getOrderIndex() { return orderIndex; }
+        public int getAlternativeIndex() { return alternativeIndex; }
         public boolean getModelTyped() { return modelTyped; }
         public boolean isModelTyped() { return modelTyped; }
 
@@ -99,39 +109,63 @@ public final class ListShapeAnalyzer {
             if (rule.getAlternatives() == null || rule.getAlternatives().isEmpty()) {
                 continue;
             }
-            // First alt is the shape oracle (delimited form / primary alt).
-            AlternativeBase alt = rule.getAlternatives().get(0);
-            List<FlatTerminal> flat = flatten(alt);
-            Map<String, ListSegment> segments = segmentLists(flat);
-            List<String> order = new ArrayList<>(segments.keySet());
-            int orderIndex = 0;
-            for (String prop : order) {
-                ListSegment seg = segments.get(prop);
-                boolean modelTyped = lookupModelTyped(modelTypedByRuleProp, rule.getName(), prop);
-                String kind = modelTyped ? "MODEL_DELIMITED" : "PRIMITIVE_DELIMITED";
-                int suffix = seg.suffixCount;
-                // Parse-time empty pad slot is appended for primitive lists
-                // (interleaved value slots). Model-typed parents match
-                // bracket/comma terminals only (e.g. JSON size N+1).
-                if (!modelTyped && orderIndex == order.size() - 1) {
-                    suffix += 1;
-                } else if (modelTyped && orderIndex == order.size() - 1
-                        && seg.prefixCount == 0 && seg.separatorCount > 0) {
-                    // Bare model-typed: parent is commas + pad.
-                    suffix += 1;
+            for (int altIndex = 0; altIndex < rule.getAlternatives().size(); altIndex++) {
+                AlternativeBase alt = rule.getAlternatives().get(altIndex);
+                List<FlatTerminal> flat = flatten(alt);
+                Map<String, ListSegment> segments = segmentLists(flat);
+                List<String> order = new ArrayList<>(segments.keySet());
+                int orderIndex = 0;
+                for (String prop : order) {
+                    ListSegment seg = segments.get(prop);
+                    boolean modelTyped = lookupModelTyped(modelTypedByRuleProp, rule.getName(), prop);
+                    String kind = modelTyped ? "MODEL_DELIMITED" : "PRIMITIVE_DELIMITED";
+                    int suffix = seg.suffixCount;
+                    // Parse-time empty pad slot is appended for primitive lists
+                    // (interleaved value slots). Model-typed parents match
+                    // bracket/comma terminals only (e.g. JSON size N+1).
+                    if (!modelTyped && orderIndex == order.size() - 1) {
+                        suffix += 1;
+                    } else if (modelTyped && orderIndex == order.size() - 1
+                            && seg.prefixCount == 0 && seg.separatorCount > 0) {
+                        // Bare model-typed: parent is commas + pad.
+                        suffix += 1;
+                    }
+                    HintSpec spec = new HintSpec(
+                            rule.getName(),
+                            prop,
+                            kind,
+                            seg.prefixCount,
+                            suffix,
+                            seg.separatorCount,
+                            seg.optionalTrailingCount,
+                            orderIndex++,
+                            altIndex,
+                            modelTyped);
+                    if (!containsEquivalent(out, spec)) {
+                        out.add(spec);
+                    }
                 }
-                out.add(new HintSpec(
-                        rule.getName(),
-                        prop,
-                        kind,
-                        seg.prefixCount,
-                        suffix,
-                        seg.separatorCount,
-                        orderIndex++,
-                        modelTyped));
             }
         }
         return out;
+    }
+
+    private static boolean containsEquivalent(List<HintSpec> out, HintSpec spec) {
+        for (HintSpec h : out) {
+            if (h.ruleName.equals(spec.ruleName)
+                    && h.propertyName.equals(spec.propertyName)
+                    && h.kind.equals(spec.kind)
+                    && h.prefixCount == spec.prefixCount
+                    && h.suffixCount == spec.suffixCount
+                    && h.separatorCount == spec.separatorCount
+                    && h.optionalTrailingCount == spec.optionalTrailingCount
+                    && h.orderIndex == spec.orderIndex
+                    && h.alternativeIndex == spec.alternativeIndex
+                    && h.modelTyped == spec.modelTyped) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean lookupModelTyped(
@@ -161,11 +195,14 @@ public final class ListShapeAnalyzer {
         final String listProp; // null if not a list item carrier
         final boolean terminal;
         final String text;
+        /** Terminal from an optional-only unnamed subrule ({@code ','?}). */
+        final boolean optional;
 
-        FlatTerminal(String listProp, boolean terminal, String text) {
+        FlatTerminal(String listProp, boolean terminal, String text, boolean optional) {
             this.listProp = listProp;
             this.terminal = terminal;
             this.text = text;
+            this.optional = optional;
         }
     }
 
@@ -174,6 +211,8 @@ public final class ListShapeAnalyzer {
         int suffixCount;
         /** Terminals between consecutive item occurrences ({@code 0} for {@code item+}). */
         int separatorCount = 1;
+        /** Optional trailing separator terminals after the last item ({@code ','?}). */
+        int optionalTrailingCount;
         int firstItem;
         int lastItem;
         int itemOccurrences;
@@ -185,36 +224,63 @@ public final class ListShapeAnalyzer {
             return out;
         }
         for (UPElement el : alt.getElements()) {
-            flattenElement(el, out);
+            flattenElement(el, out, false);
         }
         return out;
     }
 
-    private static void flattenElement(UPElement el, List<FlatTerminal> out) {
+    private static boolean subRuleContainsListProp(UPSubRuleElement sub) {
+        if (sub.getAlternatives() == null) {
+            return false;
+        }
+        for (AlternativeBase subAlt : sub.getAlternatives()) {
+            if (subAlt.getElements() == null) {
+                continue;
+            }
+            for (UPElement child : subAlt.getElements()) {
+                if (child != null && child.namedElement() && child.isListType()) {
+                    return true;
+                }
+                if (child != null && child.unnamedSubRuleElement()
+                        && child instanceof UPSubRuleElement
+                        && subRuleContainsListProp((UPSubRuleElement) child)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static void flattenElement(UPElement el, List<FlatTerminal> out, boolean inOptional) {
         if (el == null || el.isAction()) {
             return;
         }
         if (el.namedElement() && el.isListType()) {
             String name = ((UPNamedElement) el).getName();
-            out.add(new FlatTerminal(name, false, null));
+            out.add(new FlatTerminal(name, false, null, false));
             return;
         }
         if (el.unnamedSubRuleElement() && el instanceof UPSubRuleElement) {
             UPSubRuleElement sub = (UPSubRuleElement) el;
+            // Only '?' (not '*') without list props marks pure optional terminals
+            // such as trailing ','? — repeatable (',' item)* keeps separators non-optional.
+            boolean markOptional = inOptional
+                    || (sub.ebnfOptional() && !subRuleContainsListProp(sub));
             if (sub.getAlternatives() != null) {
                 for (AlternativeBase subAlt : sub.getAlternatives()) {
                     if (subAlt.getElements() == null) {
                         continue;
                     }
                     for (UPElement child : subAlt.getElements()) {
-                        flattenElement(child, out);
+                        flattenElement(child, out, markOptional);
                     }
                 }
             }
             return;
         }
         if (el.isTerminal() || el.isLexerRule()) {
-            out.add(new FlatTerminal(null, true, el.getText()));
+            boolean optional = inOptional || el.ebnfOptional();
+            out.add(new FlatTerminal(null, true, el.getText(), optional));
         }
     }
 
@@ -311,9 +377,20 @@ public final class ListShapeAnalyzer {
             } else {
                 seg.prefixCount = openerPrefixForNext[s];
             }
-            int suffix = 0;
             int suffixEnd = nextStart - openersForNext;
-            for (int i = seg.lastItem + 1; i < suffixEnd; i++) {
+            int optionalTrail = 0;
+            int i = seg.lastItem + 1;
+            while (i < suffixEnd) {
+                FlatTerminal t = flat.get(i);
+                if (!t.terminal || !t.optional) {
+                    break;
+                }
+                optionalTrail++;
+                i++;
+            }
+            seg.optionalTrailingCount = optionalTrail;
+            int suffix = 0;
+            for (; i < suffixEnd; i++) {
                 if (flat.get(i).terminal) {
                     suffix++;
                 }
@@ -334,7 +411,7 @@ public final class ListShapeAnalyzer {
         return Optional.empty();
     }
 
-    /** Primitive parent+value trivia size for {@code n} items. */
+    /** Primitive parent+value trivia size for {@code n} items (no optional trailing). */
     public static int primitiveLocalSize(int n, int prefix, int suffix, int sepCount) {
         if (n < 0) {
             return -1;
@@ -343,6 +420,23 @@ public final class ListShapeAnalyzer {
             return prefix + suffix;
         }
         return prefix + n + (n - 1) * Math.max(0, sepCount) + suffix;
+    }
+
+    /**
+     * Primitive local size including optional trailing separators when present
+     * and {@code n > 0}.
+     */
+    public static int primitiveLocalSize(
+            int n, int prefix, int suffix, int sepCount,
+            int optionalTrailingCount, boolean trailingPresent) {
+        int base = primitiveLocalSize(n, prefix, suffix, sepCount);
+        if (base < 0) {
+            return -1;
+        }
+        if (n > 0 && trailingPresent) {
+            return base + Math.max(0, optionalTrailingCount);
+        }
+        return base;
     }
 
     /** Model-typed parent-only trivia size for {@code n} items. */
@@ -354,5 +448,18 @@ public final class ListShapeAnalyzer {
             return prefix + suffix;
         }
         return prefix + (n - 1) * Math.max(0, sepCount) + suffix;
+    }
+
+    public static int modelLocalSize(
+            int n, int prefix, int suffix, int sepCount,
+            int optionalTrailingCount, boolean trailingPresent) {
+        int base = modelLocalSize(n, prefix, suffix, sepCount);
+        if (base < 0) {
+            return -1;
+        }
+        if (n > 0 && trailingPresent) {
+            return base + Math.max(0, optionalTrailingCount);
+        }
+        return base;
     }
 }
