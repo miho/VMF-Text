@@ -35,8 +35,8 @@ public class MultiListShapeHintTest {
         Assert.assertEquals("nums", nums.getPropertyName());
         Assert.assertEquals(0, ids.getOrderIndex());
         Assert.assertEquals(1, nums.getOrderIndex());
-        Assert.assertFalse(ids.getModelTyped());
-        Assert.assertFalse(nums.getModelTyped());
+        Assert.assertFalse(ids.isModelTyped());
+        Assert.assertFalse(nums.isModelTyped());
 
         // Bare lists: no bracket opener; trailing ';' belongs to the first list's suffix
         Assert.assertEquals(0, ids.getPrefixCount());
@@ -119,7 +119,9 @@ public class MultiListShapeHintTest {
         String source = "a ,  b; 1,\n 2";
         MultiListModel model = parser.parse(source);
         model.getRoot().getNums().add(0, 0);
-        Assert.assertEquals("a ,  b; 0, 1,\n 2", unparser.unparse(model));
+        // Insert-at-0 does not invent a space after ';'; former head keeps its
+        // leading trivia after the new comma (same policy as bare-list heads).
+        Assert.assertEquals("a ,  b;0, 1,\n 2", unparser.unparse(model));
     }
 
     @Test
@@ -160,6 +162,6 @@ public class MultiListShapeHintTest {
         model.getRoot().getIds().add("c");
         model.getRoot().getNums().add(0, 7);
 
-        Assert.assertEquals("aa ,  b, c; 7,\n 2", unparser.unparse(model));
+        Assert.assertEquals("aa ,  b, c;7,\n 2", unparser.unparse(model));
     }
 }

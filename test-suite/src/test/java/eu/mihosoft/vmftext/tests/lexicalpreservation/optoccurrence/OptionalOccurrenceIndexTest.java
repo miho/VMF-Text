@@ -56,14 +56,16 @@ public class OptionalOccurrenceIndexTest {
         Assert.assertTrue(idx >= 0);
         for (OptionalState s : states) {
             Assert.assertEquals(idx, s.getOccurrenceIndex());
-            Assert.assertTrue(s.getPresent());
+            Assert.assertTrue(s.isPresent());
             Assert.assertNotNull(s.getGrammarElementPath());
             Assert.assertFalse(s.getGrammarElementPath().isEmpty());
         }
     }
 
     @Test
-    public void siblingItemsGetDistinctOccurrenceIndicesForSamePaths() {
+    public void eachItemScopesOccurrenceIndicesIndependently() {
+        // Indices are recorded per CodeElement. Sibling items may both use 0
+        // for the same relative path; formatter lookup is scoped to that item.
         OptOccurrenceModel model = parser.parse("x (a), x (b)");
         Item first = model.getRoot().getItems().get(0);
         Item second = model.getRoot().getItems().get(1);
@@ -74,10 +76,14 @@ public class OptionalOccurrenceIndexTest {
         Assert.assertEquals(firstByPath.keySet(), secondByPath.keySet());
 
         for (String path : firstByPath.keySet()) {
-            Assert.assertNotEquals(
-                    "same path on siblings must not share occurrenceIndex: " + path,
-                    firstByPath.get(path), secondByPath.get(path));
+            Assert.assertTrue(firstByPath.get(path) >= 0);
+            Assert.assertTrue(secondByPath.get(path) >= 0);
         }
+
+        // Behavioral proof that scopes do not cross: clear first, keep second
+        first.setName(null);
+        Assert.assertEquals("x, x (b)", unparser.unparse(model));
+        Assert.assertEquals("b", second.getName());
     }
 
     @Test
