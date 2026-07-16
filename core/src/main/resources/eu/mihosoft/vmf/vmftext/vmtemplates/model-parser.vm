@@ -56,15 +56,6 @@ interface LexicalInfo {
   @eu.mihosoft.vmf.core.Contains
   TriviaPiece[] getTriviaPieces();
 
-  /**
-   * @deprecated Prefer {@link #getOptionalStates()} (path-keyed,
-   *             occurrence-indexed). Kept as a derived legacy view for
-   *             pre-0.2.1 consumers; removal targeted for a future minor.
-   */
-  @java.lang.Deprecated
-  @eu.mihosoft.vmf.core.IgnoreEquals
-  Boolean[] getOptionalSymbols();
-
   @eu.mihosoft.vmf.core.IgnoreEquals
   @eu.mihosoft.vmf.core.Contains
   OptionalState[] getOptionalStates();

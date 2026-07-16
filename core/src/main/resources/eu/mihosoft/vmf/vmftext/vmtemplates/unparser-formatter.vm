@@ -345,8 +345,6 @@ public interface Formatter {
 
     private final java.util.IdentityHashMap<CodeElement, Integer> hiddenTextCounters =
             new java.util.IdentityHashMap<>();
-    private final java.util.IdentityHashMap<CodeElement, Integer> optionalSymbolsCounters =
-            new java.util.IdentityHashMap<>();
     private final java.util.IdentityHashMap<CodeElement, java.util.Map<String,Integer>> optionalPathCounters =
             new java.util.IdentityHashMap<>();
     
@@ -400,15 +398,8 @@ public interface Formatter {
     private void decHiddenTextCounter(CodeElement e) {
         hiddenTextCounters.put(e, getHiddenTextCounter(e) - 1);
     }
-    private void incOptionalSymbolsCounter(CodeElement e) {
-        optionalSymbolsCounters.put(e, getOptionalSymbolsCounter(e) + 1);
-    }
-    private void decOptionalSymbolsCounter(CodeElement e) {
-        optionalSymbolsCounters.put(e, getOptionalSymbolsCounter(e) - 1);
-    }
     private void reset(CodeElement e) {
         hiddenTextCounters.remove(e);
-        optionalSymbolsCounters.remove(e);
         optionalPathCounters.remove(e);
     }
     private int getHiddenTextCounter(CodeElement e) {
@@ -428,24 +419,26 @@ public interface Formatter {
         return result;
     }
 
-    private java.util.List<Boolean> getOptionalSymbolState(CodeElement e) {
-
+    /**
+     * True when {@code updateOptionalPresenceForNullValueToggle} recorded a
+     * wildcard {@code path="*"} present state (fully absent group → value).
+     */
+    private boolean forceAllOptionalsPresent(CodeElement e) {
         if(e.getLexicalInfo()==null) {
-          return null;
+            return false;
         }
-
-        return e.getLexicalInfo().getOptionalSymbols();
-    }
-
-    private int getOptionalSymbolsCounter(CodeElement e) {
-        Integer value = optionalSymbolsCounters.get(e);
-        return value == null ? 0 : value;
+        for(OptionalState s : e.getLexicalInfo().getOptionalStates()) {
+            if("*".equals(s.getGrammarElementPath()) && s.isPresent()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
      * Returns the recorded optional-presence states for the given grammar
      * element path, in occurrence order, or {@code null} if the element
-     * carries no path-keyed states at all (legacy/positional data only).
+     * carries no path-keyed states at all.
      * An empty list means path-keyed data exists but this path was never
      * recorded, i.e. the element is absent.
      */
@@ -534,43 +527,32 @@ public interface Formatter {
 
                 boolean symbolState = false;
 
-                java.util.List<Boolean> pathStates = getOptionalStatesForPath(e, ruleInfo.getRulePath());
-
-                if(pathStates != null) {
-                  // Prefer exact (path, occurrenceIndex) match when indices are
-                  // recorded (>=0). Fall back to encounter-order for legacy
-                  // states with occurrenceIndex < 0.
-                  int pos = getOptionalPathCounter(e, ruleInfo.getRulePath());
-                  Boolean indexed = findOptionalStateByOccurrence(
-                          e, ruleInfo.getRulePath(), pos);
-                  if(indexed != null) {
-                    symbolState = indexed;
-                  } else if(pos < pathStates.size()) {
-                    symbolState = pathStates.get(pos);
-                  } else {
-                    symbolState = false;
-                  }
-                  incOptionalPathCounter(e, ruleInfo.getRulePath());
-                } else if(getOptionalSymbolState(e)==null) {
-                  System.err.println("OptionalSymbolState NULL: Rule-Info: " + ruleInfo.getGrammarText() + " -> " + ruleInfo.getRuleName());
-                  // Default to keeping the element when state is unknown
+                if(forceAllOptionalsPresent(e)) {
+                  // null→value on a fully unrecorded optional group.
                   symbolState = true;
-                  incOptionalSymbolsCounter(e);
                 } else {
-                  // Legacy positional consumption for models without
-                  // path-keyed states (e.g. restored from pre-0.2.1 data).
-                  int pos = getOptionalSymbolsCounter(e);
-                  if(pos < getOptionalSymbolState(e).size()) {
-                    symbolState = getOptionalSymbolState(e).get(pos);
-                    incOptionalSymbolsCounter(e);
+                  java.util.List<Boolean> pathStates =
+                          getOptionalStatesForPath(e, ruleInfo.getRulePath());
+
+                  if(pathStates != null) {
+                    // Prefer exact (path, occurrenceIndex) match when indices are
+                    // recorded (>=0). Fall back to encounter-order for legacy
+                    // states with occurrenceIndex < 0.
+                    int pos = getOptionalPathCounter(e, ruleInfo.getRulePath());
+                    Boolean indexed = findOptionalStateByOccurrence(
+                            e, ruleInfo.getRulePath(), pos);
+                    if(indexed != null) {
+                      symbolState = indexed;
+                    } else if(pos < pathStates.size()) {
+                      symbolState = pathStates.get(pos);
+                    } else {
+                      symbolState = false;
+                    }
+                    incOptionalPathCounter(e, ruleInfo.getRulePath());
                   } else {
-                    // Out-of-range optional states can occur for elements inside an
-                    // absent optional group, e.g. ('(' ')')?. The parser records
-                    // only the group absence, while the unparser sees each unnamed
-                    // terminal separately. Treat the missing state as absent to
-                    // avoid rendering synthetic optional tokens.
+                    // No OptionalState at all: treat optionals as absent.
+                    // Parse-time presence/absence always records states.
                     symbolState = false;
-                    incOptionalSymbolsCounter(e);
                   }
                 }
 

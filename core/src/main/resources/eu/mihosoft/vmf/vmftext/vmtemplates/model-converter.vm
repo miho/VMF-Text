@@ -432,7 +432,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         int nAfter = list.size();
         int delta = indices.length;
         int nBefore = added ? nAfter - delta : nAfter + delta;
-        if(nBefore < 1 || nAfter < 0) {
+        // Allow nBefore==0 (add into empty) and nAfter==0 (remove last item).
+        if(nBefore < 0 || nAfter < 0) {
             return false;
         }
 
@@ -455,6 +456,20 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         }
 
         // Heuristic (no hint): assume single-terminal separators (K=1).
+        if(nBefore == 0) {
+            // Empty window is pure prefix+suffix — try paren then bare.
+            if(trivia.size() >= 2) {
+                return splicePrimitiveListInRange(
+                        trivia, 0, 1, trivia.size() - 1, 1,
+                        nBefore, nAfter, added, indices);
+            }
+            if(trivia.size() >= 1) {
+                return splicePrimitiveListInRange(
+                        trivia, 0, 0, trivia.size(), 1,
+                        nBefore, nAfter, added, indices);
+            }
+            return false;
+        }
         int footprint = trivia.size() - 2 * nBefore;
         final int P;
         final int S;
@@ -494,13 +509,10 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             boolean added,
             int[] indices) {
 
-        if(nBefore < 1) {
-            return false;
-        }
         int stride = 1 + K; // value + following separator terminals
 
         if(!added) {
-            if(nAfter < 1) {
+            if(nBefore < 1) {
                 return false;
             }
             int[] sorted = indices.clone();
@@ -519,6 +531,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 final int count;
                 if(i == 0) {
                     start = base + P;
+                    // Last remaining item: drop only its value slot; keep P/S.
                     count = (nNow > 1) ? stride : 1;
                 } else {
                     // K seps before value i + the value
@@ -530,7 +543,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 }
                 removeTriviaRange(trivia, start, count);
                 nNow--;
-                if(i == 0 && K > 0 && base + P < trivia.size()) {
+                if(i == 0 && K > 0 && nNow > 0 && base + P < trivia.size()) {
                     TriviaPiece head = trivia.get(base + P);
                     if("LIST_INSERT_PADDING".equals(head.getKind())) {
                         head.setText("");
@@ -550,6 +563,15 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 return false;
             }
             int nNow = nBefore + applied;
+            if(nNow == 0) {
+                // Empty → first item: insert a single value slot inside P…S.
+                if(i != 0) {
+                    return false;
+                }
+                trivia.add(base + P, newTriviaPiece(""));
+                applied++;
+                continue;
+            }
             if(i == 0) {
                 TriviaPiece formerHead = trivia.get(base + P);
                 boolean formerHasText = formerHead.getText() != null
@@ -717,9 +739,10 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
      *   <li>null→value with recorded optional states: mark them present and
      *       insert an empty trivia slot for the new terminal before the
      *       closing-delimiter slot</li>
-     *   <li>null→value with no recorded states (fully absent group): enable
-     *       legacy all-{@code true} optional symbols and ensure trivia slots
-     *       for {@code '(' value ')'} with a space before {@code '('}</li>
+     *   <li>null→value with no recorded states (fully absent group): record a
+     *       wildcard {@code OptionalState} ({@code path="*"}) so the formatter
+     *       treats all optionals on this element as present, and ensure trivia
+     *       slots for {@code '(' value ')'}</li>
      *   <li>value→null: leave trivia and states intact so leading whitespace
      *       survives; the unparser skips property-required optional groups</li>
      * </ul>
@@ -739,10 +762,6 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             for(OptionalState s : states) {
                 s.setPresent(true);
             }
-            info.getOptionalSymbols().clear();
-            for(OptionalState s : states) {
-                info.getOptionalSymbols().add(s.isPresent());
-            }
             // Insert a slot for the newly present value terminal before the
             // last existing slot (usually the closing ')' / pad carrier).
             if(trivia.size() >= 2) {
@@ -754,14 +773,15 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         }
 
         // Fully absent optional group: no path-keyed states were recorded.
-        // Fall back to legacy positional "all present" symbols so '(' / ')'
-        // render, and ensure a 4-slot trivia footprint:
+        // Wildcard present state forces the formatter to emit optional terminals;
+        // ensure a 4-slot trivia footprint:
         //   [leading][before '('][before value][before ')']
         info.getOptionalStates().clear();
-        info.getOptionalSymbols().clear();
-        for(int i = 0; i < 16; i++) {
-            info.getOptionalSymbols().add(Boolean.TRUE);
-        }
+        info.getOptionalStates().add(OptionalState.newBuilder().
+                withGrammarElementPath("*").
+                withOccurrenceIndex(0).
+                withPresent(true).
+                build());
         if(trivia.isEmpty()) {
             trivia.add(newTriviaPiece(""));
         }
@@ -1074,14 +1094,6 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             java.util.List<String> ignoredPiecesOfText = ignoredPiecesOfTextListener.getIgnoredPiecesOfText(eCtx);
             java.util.List<String> optionalStateEntries = getOptionalStateEntryList(eCtx);
 
-            // legacy positional view, derived from the path-keyed entries
-            // (recording order is unchanged, entries are "<path>=<present>")
-            java.util.List<Boolean> optionalSymbols = new java.util.ArrayList<>();
-            for(String optionalStateEntry : optionalStateEntries) {
-                optionalSymbols.add(Boolean.parseBoolean(
-                    optionalStateEntry.substring(optionalStateEntry.lastIndexOf('=')+1)));
-            }
-
             LexicalInfo lexicalInfo = e.getLexicalInfo();
             if(lexicalInfo == null) {
                 lexicalInfo = LexicalInfo.newInstance();
@@ -1094,8 +1106,6 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                         withKind(classifyTriviaKind(piece)).
                         build());
             }
-            lexicalInfo.getOptionalSymbols().clear();
-            lexicalInfo.getOptionalSymbols().addAll(optionalSymbols);
             lexicalInfo.getOptionalStates().clear();
             java.util.Map<String,Integer> optionalOccurrenceCounters =
                     new java.util.HashMap<>();

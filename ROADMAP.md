@@ -130,8 +130,8 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 - **Complete the typed lexical metadata migration** — a typed `LexicalInfo`
   mirror already ships (see README "Typed Lexical Metadata"); retire the
   untyped payload-map fallback for a clean VMF-Jackson / JSON-schema story.
-- **Path-keyed optional-presence state** — remove the positional coupling of
-  `optionalSymbols`.
+- **Path-keyed optional-presence state** — `OptionalState` only; positional
+  `optionalSymbols` removed (0.2.1).
 - **Formatter policy for programmatically created models** — pluggable
   pretty-printing / grammar-aware separators where exact preservation is
   undefined by construction.
@@ -143,8 +143,8 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 - **Original lexeme preservation** — type-mapped lexer spellings round-trip
   when semantic values are unchanged (0.2.1).
 - **Optional null↔value + occurrenceIndex** — presence metadata updates;
-  repeated optional paths use exact occurrence indices; `optionalSymbols`
-  soft-deprecated (0.2.1).
+  repeated optional paths use exact occurrence indices (0.2.1).
+- **Unparsing guide** — [`docs/UNPARSING.md`](docs/UNPARSING.md).
 - **Written LSP stance** — document how to feed the generated model into an
   LSP4J-based server; deliberately do not build a language workbench.
 - **Isolate Java-target ANTLR action injection** — keeps a future door open

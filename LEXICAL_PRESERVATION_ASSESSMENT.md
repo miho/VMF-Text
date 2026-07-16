@@ -140,15 +140,25 @@ original source for restore-when-semantics-match.
 
 ### Remaining gaps / what we can still improve
 
-1. **Irregular / context-sensitive separators:** `ListShapeHint.separatorCount`
-   covers fixed multi-token separators and `item+` (count 0); separators that
-   change by position or alternative still fall back to clear.
-2. **Grammar shape workaround:** wrap each list item as a model type
-   (`value: n=INT`) so add/remove only invalidates that leaf when a shape is
-   still unrecognized.
-3. **Legacy `optionalSymbols`:** still derived (deprecated) for old consumers;
-   occurrence-indexed `OptionalState` is authoritative — remove in a future
-   minor once external payloads no longer need the view.
+**Still this architecture (optional follow-ups, not blocking 0.2.1):**
+
+1. **Multi-alt list hints** — analyzer uses the first alternative as shape
+   oracle; a pipe-alt list on a multi-alt rule can mismatch and clear.
+2. **Optional trailing separator** in size math (`… ','?`) — fixed `P/K/S`
+   may not match when the trailing comma is absent/present.
+
+**User recommendation (docs only — not a missing codegen feature):** wrap list
+items as model types (`value: n=INT`) when a shape is still unrecognized so
+add/remove only touches a leaf.
+
+**Needs a CST / per-gap node model (do not expect in 0.2.x splice polish):**
+
+- Separators that differ by **index** (Oxford: `,` then `, and`)
+- Unlabeled alt separators (`(('+'|'-') t)*` with no model property)
+- Optional separator **per gap** (`(','? item)*`)
+- Arbitrary cross-rule structural moves with perfect outer-container fidelity
+
+How unparsing works end-to-end: [`docs/UNPARSING.md`](docs/UNPARSING.md).
 
 ### What improved over `lexical-preservation-take-2`
 
@@ -195,7 +205,7 @@ OptionalState
 ListShapeHint
   - String propertyName
   - String kind
-  - int prefixCount / suffixCount / orderIndex
+  - int prefixCount / suffixCount / separatorCount / orderIndex
   - boolean modelTyped
 
 TriviaPiece

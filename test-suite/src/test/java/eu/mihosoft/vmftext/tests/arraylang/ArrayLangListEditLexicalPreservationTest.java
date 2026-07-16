@@ -112,13 +112,27 @@ public class ArrayLangListEditLexicalPreservationTest {
     }
 
     @Test
-    public void removeOnlyElementClearsTrivia() {
+    public void removeOnlyElementKeepsPrefixSuffixTrivia() {
         String source = "(1.0 )";
         ArrayLangModel model = parser.parse(source);
+        int before = model.getRoot().getLexicalInfo().getTriviaPieces().size();
 
         model.getRoot().getValues().remove(0);
 
-        Assert.assertTrue(model.getRoot().getLexicalInfo().getTriviaPieces().isEmpty());
+        // Drop only the value slot; keep '(' / ')' / pad so add-back can splice.
+        Assert.assertFalse(model.getRoot().getLexicalInfo().getTriviaPieces().isEmpty());
+        Assert.assertEquals(before - 1,
+                model.getRoot().getLexicalInfo().getTriviaPieces().size());
+        Assert.assertTrue(model.getRoot().getValues().isEmpty());
+    }
+
+    @Test
+    public void removeOnlyElementThenAddRestoresParentheses() {
+        String source = "(1.0 )";
+        ArrayLangModel model = parser.parse(source);
+        model.getRoot().getValues().remove(0);
+        model.getRoot().getValues().add(9.0);
+        Assert.assertEquals("(9.0 )", unparser.unparse(model));
     }
 
     @Test

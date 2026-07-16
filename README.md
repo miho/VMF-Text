@@ -39,7 +39,8 @@ spacing included.
 - **Source bundles** are unrelated to unparse-after-edit: they store original
   source for persistence/restore when semantics still match.
 
-See `LEXICAL_PRESERVATION_ASSESSMENT.md` § *Edit invalidation* for details.
+How unparsing works in detail: [`docs/UNPARSING.md`](docs/UNPARSING.md).
+Edit-invalidation matrix and gaps: `LEXICAL_PRESERVATION_ASSESSMENT.md`.
 
 Runnable showcases live under [`examples/`](examples/) and climb in
 complexity (see that README for the full ladder: ArrayLang → bare lists →
@@ -249,11 +250,11 @@ names.
 ## Typed Lexical Metadata
 
 Parsed `CodeElement`s expose typed lexical metadata via `getLexicalInfo()`.
-The typed mirror contains `TriviaPiece` entries (text plus kind), optional-symbol
-states, the original code range and a grammar element identifier. Optional-element
-presence is available as path-keyed `OptionalState` entries (`getOptionalStates()`),
-which the unparser consumes keyed by grammar element path — robust against ordering
-divergence, with the flat positional list kept as a derived legacy view.
+The typed mirror contains `TriviaPiece` entries (text plus kind), path-keyed
+`OptionalState` entries (`getOptionalStates()` with `occurrenceIndex`),
+`ListShapeHint` / `OriginalLexeme` data, the original code range and a grammar
+element identifier. The unparser consumes optional presence by
+`(grammarElementPath, occurrenceIndex)` — see [`docs/UNPARSING.md`](docs/UNPARSING.md).
 
 Freshly parsed models no longer write `vmf-text:` entries into
 `CodeElement.getPayload()`; lexical metadata lives exclusively on `LexicalInfo`.
