@@ -52,37 +52,46 @@ The first non-preview release in the project's history (previous releases:
       [#7](https://github.com/miho/VMF-Text/issues/7) labeled `roadmap`
       (feed Phase 2)
 
-## Ship 0.2.1 (prep 2026-07-16)
+## Ship 0.2.1 (shipped 2026-07-17)
 
 Lexical-preservation polish release. Details: [`CHANGELOG.md`](CHANGELOG.md),
-[`docs/UNPARSING.md`](docs/UNPARSING.md).
+[`docs/UNPARSING.md`](docs/UNPARSING.md). Released as
+[v0.2.1](https://github.com/miho/VMF-Text/releases/tag/v0.2.1).
 
 - [x] Multi-alt list hints + optional trailing `','?` splice
 - [x] Remove positional `optionalSymbols`; empty-list splice; `separatorCount`
 - [x] Version → `0.2.1` (`config/common.properties`), README / examples aligned
 - [x] Full-chain validation: `sh ./build-and-test-all.sh`
-- [ ] Publish `eu.mihosoft.vmf:vmf-text:0.2.1` to Maven Central
-- [ ] Publish `vmf-text-gradle-plugin:0.2.1` + Plugin Portal / markers
-- [ ] Tag `v0.2.1`, GitHub release
+- [x] Fix `mavenJava`/`pluginMaven` publication coordinate collision (both
+      defaulted to the same GAV; `pluginMaven` now publishes under a
+      distinct `-portal` artifactId) and an eager `pluginMaven` property
+      access in signing that only surfaced under a real signed publish
+- [x] Publish `eu.mihosoft.vmf:vmf-text:0.2.1` to Maven Central
+- [x] Publish `vmf-text-gradle-plugin:0.2.1` to Maven Central + Gradle Plugin
+      Portal (marker published from the plugin build itself this time,
+      resolving the cleanup item below)
+- [x] Tag `v0.2.1`, GitHub release created
 
 ### 0.2.1 / 0.2.11 build cleanup queue
 
-Small papercuts found during the 0.2.0 release, none user-visible — tracked in
-[#19](https://github.com/miho/VMF-Text/issues/19):
+Small papercuts found during the 0.2.0 release, tracked in
+[#19](https://github.com/miho/VMF-Text/issues/19) (closed):
 
-- Set `project.group` and `project.version` at project level in **both**
-  gradle-plugin builds (VMF and VMF-Text) so `publishPlugins` from a release
-  tag no longer needs `-Pgroup=... -Pversion=...` overrides.
-- Align the ANTLR tool and runtime versions in the generated builds
-  (currently a harmless "tool 4.13.2 vs runtime 4.11.1" warning during
-  generation).
-- `gradle-plugin/gradle/project-info.gradle` hardcodes `versionId`; read it
-  from `config/common.properties` like `core` does.
-- Publish the plugin marker to Central from the plugin build itself (the
-  0.2.0/0.2.10 markers were produced by a standalone POM-only publisher
-  project).
+- ~~Set `project.group` and `project.version` at project level in **both**
+  gradle-plugin builds (VMF and VMF-Text)~~ — already done for VMF-Text at
+  0.2.0; VMF's own plugin build is tracked in that sibling repo.
+- Align the ANTLR tool and runtime versions in the generated builds (the
+  "tool 4.13.2 vs runtime 4.11.1" warning did not reproduce during 0.2.1
+  builds; re-check if it resurfaces).
+- ~~`gradle-plugin/gradle/project-info.gradle` hardcodes `versionId`~~ —
+  now reads from `config/common.properties` like `core` does.
+- ~~Publish the plugin marker to Central from the plugin build itself~~ —
+  resolved for 0.2.1: fixing the `pluginMaven` GAV collision let
+  `publishPlugins` sign and publish the plugin + marker directly from this
+  build.
 - Verify the Plugin Portal listings once Gradle approves the group
-  migration (notification arrives by email).
+  migration (notification arrives by email) — still pending on Gradle's
+  side.
 
 ### Publishing prerequisites
 

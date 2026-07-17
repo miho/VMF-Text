@@ -2,7 +2,7 @@
 
 All notable changes to VMF-Text are documented here.
 
-## [0.2.1] — 2026-07-16
+## [0.2.1] — 2026-07-17
 
 Library-grade unparse / lexical preservation polish on the typed `LexicalInfo`
 model (no CST leap).
@@ -37,6 +37,12 @@ model (no CST leap).
   `GradleException` instead of being silently downgraded to a console warning.
   Grammars that previously "succeeded" with undefined-type stubs will now
   surface the error directly instead of generating broken code.
+- gradle-plugin's auto-created `pluginMaven` publication no longer collides
+  with the published `mavenJava` coordinates (Gradle warned the two "will
+  overwrite each other"); an eager `pluginMaven` property access in the
+  signing config that only broke under a real signed publish was fixed the
+  same way. Both were internal build/release-process bugs, not shipped in
+  any prior released artifact.
 
 ### Still out of scope (needs CST / per-gap state)
 
@@ -46,12 +52,11 @@ model (no CST leap).
 
 ### Publish
 
-Artifacts: `eu.mihosoft.vmf:vmf-text:0.2.1`,
-`eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.1`,
-plugin id `eu.mihosoft.vmftext` version `0.2.1`.
-
-See `ROADMAP.md` § Publish commands for Central / Plugin Portal steps
-(credentials are offline `-P` properties).
+Published to Maven Central: `eu.mihosoft.vmf:vmf-text:0.2.1`,
+`eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.1`; Gradle Plugin Portal:
+plugin id `eu.mihosoft.vmftext` version `0.2.1` (including the Central
+plugin marker, published from the plugin build itself for the first time).
+Tag: [v0.2.1](https://github.com/miho/VMF-Text/releases/tag/v0.2.1).
 
 ## [0.2.0] — 2026-07-12
 
