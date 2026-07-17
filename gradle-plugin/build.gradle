@@ -70,6 +70,21 @@ gradlePlugin {
     }
 }
 
+// java-gradle-plugin registers the 'pluginMaven' publication lazily (after this
+// script body finishes evaluating), so named()/getByName() can't see it here yet —
+// configureEach() reacts whenever it actually appears instead. Its default
+// group/artifactId/version is identical to the hand-configured 'mavenJava'
+// publication below (both derive from components.java), which made Gradle warn the
+// two publications "will overwrite each other" wherever both get published
+// (mavenLocal, and potentially Central). 'mavenJava' remains the real published
+// Central artifact (see ROADMAP.md publish commands); this only renames
+// pluginMaven's own coordinate so it no longer collides.
+publishing.publications.configureEach {
+    if (name == 'pluginMaven') {
+        artifactId = "${publishingInfo.artifactId}-portal"
+    }
+}
+
 
 license {
     // Prefer header from sibling 'core'; fallback to 'test-suite'

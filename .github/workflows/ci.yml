@@ -47,7 +47,7 @@ jobs:
         working-directory: test-suite
         run: sh ./gradlew test --no-daemon
 
-      - name: Run ArrayLang round-trip example (local 0.2.1-SNAPSHOT)
+      - name: Run ArrayLang round-trip example (local build)
         working-directory: examples/arraylang-roundtrip
         run: sh ./gradlew run --no-daemon
 

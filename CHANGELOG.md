@@ -29,6 +29,15 @@ model (no CST leap).
 - Insert-at-0 padding / undo for primitive and bare model-typed lists
 - Multi-list trailer/opener ownership via codegen hints
 
+### Fixed
+
+- **Labeled parser wildcards** (`label=.` / `label+=.`) now generate correctly
+  instead of a `FIXME: TYPE IS UNDEFINED` stub (#8)
+- Grammar/model generation errors now **fail the build** with a clear
+  `GradleException` instead of being silently downgraded to a console warning.
+  Grammars that previously "succeeded" with undefined-type stubs will now
+  surface the error directly instead of generating broken code.
+
 ### Still out of scope (needs CST / per-gap state)
 
 - Index-dependent separators (Oxford comma)
