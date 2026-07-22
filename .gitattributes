@@ -1,0 +1,7 @@
+# Normalize line endings so byte-identical round-trip tests behave identically
+# on all platforms (e.g. Windows CI). Grammars, Java sources and text fixtures
+# are checked out with LF regardless of host OS.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF.
+*.bat text eol=crlf

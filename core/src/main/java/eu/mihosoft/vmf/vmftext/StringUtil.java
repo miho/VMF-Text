@@ -24,6 +24,7 @@
 package eu.mihosoft.vmf.vmftext;
 
 import java.io.IOException;
+import org.tinylog.Logger;
 
 public class StringUtil {
 
@@ -48,7 +49,7 @@ public class StringUtil {
         try {
             escapeJavaStyleString(w, str, escapeSingleQuote);
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error(e, "Failed to escape string");
         }
 
         w.close();
@@ -56,7 +57,7 @@ public class StringUtil {
         try {
             return output.toString("UTF-8");
         } catch (java.io.UnsupportedEncodingException e) {
-            e.printStackTrace();
+            Logger.error(e, "Failed to encode escaped string as UTF-8");
             return output.toString();
         }
     }

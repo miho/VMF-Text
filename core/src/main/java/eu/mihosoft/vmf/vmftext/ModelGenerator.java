@@ -135,7 +135,9 @@ public class ModelGenerator {
 
             generateModelDefinition(w, engine, model.getPackageName()+".vmfmodel",model.getPackageName()+".vmfdelegation", model);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new VMFTextGenerationException(
+                    "VMF-Text model generation failed for grammar '"
+                            + model.getGrammarName() + "'", e);
         }
 
         //
@@ -161,8 +163,48 @@ public class ModelGenerator {
             generateModelParser(w, engine, model.getPackageName(),
                     model.getPackageName()+".parser", model, unparserModel);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new VMFTextGenerationException(
+                    "VMF-Text model generation failed for grammar '"
+                            + model.getGrammarName() + "'", e);
         }
+    }
+
+    public void generateTriviaSupport(
+            GrammarModel model, UnparserModel unparserModel, ResourceSet fileset) {
+
+        if(engine==null) {
+            engine = createDefaultEngine();
+        }
+
+        try (Resource resource =
+                     fileset.open(TypeUtil.computeFileNameFromJavaFQN(
+                             model.getPackageName()+".parser."+model.getGrammarName() + "TriviaSupport"));
+
+             Writer w = resource.open()) {
+
+            generateTriviaSupport(w, engine, model.getPackageName(),
+                    model.getPackageName()+".parser", model, unparserModel);
+        } catch (IOException e) {
+            throw new VMFTextGenerationException(
+                    "VMF-Text model generation failed for grammar '"
+                            + model.getGrammarName() + "'", e);
+        }
+    }
+
+    private static void generateTriviaSupport(
+            Writer out, VelocityEngine engine, String modelPackageName, String packageName,
+            GrammarModel model, UnparserModel unparserModel) throws IOException {
+        VelocityContext context = new VelocityContext();
+        context.put("model", model);
+        context.put("TEMPLATE_PATH",TEMPLATE_PATH);
+        context.put("modelPackageName", modelPackageName);
+        context.put("packageName", packageName);
+        context.put("Util", StringUtil.class);
+        context.put("listShapeHints",
+                eu.mihosoft.vmf.vmftext.grammar.unparser.ListShapeAnalyzer.analyze(
+                        model, unparserModel));
+
+        mergeTemplate("trivia-support", engine, context, out);
     }
 
     public void generateSourceBundle(GrammarModel model, ResourceSet fileset) {
@@ -184,7 +226,9 @@ public class ModelGenerator {
 
             generateSourceBundle(w, engine, model.getPackageName(), model, vmfTextVersion);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new VMFTextGenerationException(
+                    "VMF-Text model generation failed for grammar '"
+                            + model.getGrammarName() + "'", e);
         }
     }
 
@@ -216,7 +260,9 @@ public class ModelGenerator {
             generateCodeElementDelegate(w, engine,
                     model.getPackageName(), model);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new VMFTextGenerationException(
+                    "VMF-Text model generation failed for grammar '"
+                            + model.getGrammarName() + "'", e);
         }
     }
 
@@ -258,7 +304,9 @@ public class ModelGenerator {
 
             generateUnparserFormatter(w, engine,model.getPackageName(), model);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new VMFTextGenerationException(
+                    "VMF-Text model generation failed for grammar '"
+                            + model.getGrammarName() + "'", e);
         }
 
         try (Resource resource =
@@ -269,7 +317,9 @@ public class ModelGenerator {
 
             generateUnparserBaseFormatter(w, engine,model.getPackageName(), model);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new VMFTextGenerationException(
+                    "VMF-Text model generation failed for grammar '"
+                            + model.getGrammarName() + "'", e);
         }
 
         try (Resource resource =
@@ -280,7 +330,9 @@ public class ModelGenerator {
 
             generateTypeToStringConverter(w, engine,model.getPackageName(), model);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new VMFTextGenerationException(
+                    "VMF-Text model generation failed for grammar '"
+                            + model.getGrammarName() + "'", e);
         }
     }
 

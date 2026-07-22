@@ -28,6 +28,8 @@ import eu.mihosoft.vmf.vmftext.grammar.*;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4Parser;
 import eu.mihosoft.vmf.vmftext.grammar.antlr4.ANTLRv4ParserBaseListener;
 
+import org.tinylog.Logger;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -67,7 +69,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
             throw new IllegalArgumentException("Cannot convert unlabeled element to property.");
         }
 
-        System.out.println("> generating properties for rule '" + ruleName + "':");
+        Logger.debug("> generating properties for rule '" + ruleName + "':");
 
         boolean hasEBNF = e.ebnfSuffix() !=null;
 
@@ -85,7 +87,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         // Synthetic stand-in for list-labeled '.' (issue #8 / LabeledDotRewriter):
         // expose as a token-typed String property, not a nested rule class.
         if (ParseTreeUtil.isWildcardTokenProxy(e) || ParseTreeUtil.isDotWildcard(e)) {
-            System.out.println("   -> labeled wildcard / any-token proxy. Using String conversion.");
+            Logger.debug("   -> labeled wildcard / any-token proxy. Using String conversion.");
 
             property.setType(Type.newBuilder().
                     withArrayType(isListType).
@@ -105,7 +107,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
             String lexerRuleName = ParseTreeUtil.getElementText(e);
 
-            System.out.println(" -> entering lexer rule '" + lexerRuleName+"':");
+            Logger.debug(" -> entering lexer rule '" + lexerRuleName+"':");
 
 
             Optional<TypeMapping> map = mappings.getTypeMappings().stream().
@@ -114,7 +116,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
             if(map.isPresent()) {
 
-                System.out.println("   -> type map is present");
+                Logger.debug("   -> type map is present");
 
                 Optional<Mapping> tm = map.get().mappingByRuleName(lexerRuleName);
 
@@ -122,12 +124,12 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
                     String fullTypeName = tm.get().getTypeName();
 
-                    System.out.println("   -> replacing '" + lexerRuleName+"' with '" + fullTypeName+"'.");
+                    Logger.debug("   -> replacing '" + lexerRuleName+"' with '" + fullTypeName+"'.");
 
                     String packageName = TypeUtil.getPackageNameFromFullClassName(fullTypeName);
                     String shortTypeName = TypeUtil.getShortNameFromFullClassName(fullTypeName);
 
-                    System.out.println("name: " + packageName + ", "+ shortTypeName);
+                    Logger.debug("name: " + packageName + ", "+ shortTypeName);
 
                     property.setType(Type.newBuilder().
                             withArrayType(isListType).
@@ -144,7 +146,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
                 } else {
 
-                    System.out.println("   -> no replacement found for rule '"
+                    Logger.debug("   -> no replacement found for rule '"
                             + lexerRuleName+"'. Using String conversion.");
 
                     property.setType(Type.newBuilder().
@@ -155,7 +157,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
                             build());
                 }
             } else {
-                System.out.println("   -> no type map found for rule '"
+                Logger.debug("   -> no type map found for rule '"
                         + lexerRuleName+"'. Using String conversion.");
 
                 property.setType(Type.newBuilder().
@@ -167,7 +169,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
             }
         } else {
             // String literals map to token-typed String properties.
-            System.out.println("   -> no rule. Using String conversion.");
+            Logger.debug("   -> no rule. Using String conversion.");
 
             property.setType(Type.newBuilder().
                     withArrayType(isListType).
@@ -195,13 +197,13 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
         String ruleName = ctx.RULE_REF().getText();
 
-        System.out.println("------------------------------------------------------");
-        System.out.println("ParserRule: " + ruleName);
-        System.out.println("------------------------------------------------------");
+        Logger.debug("------------------------------------------------------");
+        Logger.debug("ParserRule: " + ruleName);
+        Logger.debug("------------------------------------------------------");
 
         // Hide the synthetic any-token stand-in from the public model (issue #8).
         if (ParseTreeUtil.isWildcardTokenProxyRule(ruleName)) {
-            System.out.println("  -> [SKIP] synthetic labeled-dot stand-in");
+            Logger.debug("  -> [SKIP] synthetic labeled-dot stand-in");
             currentRule = null;
             super.enterParserRuleSpec(ctx);
             return;
@@ -212,7 +214,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
         if(currentRuleOpt.isPresent()) {
             currentRule = currentRuleOpt.get();
-            System.out.println("  -> [UPDATE] merging with existing rule '"+ruleName+"'");
+            Logger.debug("  -> [UPDATE] merging with existing rule '"+ruleName+"'");
         } else {
             currentRule = RuleClass.newBuilder().withName(ruleName).build();
         }
@@ -233,14 +235,14 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
             String ruleName = ctx.identifier().getText();
 
-            System.out.println("-> labeled-alt-rule: " + ruleName);
+            Logger.debug("-> labeled-alt-rule: " + ruleName);
 
             Optional<RuleClass> currentRuleOpt = model.getRuleClasses().stream().
                     filter(rc->Objects.equals(rc.getName(),ruleName)).findAny();
 
             if(currentRuleOpt.isPresent()) {
                 currentRule = currentRuleOpt.get();
-                System.out.println("  -> [UPDATE] merging with existing rule '"+ruleName+"'");
+                Logger.debug("  -> [UPDATE] merging with existing rule '"+ruleName+"'");
             } else {
                 currentRule = RuleClass.newBuilder().withName(ruleName).build();
             }
@@ -250,7 +252,7 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
             currentRule.setCodeRange(ParseTreeUtil.ctxToCodeRange(ctx));
 
             if (superClassRule != null) {
-                System.out.println("  -> setting superRuleCls: " + superClassRule.nameWithLower());
+                Logger.debug("  -> setting superRuleCls: " + superClassRule.nameWithLower());
                 currentRule.setSuperClass(superClassRule);
             }
         }
@@ -274,9 +276,9 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
     @Override
     public void enterGrammarSpec(ANTLRv4Parser.GrammarSpecContext ctx) {
-        System.out.println("------------------------------------------------------");
-        System.out.println("Enter Grammar '" + ctx.identifier().getText() + "'");
-        System.out.println("------------------------------------------------------");
+        Logger.debug("------------------------------------------------------");
+        Logger.debug("Enter Grammar '" + ctx.identifier().getText() + "'");
+        Logger.debug("------------------------------------------------------");
 
         model.setGrammarName(ctx.identifier().getText());
 
@@ -285,9 +287,9 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
     @Override
     public void enterOptionsSpec(ANTLRv4Parser.OptionsSpecContext ctx) {
-        System.out.println("------------------------------------------------------");
-        System.out.println("Enter OptionsSpec");
-        System.out.println("------------------------------------------------------");
+        Logger.debug("------------------------------------------------------");
+        Logger.debug("Enter OptionsSpec");
+        Logger.debug("------------------------------------------------------");
 
         model.setOptions(Options.newBuilder().build());
 
@@ -296,26 +298,26 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
     @Override
     public void enterOption(ANTLRv4Parser.OptionContext ctx) {
-        System.out.println("------------------------------------------------------");
-        System.out.println("Enter Option");
-        System.out.println("------------------------------------------------------");
+        Logger.debug("------------------------------------------------------");
+        Logger.debug("Enter Option");
+        Logger.debug("------------------------------------------------------");
 
         var optionsName = ctx.identifier().getText();
 
         if("superClass".equals(optionsName)) {
             var superClassName = ctx.optionValue().getText();
-            System.out.println(" -> setting superClass: " + superClassName);
+            Logger.debug(" -> setting superClass: " + superClassName);
             model.getOptions().setSuperClassName(superClassName);
         } else {
-            System.out.println(" -> ignoring option: " + optionsName);
+            Logger.debug(" -> ignoring option: " + optionsName);
         }
     }
 
     @Override
     public void exitGrammarSpec(ANTLRv4Parser.GrammarSpecContext ctx) {
-        System.out.println("------------------------------------------------------");
-        System.out.println("Exit Grammar '" + ctx.identifier().getText() + "'");
-        System.out.println("------------------------------------------------------");
+        Logger.debug("------------------------------------------------------");
+        Logger.debug("Exit Grammar '" + ctx.identifier().getText() + "'");
+        Logger.debug("------------------------------------------------------");
 
         initPropertyTasks.forEach(t -> t.run());
 

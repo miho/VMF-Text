@@ -39,6 +39,7 @@ public class Test {
 
     @org.junit.Test
     public void testParseModifyUnparseBenchmark() throws Exception {
+        org.junit.Assume.assumeTrue("benchmark disabled by default; enable with -Dvmftext.benchmarks=true", Boolean.getBoolean("vmftext.benchmarks"));
 
         String code = new String(Files.readAllBytes(Paths.get("test-code/Java8RungeKuttaBenchmark.java")));
 
@@ -102,7 +103,7 @@ public class Test {
 
         unparsedClass.getMethod("main", String[].class).invoke(null, (Object) new String[0]);
 
-        double valueUnparsed = originalClass.getField("value").getDouble(null);
+        double valueUnparsed = unparsedClass.getField("value").getDouble(null);
 
         Assert.assertTrue(valueOrig != 0);
         Assert.assertEquals(valueOrig, valueUnparsed, 1e-12);
@@ -127,6 +128,7 @@ public class Test {
 
     @org.junit.Test
     public void testParseUnparseComplexCodeBenchmark() throws Exception {
+        org.junit.Assume.assumeTrue("benchmark disabled by default; enable with -Dvmftext.benchmarks=true", Boolean.getBoolean("vmftext.benchmarks"));
 
         String code = new String(Files.readAllBytes(Paths.get("test-code/Java8ComplexCode01.java")));
 

@@ -40,6 +40,7 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.tool.ErrorType;
 import org.antlr.v4.tool.Grammar;
 import org.mdkt.compiler.InMemoryJavaCompiler;
+import org.tinylog.Logger;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -142,49 +143,36 @@ public class VMFText {
             options = GenerationOptions.defaults();
         }
 
-        // Apply optional auto-labeling before all other grammar rewrites. Metadata
-        // inside VMF-Text comments can enable auto-labeling per grammar, while the
-        // GenerationOptions flag can enable it globally (e.g. from Gradle).
+        final File grammarInput = grammar;
+
         try {
+            // Apply optional auto-labeling before all other grammar rewrites. Metadata
+            // inside VMF-Text comments can enable auto-labeling per grammar, while the
+            // GenerationOptions flag can enable it globally (e.g. from Gradle).
             List<String> comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
             if(options.isAutoLabel() || GrammarMetaInformationUtil.isAutoLabelEnabled(comments)) {
                 grammar = AutoLabeler.rewrite(grammar, options.isEmitAutoLabelReport());
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
-        // Rewrite list-labeled wildcards (label+=.) before optional wrapping / AntlrTool
-        // so ANTLR emits valid List-backed labels (issue #8).
-        try {
+            // Rewrite list-labeled wildcards (label+=.) before optional wrapping / AntlrTool
+            // so ANTLR emits valid List-backed labels (issue #8).
             grammar = LabeledDotRewriter.rewrite(grammar);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
-        // rewrite grammar
-        try {
+            // rewrite grammar (wrap optionals + inject optional-state actions)
             grammar = rewriteGrammar(grammar);
-            System.out.println("FILE: " + grammar);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            Logger.debug("Rewritten grammar file: {}", grammar);
 
+            AntlrTool.setOutput(outputDir);
 
-        AntlrTool.setOutput(outputDir);
+            AntlrTool.main(
+                    new String[]{
+                            grammar.getAbsolutePath(),
+                            "-listener",
+                            "-package", packageName+".parser",
+                            "-o", ""
+                    }
+            );
 
-        AntlrTool.main(
-                new String[]{
-                        grammar.getAbsolutePath(),
-                        "-listener",
-                        "-package", packageName+".parser",
-//                "-lib",
-//                "srcPath",
-                        "-o", "" // packageName.replace('.','/')
-                }
-        );
-
-        try {
             GrammarAndUnparser conversionResult = convertGrammarToModel(grammar);
 
             GrammarModel model = conversionResult.model;
@@ -209,6 +197,9 @@ public class VMFText {
             // generate parser (needs unparser model for list-shape hints)
             generator.generateModelParser(model, unparserModel, outputDir);
 
+            // generate trivia-splice support class (extracted from the converter template)
+            generator.generateTriviaSupport(model, unparserModel, outputDir);
+
             generator.generateModelUnparser(model, unparserModel, grammar, outputDir);
 
             // generate model classes for in-memory compilation
@@ -217,12 +208,15 @@ public class VMFText {
 
             generateModelCode(outputDir, modelGenCode);
 
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (VMFTextGenerationException e) {
+            // already a clear generation failure — do not double-wrap
+            throw e;
         } catch (Exception e) {
-            e.printStackTrace();
+            // Fail loudly instead of printing a stack trace and continuing with
+            // missing/partial output (the previous behavior produced a "green"
+            // build that only broke later at javac time on the generated sources).
+            throw new VMFTextGenerationException(
+                    "VMF-Text generation failed for grammar '" + grammarInput + "': " + e.getMessage(), e);
         }
     }
 
@@ -250,23 +244,23 @@ public class VMFText {
         try {
             gcl.parseClass(modelDefCode);
         } catch(Exception ex) {
-            ex.printStackTrace(System.err);
-            return;
+            throw new VMFTextGenerationException(
+                    "Failed to compile the generated VMF model definitions", ex);
         }
 
-        System.out.println("------------------------------------------------------");
-        System.out.println("Generated Model Classes:");
-        System.out.println("------------------------------------------------------");
+        Logger.debug("------------------------------------------------------");
+        Logger.debug("Generated Model Classes:");
+        Logger.debug("------------------------------------------------------");
 
-        classNames.forEach(clsN -> System.out.println("-> type: " + clsN));
+        classNames.forEach(clsN -> Logger.debug("-> type: " + clsN));
 
         Class[] classes = classNames.stream().map(clsN -> {
             try {
                 return gcl.loadClass(clsN);
             } catch (ClassNotFoundException e) {
-                e.printStackTrace(System.err);
+                throw new VMFTextGenerationException(
+                        "Generated model class not found: " + clsN, e);
             }
-            return null;
         }).collect(Collectors.toList()).toArray(new Class[classNames.size()]);
 
         VMF.generate(outputDir, classes);
@@ -521,14 +515,14 @@ public class VMFText {
 
         List<String> comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
 
-        System.out.println("\n------------------------------------------------------");
-        System.out.println("Meta-Info:");
-        System.out.println("------------------------------------------------------");
+        Logger.debug("\n------------------------------------------------------");
+        Logger.debug("Meta-Info:");
+        Logger.debug("------------------------------------------------------");
 
         TypeMappings typeMappings = TypeMappings.newInstance();
 
         for(String s : comments) {
-            System.out.println(s);
+            Logger.debug(s);
             GrammarMetaInformationUtil.getTypeMapping(typeMappings, s);
         }
 
@@ -539,17 +533,17 @@ public class VMFText {
 
         GrammarModel model = grammarToModelListener.getModel();
 
-        System.out.println("\n------------------------------------------------------");
-        System.out.println("Custom-Model-Definitions:");
-        System.out.println("------------------------------------------------------");
+        Logger.debug("\n------------------------------------------------------");
+        Logger.debug("Custom-Model-Definitions:");
+        Logger.debug("------------------------------------------------------");
 
         for(String s : comments) {
             GrammarMetaInformationUtil.getCustomAnnotations(s, model);
         }
 
-        System.out.println("\n------------------------------------------------------");
-        System.out.println("Grammar Matcher:");
-        System.out.println("------------------------------------------------------");
+        Logger.debug("\n------------------------------------------------------");
+        Logger.debug("Grammar Matcher:");
+        Logger.debug("------------------------------------------------------");
 
         GrammarToRuleMatcherListener matchListenr = new GrammarToRuleMatcherListener(tokens);
 
@@ -559,7 +553,7 @@ public class VMFText {
         grammarAndUnparser.model = model;
         grammarAndUnparser.unparserModel = matchListenr.getModel();
 
-        System.out.println("-> unparser model generated.");
+        Logger.debug("-> unparser model generated.");
 
         return grammarAndUnparser;
     }
@@ -590,8 +584,14 @@ public class VMFText {
                 try {
                     res.close();
                 } catch (IOException ex) {
-                    ex.printStackTrace(System.err);
+                    Logger.error(ex, "Failed to close generated resource");
                 }
+            }
+            openedResources.clear();
+            if(e != 0) {
+                throw new VMFTextGenerationException(
+                        "ANTLR reported " + errMgr.getNumErrors()
+                                + " grammar error(s); code generation aborted");
             }
         }
 
@@ -629,7 +629,7 @@ public class VMFText {
                 if ( antlr.log ) {
                     try {
                         String logname = antlr.logMgr.save();
-                        System.out.println("wrote "+logname);
+                        Logger.debug("wrote "+logname);
                     }
                     catch (IOException ioe) {
                         antlr.errMgr.toolError(ErrorType.INTERNAL_ERROR, ioe);

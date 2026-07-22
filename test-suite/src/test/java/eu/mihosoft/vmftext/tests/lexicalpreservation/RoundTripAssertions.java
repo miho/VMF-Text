@@ -31,6 +31,6 @@ public final class RoundTripAssertions {
         mutation.accept(model);
         String unparsed = unparser.apply(model);
         T reparsed = parser.apply(unparsed);
-        Assert.assertEquals(reparsed, parser.apply(unparsed));
+        Assert.assertEquals(model, reparsed);
     }
 }

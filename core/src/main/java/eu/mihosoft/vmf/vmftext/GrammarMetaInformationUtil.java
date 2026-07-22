@@ -40,6 +40,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.tinylog.Logger;
 
 import javax.swing.text.html.Option;
 import java.io.IOException;
@@ -221,7 +222,7 @@ public final class GrammarMetaInformationUtil {
                 Optional<Property> prop = model.propertyByName(currentRuleName, propName);
 
                 if (!prop.isPresent()) {
-                    System.out.println(" -> adding custom parameter '" +
+                    Logger.debug(" -> adding custom parameter '" +
                             propName + "' to rule '" + currentRuleName + "'.");
 
                     Optional<RuleClass> ruleClass = model.ruleClassByName(currentRuleName);
@@ -265,7 +266,7 @@ public final class GrammarMetaInformationUtil {
                             "does not exist in the grammar.");
                 }
 
-                System.out.println(" -> adding delegation-method: " + tokens.getText(ctx.returnType) + " " +
+                Logger.debug(" -> adding delegation-method: " + tokens.getText(ctx.returnType) + " " +
                         tokens.getText(ctx.name, ctx.name) + "()");
 
                 ruleClass.get().getDelegationMethods().add(
@@ -281,12 +282,12 @@ public final class GrammarMetaInformationUtil {
 
                 currentRuleName = ctx.ruleName.getText();
 
-                System.out.println("> Entering rule '" + ctx.ruleName.getText() + "'");
+                Logger.debug("> Entering rule '" + ctx.ruleName.getText() + "'");
 
                 if (!model.ruleClassByName(currentRuleName).isPresent()) {
 
                     if (!definedCustomRules.contains(currentRuleName)) {
-                        System.out.println(" -> rule does not exist. Adding model class outside of the grammar spec.");
+                        Logger.debug(" -> rule does not exist. Adding model class outside of the grammar spec.");
                         definedCustomRules.add(currentRuleName);
                         model.getCustomRules().add(CustomRule.newBuilder().withText(tokens.getText(ctx)).build());
                     }
@@ -301,7 +302,7 @@ public final class GrammarMetaInformationUtil {
                     }
 
                     if (ctx.annotations != null) {
-                        System.out.println(" -> adding custom annotations");
+                        Logger.debug(" -> adding custom annotations");
                         ruleClass.getCustomRuleAnnotations().addAll(
                                 ctx.annotations.stream().map(aCtx -> RuleAnnotation.newBuilder().
                                         withText(tokens.getText(aCtx)).build()).

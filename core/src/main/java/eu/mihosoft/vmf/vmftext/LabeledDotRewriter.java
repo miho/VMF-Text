@@ -26,6 +26,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStreamRewriter;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.tinylog.Logger;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -139,10 +140,10 @@ final class LabeledDotRewriter {
                 }
             }
 
-            System.out.println("------------------------------------------------------");
-            System.out.println("Labeled-dot rewrite: replaced list-labeled '.' with '"
+            Logger.debug("------------------------------------------------------");
+            Logger.debug("Labeled-dot rewrite: replaced list-labeled '.' with '"
                     + ANY_TOKEN_RULE + "' (ANTLR issue: +=. codegen)");
-            System.out.println("------------------------------------------------------");
+            Logger.debug("------------------------------------------------------");
 
             Path dir = Files.createTempDirectory("vmf-text-labeled-dot");
             File grammarOut = new File(dir.toFile(), grammar.getName());

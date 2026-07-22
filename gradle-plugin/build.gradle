@@ -43,6 +43,17 @@ tasks.withType(JavaCompile).configureEach {
     options.release = 11
 }
 
+// The plugin is authored in Groovy, and GroovyCompile is NOT a JavaCompile, so
+// the release=11 above does not apply to it. Without this, the plugin class is
+// emitted as Java-21 bytecode (class file 65.0) and fails to load with an
+// UnsupportedClassVersionError on any Gradle running on JDK 17 (a supported
+// Gradle 9 runtime). Target Java 11 bytecode so the plugin loads everywhere
+// Gradle 9 does.
+tasks.withType(GroovyCompile).configureEach {
+    sourceCompatibility = '11'
+    targetCompatibility = '11'
+}
+
 
 dependencies {
     implementation gradleApi()

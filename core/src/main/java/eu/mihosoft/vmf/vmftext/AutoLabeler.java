@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.tinylog.Logger;
 
 /**
  * Rewrites unlabeled parser/lexer references into deterministic ANTLR labels.
@@ -83,7 +84,7 @@ final class AutoLabeler {
             ParseTreeWalker.DEFAULT.walk(listener, tree);
 
             if(emitReport && listener.hasEntries()) {
-                System.out.println(listener.report());
+                Logger.info(listener.report());
             }
 
             Path dir = Files.createTempDirectory("vmf-text-autolabel");

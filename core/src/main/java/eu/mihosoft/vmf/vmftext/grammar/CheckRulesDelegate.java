@@ -31,6 +31,7 @@ import vjavax.observer.collection.CollectionChangeListener;
 
 import java.util.ArrayList;
 import java.util.Objects;
+import org.tinylog.Logger;
 
 public class CheckRulesDelegate implements DelegatedBehavior<GrammarModel> {
     GrammarModel caller;
@@ -50,7 +51,7 @@ public class CheckRulesDelegate implements DelegatedBehavior<GrammarModel> {
                     for(RuleClass p2 : new ArrayList<>(evt.source())) {
                         if(p1!=p2 && Objects.equals(p1.getName(),p2.getName())) {
                             evt.source().remove(p1);
-                            System.err.println("ERROR: duplicate rule classes '"+p1.getName()+"'!");
+                            Logger.error("Duplicate rule classes '{}'", p1.getName());
                         }
                     }
                 }

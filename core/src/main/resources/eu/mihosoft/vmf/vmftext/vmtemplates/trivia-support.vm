@@ -1,0 +1,943 @@
+#*
+ * Generated lexical-preservation splice support (extracted from the model
+ * converter template so the trivia-splice logic lives in one focused class).
+ *#
+package ${packageName};
+
+// java core imports
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.io.File;
+import java.io.InputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+
+// antlr4 imports
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.TokenStream;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.ANTLRErrorListener;
+import org.antlr.v4.runtime.ANTLRErrorStrategy;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
+// model imports (same set the converter uses; deliberately no runtime.core /
+// vcollections wildcard so grammar rule classes like 'Annotation' don't clash)
+import ${modelPackageName}.*;
+import static ${packageName}.${Util.firstToUpper($model.grammarName)}Parser.*;
+
+final class ${Util.firstToUpper($model.grammarName)}TriviaSupport {
+
+    private ${Util.firstToUpper($model.grammarName)}TriviaSupport() { throw new AssertionError("no instances"); }
+
+    /**
+     * Surgical trivia splice for delimited primitive lists:
+     * <ul>
+     *   <li>Bare {@code item (',' item)* [EOF]} — {@code size == 2N} or {@code 2N+1}
+     *       (prefix {@code P=0})</li>
+     *   <li>Parenthesized {@code '(' item (',' item)* ')' [EOF]} —
+     *       {@code size == 2N+2} or {@code 2N+3} (prefix {@code P=1})</li>
+     * </ul>
+     * Footprint {@code F = size - 2N} distinguishes the shapes. Supports single-
+     * and multi-index add/remove. Returns {@code false} when the pattern does not
+     * match so the caller can {@code clear()}.
+     */
+    static boolean spliceDelimitedPrimitiveListTrivia(
+            CodeElement element,
+            String propertyName,
+            eu.mihosoft.vcollections.VListChangeEvent<?> listChange) {
+
+        if(listChange == null || element.getLexicalInfo() == null) {
+            return false;
+        }
+
+        boolean added = listChange.wasAdded();
+        boolean removed = listChange.wasRemoved();
+        if(added == removed) {
+            return false;
+        }
+
+        int[] indices = added
+                ? listChange.added().indices()
+                : listChange.removed().indices();
+        if(indices == null || indices.length == 0) {
+            return false;
+        }
+
+        java.util.List<?> list = listChange.source();
+        int nAfter = list.size();
+        int delta = indices.length;
+        int nBefore = added ? nAfter - delta : nAfter + delta;
+        // Allow nBefore==0 (add into empty) and nAfter==0 (remove last item).
+        if(nBefore < 0 || nAfter < 0) {
+            return false;
+        }
+
+        java.util.List<TriviaPiece> trivia =
+                element.getLexicalInfo().getTriviaPieces();
+
+        ListShapeHint hint = findMatchingListShapeHint(
+                element, propertyName, "PRIMITIVE_DELIMITED", nBefore, trivia.size());
+        if(hint != null) {
+            int P = hint.getPrefixCount();
+            int S = hint.getSuffixCount();
+            int K = Math.max(0, hint.getSeparatorCount());
+            int T = Math.max(0, hint.getOptionalTrailingCount());
+            int base = computeTriviaBaseForList(element, hint, nBefore, propertyName);
+            if(base < 0) {
+                return false;
+            }
+            boolean trailing = detectTrailingPresent(
+                    trivia.size(), base, nBefore, P, S, K, T, true);
+            int expectedLocal = primitiveLocalSize(nBefore, P, S, K, T, trailing);
+            if(base + expectedLocal > trivia.size()) {
+                // Refuse whole-trivia fallback so multi-list siblings stay intact.
+                return false;
+            }
+            return splicePrimitiveListInRange(
+                    trivia, base, P, S, K, T, trailing,
+                    nBefore, nAfter, added, indices);
+        }
+
+        // Heuristic (no hint): assume single-terminal separators (K=1).
+        if(nBefore == 0) {
+            // Empty window is pure prefix+suffix — try paren then bare.
+            if(trivia.size() >= 2) {
+                return splicePrimitiveListInRange(
+                        trivia, 0, 1, trivia.size() - 1, 1, 0, false,
+                        nBefore, nAfter, added, indices);
+            }
+            if(trivia.size() >= 1) {
+                return splicePrimitiveListInRange(
+                        trivia, 0, 0, trivia.size(), 1, 0, false,
+                        nBefore, nAfter, added, indices);
+            }
+            return false;
+        }
+        int footprint = trivia.size() - 2 * nBefore;
+        final int P;
+        final int S;
+        if(footprint == 0 || footprint == 1) {
+            P = 0;
+            S = footprint + 1; // size = n+(n-1)+S = 2n-1+S ⇒ S=footprint+1
+        } else if(footprint == 2 || footprint == 3) {
+            P = 1;
+            S = footprint; // size = 1+n+(n-1)+S = 2n+S ⇒ S=footprint
+        } else {
+            return false;
+        }
+        return splicePrimitiveListInRange(
+                trivia, 0, P, S, 1, 0, false, nBefore, nAfter, added, indices);
+    }
+
+    /** {@code prefix + n + (n-1)*K + suffix} for primitive lists. */
+    static int primitiveLocalSize(int n, int P, int S, int K) {
+        if(n <= 0) {
+            return P + S;
+        }
+        return P + n + (n - 1) * K + S;
+    }
+
+    static int primitiveLocalSize(
+            int n, int P, int S, int K, int T, boolean trailingPresent) {
+        int base = primitiveLocalSize(n, P, S, K);
+        if(n > 0 && trailingPresent) {
+            return base + T;
+        }
+        return base;
+    }
+
+    /**
+     * Effective fixed+optional suffix for splice layout. Trailing separators are
+     * never kept when the list is empty.
+     */
+    static int effectiveSuffix(int n, int S, int T, boolean trailingPresent) {
+        if(n <= 0) {
+            return S;
+        }
+        return S + (trailingPresent ? T : 0);
+    }
+
+    static boolean detectTrailingPresent(
+            int triviaSize, int base, int n, int P, int S, int K, int T,
+            boolean primitive) {
+        if(T <= 0 || n <= 0) {
+            return false;
+        }
+        int without = primitive
+                ? primitiveLocalSize(n, P, S, K)
+                : modelLocalSize(n, P, S, K);
+        int with = without + T;
+        int avail = triviaSize - base;
+        if(avail == with) {
+            return true;
+        }
+        if(avail == without) {
+            return false;
+        }
+        // Multi-list: later siblings consume the remainder — prefer with-trailing
+        // when that window still fits.
+        if(avail > with) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Splices a primitive list window.
+     * Layout: {@code [P prefix][val][sep×K]…[val][T optional trailing][S suffix]}.
+     */
+    static boolean splicePrimitiveListInRange(
+            java.util.List<TriviaPiece> trivia,
+            int base,
+            int P,
+            int S,
+            int K,
+            int T,
+            boolean trailingPresent,
+            int nBefore,
+            int nAfter,
+            boolean added,
+            int[] indices) {
+
+        int stride = 1 + K; // value + following separator terminals
+
+        if(!added) {
+            if(nBefore < 1) {
+                return false;
+            }
+            int[] sorted = indices.clone();
+            java.util.Arrays.sort(sorted);
+            int nNow = nBefore;
+            boolean trail = trailingPresent;
+            for(int k = sorted.length - 1; k >= 0; k--) {
+                int i = sorted[k];
+                if(i < 0 || i >= nNow) {
+                    return false;
+                }
+                int Seff = effectiveSuffix(nNow, S, T, trail);
+                int localSize = primitiveLocalSize(nNow, P, Seff, K);
+                if(trivia.size() < base + localSize) {
+                    return false;
+                }
+                final int start;
+                final int count;
+                if(i == 0) {
+                    start = base + P;
+                    if(nNow > 1) {
+                        count = stride;
+                    } else {
+                        // Last remaining item: drop value (+ trailing if present).
+                        count = 1 + (trail ? T : 0);
+                        trail = false;
+                    }
+                } else {
+                    // K seps before value i + the value
+                    start = base + P + i * stride - K;
+                    count = stride;
+                }
+                if(start < 0 || start + count > trivia.size()) {
+                    return false;
+                }
+                removeTriviaRange(trivia, start, count);
+                nNow--;
+                if(i == 0 && K > 0 && nNow > 0 && base + P < trivia.size()) {
+                    TriviaPiece head = trivia.get(base + P);
+                    if("LIST_INSERT_PADDING".equals(head.getKind())) {
+                        head.setText("");
+                        head.setKind(classifyTriviaKind(""));
+                    }
+                }
+            }
+            return nNow == nAfter;
+        }
+
+        int[] sorted = indices.clone();
+        java.util.Arrays.sort(sorted);
+        int applied = 0;
+        boolean trail = trailingPresent;
+        for(int raw : sorted) {
+            int i = raw;
+            if(i < 0 || i > nBefore + applied) {
+                return false;
+            }
+            int nNow = nBefore + applied;
+            if(nNow == 0) {
+                // Empty → first item: insert a single value slot inside P…S.
+                if(i != 0) {
+                    return false;
+                }
+                trivia.add(base + P, newTriviaPiece(""));
+                applied++;
+                continue;
+            }
+            if(i == 0) {
+                TriviaPiece formerHead = trivia.get(base + P);
+                boolean formerHasText = formerHead.getText() != null
+                        && !formerHead.getText().isEmpty();
+                // New value slot, then K separator slots (if any neighbor follows).
+                // Later separator terminals (e.g. 'and' after ',') get a leading
+                // space so multi-token separators do not glue.
+                trivia.add(base + P, newTriviaPiece(""));
+                for(int s = 0; s < K; s++) {
+                    trivia.add(base + P + 1 + s,
+                            newTriviaPiece(s == 0 ? "" : " "));
+                }
+                if(formerHasText) {
+                    TriviaPiece newHead = trivia.get(base + P);
+                    newHead.setText(" ");
+                    newHead.setKind("LIST_INSERT_PADDING");
+                } else if(K > 0) {
+                    TriviaPiece afterFirstSep = trivia.get(base + P + 1 + K);
+                    if(afterFirstSep.getText() == null
+                            || afterFirstSep.getText().isEmpty()) {
+                        afterFirstSep.setText(" ");
+                        afterFirstSep.setKind("LIST_INSERT_PADDING");
+                    }
+                } else if(base + P + 1 < trivia.size()) {
+                    TriviaPiece next = trivia.get(base + P + 1);
+                    if(next.getText() == null || next.getText().isEmpty()) {
+                        // item+: ensure a space before the former head value
+                        TriviaPiece newHead = trivia.get(base + P);
+                        newHead.setText(" ");
+                        newHead.setKind("LIST_INSERT_PADDING");
+                    }
+                }
+            } else if(i >= nNow) {
+                // Append after last value (before optional trailing + fixed suffix).
+                int insertAt = (K == 0)
+                        ? (base + P + nNow)
+                        : (base + P + (nNow - 1) * stride + 1);
+                for(int s = 0; s < K; s++) {
+                    trivia.add(insertAt + s,
+                            newTriviaPiece(s == 0 ? "" : " "));
+                }
+                trivia.add(insertAt + K, newTriviaPiece(" "));
+            } else {
+                int insertAt = (K == 0)
+                        ? (base + P + i)
+                        : (base + P + i * stride - K);
+                for(int s = 0; s < K; s++) {
+                    trivia.add(insertAt + s,
+                            newTriviaPiece(s == 0 ? "" : " "));
+                }
+                trivia.add(insertAt + K, newTriviaPiece(" "));
+            }
+            applied++;
+        }
+        return true;
+    }
+
+    static void removeTriviaRange(
+            java.util.List<TriviaPiece> trivia, int start, int count) {
+        if(count <= 0) {
+            return;
+        }
+        java.util.List<TriviaPiece> kept =
+                new java.util.ArrayList<>(trivia.size() - count);
+        for(int t = 0; t < trivia.size(); t++) {
+            if(t < start || t >= start + count) {
+                kept.add(trivia.get(t));
+            }
+        }
+        trivia.clear();
+        trivia.addAll(kept);
+    }
+
+    static ListShapeHint findListShapeHint(CodeElement element, String propertyName) {
+        if(element.getLexicalInfo() == null || propertyName == null) {
+            return null;
+        }
+        for(ListShapeHint h : element.getLexicalInfo().getListShapeHints()) {
+            if(propertyName.equals(h.getPropertyName())) {
+                return h;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Picks the list-shape candidate whose expected local size fits the actual
+     * trivia footprint. Multi-alt rules may attach several hints for the same
+     * property; {@code alternativeIndex} scopes sibling multi-list math.
+     */
+    static ListShapeHint findMatchingListShapeHint(
+            CodeElement element,
+            String propertyName,
+            String kind,
+            int nBefore,
+            int triviaSize) {
+        if(element.getLexicalInfo() == null || propertyName == null) {
+            return null;
+        }
+        java.util.List<ListShapeHint> candidates = new java.util.ArrayList<>();
+        for(ListShapeHint h : element.getLexicalInfo().getListShapeHints()) {
+            if(propertyName.equals(h.getPropertyName())
+                    && kind.equals(h.getKind())) {
+                candidates.add(h);
+            }
+        }
+        if(candidates.isEmpty()) {
+            return null;
+        }
+        if(candidates.size() == 1) {
+            return candidates.get(0);
+        }
+        ListShapeHint best = null;
+        int bestScore = Integer.MAX_VALUE;
+        for(ListShapeHint h : candidates) {
+            int base = computeTriviaBaseForList(element, h, nBefore, propertyName);
+            if(base < 0) {
+                continue;
+            }
+            int P = h.getPrefixCount();
+            int S = h.getSuffixCount();
+            int K = Math.max(0, h.getSeparatorCount());
+            int T = Math.max(0, h.getOptionalTrailingCount());
+            boolean primitive = "PRIMITIVE_DELIMITED".equals(kind);
+            boolean trailing = detectTrailingPresent(
+                    triviaSize, base, nBefore, P, S, K, T, primitive);
+            int expected = primitive
+                    ? primitiveLocalSize(nBefore, P, S, K, T, trailing)
+                    : modelLocalSize(nBefore, P, S, K, T, trailing);
+            if(base + expected > triviaSize) {
+                continue;
+            }
+            int altTotal = estimateAltTriviaSize(
+                    element, h.getAlternativeIndex(), propertyName, nBefore);
+            int score;
+            if(altTotal >= 0 && altTotal == triviaSize) {
+                score = 0;
+            } else if(base + expected == triviaSize) {
+                score = 1;
+            } else {
+                score = 2 + (triviaSize - (base + expected));
+            }
+            if(score < bestScore) {
+                bestScore = score;
+                best = h;
+            }
+        }
+        return best != null ? best : candidates.get(0);
+    }
+
+    /**
+     * Sum of expected local sizes for all list hints on {@code altIndex}, using
+     * {@code nOverride} for {@code propertyName} (pre-edit size).
+     */
+    static int estimateAltTriviaSize(
+            CodeElement element,
+            int altIndex,
+            String propertyName,
+            int nOverride) {
+        if(element.getLexicalInfo() == null) {
+            return -1;
+        }
+        int sum = 0;
+        for(ListShapeHint h : element.getLexicalInfo().getListShapeHints()) {
+            if(h.getAlternativeIndex() != altIndex) {
+                continue;
+            }
+            int n = propertyName.equals(h.getPropertyName())
+                    ? nOverride
+                    : listPropertySize(element, h.getPropertyName());
+            if(n < 0) {
+                return -1;
+            }
+            int P = h.getPrefixCount();
+            int S = h.getSuffixCount();
+            int K = Math.max(0, h.getSeparatorCount());
+            // Prefer without-trailing for estimation; detectTrailingPresent on the
+            // full buffer refines the chosen candidate.
+            if("PRIMITIVE_DELIMITED".equals(h.getKind())) {
+                sum += primitiveLocalSize(n, P, S, K);
+            } else if("MODEL_DELIMITED".equals(h.getKind())) {
+                sum += modelLocalSize(n, P, S, K);
+            }
+        }
+        return sum;
+    }
+
+    /**
+     * Trivia index where {@code hint}'s list segment begins, based on sibling
+     * list sizes on the same alternative.
+     */
+    static int computeTriviaBaseForList(CodeElement element, ListShapeHint hint) {
+        return computeTriviaBaseForList(element, hint, -1, null);
+    }
+
+    static int computeTriviaBaseForList(
+            CodeElement element,
+            ListShapeHint hint,
+            int nOverride,
+            String overrideProperty) {
+        if(element.getLexicalInfo() == null) {
+            return 0;
+        }
+        int base = 0;
+        int alt = hint.getAlternativeIndex();
+        for(ListShapeHint h : element.getLexicalInfo().getListShapeHints()) {
+            if(h.getAlternativeIndex() != alt) {
+                continue;
+            }
+            if(h.getOrderIndex() >= hint.getOrderIndex()) {
+                continue;
+            }
+            int n = (overrideProperty != null
+                    && overrideProperty.equals(h.getPropertyName())
+                    && nOverride >= 0)
+                    ? nOverride
+                    : listPropertySize(element, h.getPropertyName());
+            if(n < 0) {
+                return -1;
+            }
+            int P = h.getPrefixCount();
+            int S = h.getSuffixCount();
+            int K = Math.max(0, h.getSeparatorCount());
+            int T = Math.max(0, h.getOptionalTrailingCount());
+            boolean trailing = false;
+            if(T > 0 && n > 0) {
+                // Sibling trailing: assume absent for base; rare for multi-list.
+                trailing = false;
+            }
+            if("PRIMITIVE_DELIMITED".equals(h.getKind())) {
+                base += primitiveLocalSize(n, P, S, K, T, trailing);
+            } else if("MODEL_DELIMITED".equals(h.getKind())) {
+                base += modelLocalSize(n, P, S, K, T, trailing);
+            }
+        }
+        return base;
+    }
+
+    /** Parent-only trivia size for model-typed lists. */
+    static int modelLocalSize(int n, int P, int S, int K) {
+        if(n <= 0) {
+            return P + S;
+        }
+        return P + (n - 1) * K + S;
+    }
+
+    static int modelLocalSize(
+            int n, int P, int S, int K, int T, boolean trailingPresent) {
+        int base = modelLocalSize(n, P, S, K);
+        if(n > 0 && trailingPresent) {
+            return base + T;
+        }
+        return base;
+    }
+
+    static int listPropertySize(CodeElement element, String propertyName) {
+        try {
+            return element.vmf().reflect().propertyByName(propertyName).map(p -> {
+                Object v = p.get();
+                if(v instanceof java.util.Collection) {
+                    return ((java.util.Collection<?>) v).size();
+                }
+                return -1;
+            }).orElse(-1);
+        } catch(Exception ex) {
+            return -1;
+        }
+    }
+
+    static void attachListShapeHints(CodeElement e, LexicalInfo lexicalInfo) {
+#foreach($h in $listShapeHints)
+        if(e instanceof ${h.ruleClassName}) {
+            lexicalInfo.getListShapeHints().add(ListShapeHint.newBuilder().
+                    withPropertyName("${h.propertyName}").
+                    withKind("${h.kind}").
+                    withPrefixCount(${h.prefixCount}).
+                    withSuffixCount(${h.suffixCount}).
+                    withSeparatorCount(${h.separatorCount}).
+                    withOptionalTrailingCount(${h.optionalTrailingCount}).
+                    withOrderIndex(${h.orderIndex}).
+                    withAlternativeIndex(${h.alternativeIndex}).
+                    withModelTyped(${h.modelTyped}).
+                    build());
+        }
+#end
+    }
+
+    static TriviaPiece newTriviaPiece(String text) {
+        return TriviaPiece.newBuilder().
+                withText(text).
+                withKind(classifyTriviaKind(text)).
+                build();
+    }
+
+    /**
+     * Updates lexical metadata when a non-model property toggles between
+     * {@code null} and a value (typical optional {@code name=ID} inside
+     * {@code ('(' name ')')?}).
+     * <ul>
+     *   <li>null→value with recorded optional states: mark them present and
+     *       insert an empty trivia slot for the new terminal before the
+     *       closing-delimiter slot</li>
+     *   <li>null→value with no recorded states (fully absent group): record a
+     *       wildcard {@code OptionalState} ({@code path="*"}) so the formatter
+     *       treats all optionals on this element as present, and ensure trivia
+     *       slots for {@code '(' value ')'}</li>
+     *   <li>value→null: leave trivia and states intact so leading whitespace
+     *       survives; the unparser skips property-required optional groups</li>
+     * </ul>
+     */
+    static void updateOptionalPresenceForNullValueToggle(
+            CodeElement element, boolean toValue) {
+
+        if(!toValue || element.getLexicalInfo() == null) {
+            return;
+        }
+
+        LexicalInfo info = element.getLexicalInfo();
+        java.util.List<OptionalState> states = info.getOptionalStates();
+        java.util.List<TriviaPiece> trivia = info.getTriviaPieces();
+
+        if(states != null && !states.isEmpty()) {
+            for(OptionalState s : states) {
+                s.setPresent(true);
+            }
+            // Insert a slot for the newly present value terminal before the
+            // last existing slot (usually the closing ')' / pad carrier).
+            if(trivia.size() >= 2) {
+                trivia.add(trivia.size() - 1, newTriviaPiece(""));
+            } else {
+                trivia.add(newTriviaPiece(""));
+            }
+            return;
+        }
+
+        // Fully absent optional group: no path-keyed states were recorded.
+        // Wildcard present state forces the formatter to emit optional terminals;
+        // ensure a 4-slot trivia footprint:
+        //   [leading][before '('][before value][before ')']
+        info.getOptionalStates().clear();
+        info.getOptionalStates().add(OptionalState.newBuilder().
+                withGrammarElementPath("*").
+                withOccurrenceIndex(0).
+                withPresent(true).
+                build());
+        if(trivia.isEmpty()) {
+            trivia.add(newTriviaPiece(""));
+        }
+        if(trivia.size() == 1) {
+            trivia.add(newTriviaPiece(" "));
+            trivia.add(newTriviaPiece(""));
+            trivia.add(newTriviaPiece(""));
+        } else if(trivia.size() == 2) {
+            trivia.add(newTriviaPiece(""));
+            trivia.add(newTriviaPiece(""));
+        } else if(trivia.size() == 3) {
+            trivia.add(trivia.size() - 1, newTriviaPiece(""));
+        }
+    }
+
+    static void invalidateOriginalLexeme(
+            CodeElement element, String propertyName, int index) {
+        if(element.getLexicalInfo() == null || propertyName == null) {
+            return;
+        }
+        java.util.List<OriginalLexeme> lexemes =
+                element.getLexicalInfo().getOriginalLexemes();
+        lexemes.removeIf(lex -> propertyName.equals(lex.getPropertyName())
+                && lex.getIndex() == index);
+    }
+
+    static void invalidateOriginalLexemes(
+            CodeElement element, String propertyName,
+            eu.mihosoft.vcollections.VListChangeEvent<?> listChange) {
+        if(element.getLexicalInfo() == null || propertyName == null
+                || listChange == null) {
+            return;
+        }
+        int[] indices = listChange.added().indices();
+        if(indices == null) {
+            indices = listChange.removed().indices();
+        }
+        if(indices == null) {
+            return;
+        }
+        for(int i : indices) {
+            invalidateOriginalLexeme(element, propertyName, i);
+        }
+    }
+
+    static void spliceOriginalLexemesForListChange(
+            CodeElement element, String propertyName,
+            eu.mihosoft.vcollections.VListChangeEvent<?> listChange) {
+        if(element.getLexicalInfo() == null || propertyName == null
+                || listChange == null) {
+            return;
+        }
+        java.util.List<OriginalLexeme> lexemes =
+                element.getLexicalInfo().getOriginalLexemes();
+        boolean added = listChange.wasAdded();
+        boolean removed = listChange.wasRemoved();
+        if(added == removed) {
+            return;
+        }
+        int[] indices = added
+                ? listChange.added().indices()
+                : listChange.removed().indices();
+        if(indices == null || indices.length == 0) {
+            return;
+        }
+        int[] sorted = indices.clone();
+        java.util.Arrays.sort(sorted);
+        if(removed) {
+            for(int k = sorted.length - 1; k >= 0; k--) {
+                int i = sorted[k];
+                lexemes.removeIf(lex -> propertyName.equals(lex.getPropertyName())
+                        && lex.getIndex() == i);
+                for(OriginalLexeme lex : lexemes) {
+                    if(propertyName.equals(lex.getPropertyName())
+                            && lex.getIndex() > i) {
+                        lex.setIndex(lex.getIndex() - 1);
+                    }
+                }
+            }
+        } else {
+            for(int i : sorted) {
+                for(OriginalLexeme lex : lexemes) {
+                    if(propertyName.equals(lex.getPropertyName())
+                            && lex.getIndex() >= i) {
+                        lex.setIndex(lex.getIndex() + 1);
+                    }
+                }
+                // Newly inserted values have no original lexeme (converter text).
+            }
+        }
+    }
+
+    /**
+     * Surgical parent-trivia splice for model-typed delimited lists.
+     * Parent holds only prefix/separator/suffix slots (child leading WS lives
+     * on each item). Uses {@link ListShapeHint#getSeparatorCount()} so
+     * multi-token separators and separator-less {@code item+} are covered.
+     */
+    static boolean spliceModelTypedDelimitedListTrivia(
+            CodeElement element,
+            String propertyName,
+            eu.mihosoft.vcollections.VListChangeEvent<?> listChange) {
+
+        if(listChange == null || element.getLexicalInfo() == null) {
+            return false;
+        }
+
+        boolean added = listChange.wasAdded();
+        boolean removed = listChange.wasRemoved();
+        if(added == removed) {
+            return false;
+        }
+
+        int[] indices = added
+                ? listChange.added().indices()
+                : listChange.removed().indices();
+        if(indices == null || indices.length == 0) {
+            return false;
+        }
+
+        java.util.List<?> list = listChange.source();
+        int nAfter = list.size();
+        int delta = indices.length;
+        int nBefore = added ? nAfter - delta : nAfter + delta;
+        if(nBefore < 0 || nAfter < 0) {
+            return false;
+        }
+
+        java.util.List<TriviaPiece> trivia =
+                element.getLexicalInfo().getTriviaPieces();
+
+        int base = 0;
+        int P;
+        int S;
+        int K;
+        int T;
+        boolean trailing;
+        ListShapeHint hint = findMatchingListShapeHint(
+                element, propertyName, "MODEL_DELIMITED", nBefore, trivia.size());
+        if(hint != null) {
+            base = computeTriviaBaseForList(element, hint, nBefore, propertyName);
+            if(base < 0) {
+                return false;
+            }
+            P = hint.getPrefixCount();
+            S = hint.getSuffixCount();
+            K = Math.max(0, hint.getSeparatorCount());
+            T = Math.max(0, hint.getOptionalTrailingCount());
+            if(K == 0 && T == 0) {
+                // item+: parent has no inter-item terminals — keep trivia as-is.
+                return true;
+            }
+            trailing = detectTrailingPresent(
+                    trivia.size(), base, nBefore, P, S, K, T, false);
+            int expectedLocal = modelLocalSize(nBefore, P, S, K, T, trailing);
+            if(base + expectedLocal > trivia.size()) {
+                return false;
+            }
+            return spliceModelTypedListInRange(
+                    trivia, base, P, S, K, T, trailing,
+                    nBefore, nAfter, added, indices);
+        }
+
+        // Heuristic: bracketed K=1 (JSON) or bare K=1.
+        if(trivia.size() == modelLocalSize(nBefore, 1, 1, 1)) {
+            return spliceModelTypedListInRange(
+                    trivia, 0, 1, 1, 1, 0, false, nBefore, nAfter, added, indices);
+        }
+        if(trivia.size() == modelLocalSize(nBefore, 0, 1, 1)) {
+            return spliceModelTypedListInRange(
+                    trivia, 0, 0, 1, 1, 0, false, nBefore, nAfter, added, indices);
+        }
+        return false;
+    }
+
+    /**
+     * Parent layout: {@code [P prefix][sep×K]…[sep×K][T optional][S suffix]}
+     * (no value slots). Insert/remove adjusts exactly {@code K} separator slots
+     * per structural op; optional trailing is preserved when {@code n > 0}.
+     */
+    static boolean spliceModelTypedListInRange(
+            java.util.List<TriviaPiece> trivia,
+            int base,
+            int P,
+            int S,
+            int K,
+            int T,
+            boolean trailingPresent,
+            int nBefore,
+            int nAfter,
+            boolean added,
+            int[] indices) {
+
+        if(K <= 0 && T <= 0) {
+            return true;
+        }
+        int Seff = effectiveSuffix(nBefore, S, T, trailingPresent);
+        int expectedBefore = modelLocalSize(nBefore, P, Seff, K);
+        if(trivia.size() < base + expectedBefore) {
+            return false;
+        }
+
+        if(!added) {
+            int[] sorted = indices.clone();
+            java.util.Arrays.sort(sorted);
+            int nNow = nBefore;
+            boolean trail = trailingPresent;
+            for(int k = sorted.length - 1; k >= 0; k--) {
+                int i = sorted[k];
+                if(i < 0 || i >= nNow) {
+                    return false;
+                }
+                int Snow = effectiveSuffix(nNow, S, T, trail);
+                int expectedNow = modelLocalSize(nNow, P, Snow, K);
+                if(trivia.size() < base + expectedNow) {
+                    return false;
+                }
+                if(nNow == 1) {
+                    // Last element: drop optional trailing; leave brackets/pad.
+                    if(trail && T > 0) {
+                        int trailAt = base + expectedNow - Snow;
+                        if(trailAt >= base + P && trailAt + T <= trivia.size()) {
+                            removeTriviaRange(trivia, trailAt, T);
+                        }
+                        trail = false;
+                    }
+                    nNow = 0;
+                    continue;
+                }
+                if(K <= 0) {
+                    nNow--;
+                    continue;
+                }
+                // Separator group coupling item i to a neighbor starts at:
+                //   i==0 → first group after prefix; else group before item i.
+                int sepAt = base + P + ((i == 0) ? 0 : (i - 1) * K);
+                if(i == nNow - 1) {
+                    sepAt = base + P + (nNow - 2) * K;
+                }
+                if(sepAt < base + P
+                        || sepAt + K > base + expectedNow - Snow) {
+                    // Allow S==0 edge; still require the K slots to exist.
+                    if(sepAt < base || sepAt + K > trivia.size()) {
+                        return false;
+                    }
+                }
+                removeTriviaRange(trivia, sepAt, K);
+                nNow--;
+            }
+            int Safter = effectiveSuffix(nAfter, S, T, trail && nAfter > 0);
+            return nNow == nAfter
+                    && trivia.size() >= base + modelLocalSize(nAfter, P, Safter, K);
+        }
+
+        int[] sorted = indices.clone();
+        java.util.Arrays.sort(sorted);
+        int applied = 0;
+        boolean trail = trailingPresent;
+        for(int i : sorted) {
+            int nNow = nBefore + applied;
+            int Snow = effectiveSuffix(nNow, S, T, trail);
+            int expectedNow = modelLocalSize(nNow, P, Snow, K);
+            if(trivia.size() < base + expectedNow) {
+                return false;
+            }
+            if(nNow == 0) {
+                if(i != 0) {
+                    return false;
+                }
+                applied++;
+                continue;
+            }
+            if(i < 0 || i > nNow) {
+                return false;
+            }
+            if(K <= 0) {
+                applied++;
+                continue;
+            }
+            int sepAt;
+            if(i >= nNow) {
+                // Append: insert separator group before optional trailing + suffix.
+                sepAt = base + expectedNow - Snow;
+            } else if(i == 0) {
+                sepAt = base + P;
+            } else {
+                sepAt = base + P + i * K;
+            }
+            // Mark insert-at-0 separator so remove(0) drops it and restores the
+            // former first separator's leading WS (bare model undo).
+            for(int s = 0; s < K; s++) {
+                TriviaPiece piece = newTriviaPiece("");
+                if(i == 0 && s == 0) {
+                    piece.setKind("LIST_INSERT_PADDING");
+                }
+                trivia.add(sepAt + s, piece);
+            }
+            applied++;
+        }
+        int Safter = effectiveSuffix(nAfter, S, T, trail && nAfter > 0);
+        return trivia.size() >= base + modelLocalSize(nAfter, P, Safter, K);
+    }
+
+    static String classifyTriviaKind(String piece) {
+        if(piece == null || piece.isEmpty()) {
+            return "WHITESPACE";
+        }
+        String trimmed = piece.trim();
+        if(trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*")) {
+            return "COMMENT";
+        }
+        if(piece.chars().allMatch(ch -> Character.isWhitespace(ch))) {
+            return "WHITESPACE";
+        }
+        return "OTHER";
+    }
+
+}

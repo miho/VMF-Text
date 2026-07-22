@@ -11,8 +11,19 @@ concurrency:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    # The Windows leg is provisional (cross-OS line-ending / path shakedown):
+    # keep it non-blocking until it is proven green, so it adds signal without
+    # gating the required build.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Check out VMF-Text
@@ -35,13 +46,17 @@ jobs:
       - name: Set up Gradle (caching + wrapper validation)
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Publish vmf-text core to Maven local
+      - name: Build, test and publish vmf-text core to Maven local
         working-directory: core
-        run: sh ./gradlew publishToMavenLocal --no-daemon
+        run: sh ./gradlew test publishToMavenLocal --no-daemon
 
       - name: Publish vmf-text Gradle plugin to Maven local
         working-directory: gradle-plugin
         run: sh ./gradlew publishToMavenLocal --no-daemon
+
+      - name: Test Gradle plugin
+        working-directory: gradle-plugin
+        run: sh ./gradlew test --no-daemon
 
       - name: Run test suite
         working-directory: test-suite
@@ -55,7 +70,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: test-reports-${{ matrix.os }}
           path: |
             test-suite/build/reports/tests/test
             test-suite/build/test-results/test

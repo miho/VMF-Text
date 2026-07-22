@@ -29,7 +29,9 @@ import eu.mihosoft.vmf.core.io.ResourceSet;
 import eu.mihosoft.vmf.vmftext.StringUtil;
 import eu.mihosoft.vmf.vmftext.TemplateEngine;
 import eu.mihosoft.vmf.vmftext.VMFText;
+import eu.mihosoft.vmf.vmftext.VMFTextGenerationException;
 import eu.mihosoft.vmf.vmftext.grammar.*;
+import org.tinylog.Logger;
 import eu.mihosoft.ext.velocity.legacy.VelocityContext;
 
 import java.io.IOException;
@@ -57,7 +59,8 @@ public class UnparserCodeGenerator {
             generateUPParentUnparserCode(gModel, model,rules, w);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new VMFTextGenerationException(
+                    "Failed to write unparser for grammar '" + gModel.getGrammarName() + "'", e);
         }
 
         generateUPCode(gModel, model,rules, resourceSet);
@@ -69,7 +72,8 @@ public class UnparserCodeGenerator {
             generateUPGrammarCode(gModel, model, rules, w);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new VMFTextGenerationException(
+                    "Failed to write unparser grammar for '" + gModel.getGrammarName() + "'", e);
         }
     }
 
@@ -647,7 +651,8 @@ public class UnparserCodeGenerator {
 
                 w.append("}").append('\n').append('\n');
             }  catch(IOException ex) {
-                ex.printStackTrace();
+                throw new VMFTextGenerationException(
+                        "Failed to write unparser for rule '" + ruleName + "'", ex);
             }
         } // end for each rule
     }
@@ -742,16 +747,16 @@ public class UnparserCodeGenerator {
      */
     private static void sortAltsMostElementsFirst(List<AlternativeBase> alts, List<UPRule> rules) {
 
-        System.out.println("BEFORE:");
+        Logger.debug("BEFORE:");
         alts.forEach(alternativeBase -> {
-            System.out.println("a: " + "#elements: "  + getTotalNumberOfElementsInAlt(alternativeBase, rules) + " " + alternativeBase.getText());
+            Logger.debug("a: " + "#elements: "  + getTotalNumberOfElementsInAlt(alternativeBase, rules) + " " + alternativeBase.getText());
         });
 
         Collections.sort(alts, (a1, a2) -> Integer.compare(getTotalNumberOfElementsInAlt(a2, rules),getTotalNumberOfElementsInAlt(a1, rules)));
 
-        System.out.println("AFTER:");
+        Logger.debug("AFTER:");
         alts.forEach(alternativeBase -> {
-            System.out.println("a: " + "#elements: "  + getTotalNumberOfElementsInAlt(alternativeBase, rules) + " " + alternativeBase.getText());
+            Logger.debug("a: " + "#elements: "  + getTotalNumberOfElementsInAlt(alternativeBase, rules) + " " + alternativeBase.getText());
         });
     }
 
@@ -1007,14 +1012,16 @@ public class UnparserCodeGenerator {
                 try {
                     generateAltCode(w, model, gModel, r, gRule, altName + "SubRule" + sr.getRuleId(), objName, sa, /*we check based on parent alts preferences*/noCheckFinal,sr.getAlternatives().size());
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    throw new VMFTextGenerationException(
+                            "Failed to generate sub-rule alt code for '" + altName + "'", e);
                 }
             }
 
             try {
                 generateSubRuleCode(ruleName, altName, objName, sr, model.getRules(), gRule, w);
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new VMFTextGenerationException(
+                        "Failed to generate sub-rule code for '" + altName + "'", e);
             }
         });
     }
