@@ -193,6 +193,14 @@ interface Property extends WithName, WithType, CodeElement {
 
     @Contains(opposite = "property")
     PropertyAnnotation[] getAnnotations();
+
+    // Parser-rule map (issue #1): non-null on a property that a RuleMap
+    // redirected. getType() is the (target) model type exposed by the API;
+    // these carry what the code generator needs to bridge source<->target.
+    // Conversion expressions use 'first' (source object) and 'second' (target).
+    String getRuleMapSourceTypeName();      // source model type, PascalCase (e.g. ValueExpression)
+    String getRuleMapSourceToTargetCode();  // parse: source 'first' -> target
+    String getRuleMapTargetToSourceCode();  // unparse: target 'second' -> source
 }
 
 interface DelegationMethod extends WithText{

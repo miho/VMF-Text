@@ -110,6 +110,11 @@ final class RuleMapModelRewriter {
                         withPackageName("").
                         withName(targetCls.getName()).
                         build());
+
+                // carry the bridge into the code generator (parse + unparse)
+                p.setRuleMapSourceTypeName(entry.getSourceName());
+                p.setRuleMapSourceToTargetCode(entry.getSourceToTargetCode());
+                p.setRuleMapTargetToSourceCode(entry.getTargetToSourceCode());
             }
         }
     }
