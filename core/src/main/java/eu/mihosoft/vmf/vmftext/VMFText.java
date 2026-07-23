@@ -526,12 +526,24 @@ public class VMFText {
             GrammarMetaInformationUtil.getTypeMapping(typeMappings, s);
         }
 
+        // parser-rule maps / model rewriting (issue #1)
+        RuleMappings ruleMappings = RuleMappings.newInstance();
+
+        for(String s : comments) {
+            GrammarMetaInformationUtil.getRuleMapping(ruleMappings, s);
+        }
+
         GrammarToModelListener grammarToModelListener =
                 new GrammarToModelListener(typeMappings);
 
         walker.walk(grammarToModelListener, tree);
 
         GrammarModel model = grammarToModelListener.getModel();
+
+        model.setRuleMappings(ruleMappings);
+
+        // apply parser-rule maps: redirect mapped rule-typed properties (issue #1)
+        RuleMapModelRewriter.apply(model);
 
         Logger.debug("\n------------------------------------------------------");
         Logger.debug("Custom-Model-Definitions:");

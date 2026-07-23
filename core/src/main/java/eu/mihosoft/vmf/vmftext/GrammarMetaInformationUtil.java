@@ -119,6 +119,60 @@ public final class GrammarMetaInformationUtil {
         return mappings;
     }
 
+    public static RuleMappings getRuleMapping(RuleMappings mappings, String code) {
+
+        TypeMappingBaseListener l = new TypeMappingBaseListener() {
+
+            private RuleMapping currentMapping;
+
+            @Override
+            public void enterRuleMapping(TypeMappingParser.RuleMappingContext ctx) {
+
+                RuleMapping ruleMapping = RuleMapping.newInstance();
+
+                ruleMapping.getApplyToNames().addAll(ctx.applyTo.stream().
+                        map(t -> t.getText()).collect(Collectors.toList()));
+
+                currentMapping = ruleMapping;
+
+                mappings.getRuleMappings().add(ruleMapping);
+
+                super.enterRuleMapping(ctx);
+            }
+
+            @Override
+            public void enterRuleMapEntry(TypeMappingParser.RuleMapEntryContext ctx) {
+
+                if(ctx.sourceToTargetCode!=null && ctx.targetToSourceCode!=null) {
+                    RuleMapEntry e = RuleMapEntry.newBuilder().
+                            withSourceName(ctx.sourceName.getText()).
+                            withTargetName(ctx.targetName.getText()).
+                            withSourceToTargetCode(ctx.sourceToTargetCode.getText().
+                                    substring(1, ctx.sourceToTargetCode.getText().length() - 1)).
+                            withTargetToSourceCode(ctx.targetToSourceCode.getText().
+                                    substring(1, ctx.targetToSourceCode.getText().length() - 1)).build();
+
+                    currentMapping.getEntries().add(e);
+                }
+
+                super.enterRuleMapEntry(ctx);
+            }
+        };
+
+        CharStream input = CharStreams.fromString(code);
+
+        TypeMappingLexer lexer = new TypeMappingLexer(input);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        TypeMappingParser parser = new TypeMappingParser(tokens);
+
+        ParserRuleContext tree = parser.typeMappingCode();
+        ParseTreeWalker walker = new ParseTreeWalker();
+
+        walker.walk(l, tree);
+
+        return mappings;
+    }
+
     public static boolean isAutoLabelEnabled(List<String> comments) {
         if(comments == null) {
             return false;
