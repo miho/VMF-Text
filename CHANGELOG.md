@@ -2,6 +2,29 @@
 
 All notable changes to VMF-Text are documented here.
 
+## [Unreleased]
+
+### Added
+
+- **Parser rule maps / model rewriting (`RuleMap`)** (#1) — a `RuleMap()` block in
+  a `<!vmf-text!>` comment flattens a single-alternative wrapper parser rule at
+  its reference sites, so the model exposes the wrapped target type directly:
+
+  ```
+  RuleMap() {
+    (first: ValueExpression -> second: NumberLiteral) = {
+        'first.getValue()',
+        'ValueExpression.newBuilder().withValue(second).build()'
+    }
+  }
+  ```
+
+  A property that was `Expression` becomes `NumberLiteral`; parse builds the
+  source then extracts the target (`first`), and unparse reconstructs the source
+  from the target (`second`) so emitted text matches the original grammar.
+  Round-trip is byte-exact for transparent wrapper rules. Details:
+  [`docs/RULE_MAPS.md`](docs/RULE_MAPS.md).
+
 ## [0.2.1] — 2026-07-17
 
 Library-grade unparse / lexical preservation polish on the typed `LexicalInfo`
