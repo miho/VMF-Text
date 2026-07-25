@@ -123,6 +123,17 @@ sh ./gradlew publishPlugins --no-daemon
 # currently published by a separate POM-only project (see cleanup queue)
 ```
 
+## Post-0.2.1 fixes (unreleased)
+
+- **`superClass` option ([#14](https://github.com/miho/VMF-Text/issues/14)) — done.**
+  A grammar-level `options { superClass = … }` flows through to both generated
+  parsers (main parser inherits it via grammar pass-through; the synthesized
+  unparser grammar re-emits it in `UnparserCodeGenerator`). Implemented in
+  `a9a3c00`, exercised end-to-end by `examples/java24-roundtrip`. Hardened here:
+  a rule-level `options { … }` block no longer clobbers the captured
+  grammar-level `superClass` (`GrammarToModelListener.enterOptionsSpec`), with a
+  regression test (`core` `GrammarOptionsTest`).
+
 ## Phase 1 — Prove the differentiator (~2 weeks after 0.2.0)
 
 - **Round-trip showcase.** Parse a real Java 24 source file with the bundled

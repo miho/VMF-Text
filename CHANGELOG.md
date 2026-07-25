@@ -25,6 +25,17 @@ All notable changes to VMF-Text are documented here.
   Round-trip is byte-exact for transparent wrapper rules. Details:
   [`docs/RULE_MAPS.md`](docs/RULE_MAPS.md).
 
+### Fixed
+
+- **Grammar `superClass` option preserved across rule-level `options {}`** (#14)
+  — `GrammarToModelListener` re-created the grammar `Options` object on *every*
+  `options { … }` block. Because rule-level option blocks are walked after the
+  grammar-level one, a grammar-level `options { superClass = … }` followed by any
+  rule-level `options { … }` silently lost its `superClass`, and both generated
+  parsers then extended nothing. The options object is now initialized once
+  (first block wins, subsequent blocks merge). Regression coverage:
+  `core` `GrammarOptionsTest`.
+
 ## [0.2.1] — 2026-07-17
 
 Library-grade unparse / lexical preservation polish on the typed `LexicalInfo`

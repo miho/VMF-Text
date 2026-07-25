@@ -291,7 +291,13 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         Logger.debug("Enter OptionsSpec");
         Logger.debug("------------------------------------------------------");
 
-        model.setOptions(Options.newBuilder().build());
+        // Only initialize on the first options block. enterOptionsSpec fires for
+        // every 'options {}' in the grammar, including rule-level blocks that are
+        // walked *after* the grammar-level one. Re-creating Options here would wipe
+        // an already-captured grammar-level 'superClass' (see issue #14).
+        if (model.getOptions() == null) {
+            model.setOptions(Options.newBuilder().build());
+        }
 
         super.enterOptionsSpec(ctx);
     }
