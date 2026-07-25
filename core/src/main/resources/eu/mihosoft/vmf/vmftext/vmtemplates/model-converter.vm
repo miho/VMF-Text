@@ -778,6 +778,20 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 #foreach( $p in $rcls.properties )
 
 #if($p.type.ruleType)
+#if($p.ruleMapSourceTypeName)
+#if($p.type.arrayType)
+        // rule-mapped list (issue #1): build source '$p.ruleMapSourceTypeName', extract target '${p.type.asJavaTypeNameNoCollections()}'
+        List<${p.type.asJavaTypeNameNoCollections()}> convertedElements$p.nameWithUpper() = ctx.${p.nameWithLower()}.stream().
+            map(entry->{ ${p.ruleMapSourceTypeName} first = (${p.ruleMapSourceTypeName})convert(entry); return ${p.ruleMapSourceToTargetCode}; }).collect(Collectors.toList());
+        ${rcls.nameWithLower()}.get${p.nameWithUpper()}().addAll(convertedElements$p.nameWithUpper());
+#else
+        // rule-mapped (issue #1): build source '$p.ruleMapSourceTypeName', extract target '${p.type.asJavaTypeNameNoCollections()}'
+        if(ctx.${p.nameWithLower()}!=null) {
+            ${p.ruleMapSourceTypeName} first = (${p.ruleMapSourceTypeName})convert(ctx.${p.nameWithLower()});
+            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(${p.ruleMapSourceToTargetCode});
+        }
+#end## if array type
+#else## not rule-mapped
 #if($p.type.arrayType)
         // convert elements of rule attribute $rcls.nameWithUpper().$p.nameWithLower()
         List<${p.type.asJavaTypeNameNoCollections()}> convertedElements$p.nameWithUpper() = ctx.${p.nameWithLower()}.stream().
@@ -791,6 +805,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             ${rcls.nameWithLower()}.set${p.nameWithUpper()}(convert(ctx.${p.nameWithLower()}));
         }
 #end## if array type
+#end## if rule-mapped
 #else## if rule type
 #if($p.type.arrayType)
         // convert elements of rule attribute $rcls.nameWithUpper().$p.nameWithLower()

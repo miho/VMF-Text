@@ -1,12 +1,30 @@
 grammar TypeMapping;
 
-typeMappingCode: typemappings+=typeMapping* ;
+typeMappingCode: (typemappings+=typeMapping | rulemappings+=ruleMapping)* ;
 
 typeMapping:
     'TypeMap' '(' (applyTo+=Identifier (',' applyTo+=Identifier)*)? ')'  '{'
       entries+=mapping*
     '}'
      ;
+
+// Parser-rule maps / model rewriting (issue #1): redirect a parser-rule-typed
+// property from a source model type to a target model type, with a conversion
+// expression in each direction (parse: source->target, unparse: target->source).
+ruleMapping:
+    'RuleMap' '(' (applyTo+=Identifier (',' applyTo+=Identifier)*)? ')'  '{'
+      entries+=ruleMapEntry*
+    '}'
+     ;
+
+ruleMapEntry:
+    '('? ('first:')? sourceName=Identifier '->' ('second:')? targetName=Identifier ')'? ('via'|'=')
+    (
+        ('('|'{')
+        sourceToTargetCode = STRING_SINGLE ',' targetToSourceCode = STRING_SINGLE
+        (')'|'}')
+    )
+    ;
 
 mapping:
     '('? ('rule:')? ruleName=Identifier '->' ('type:')? typeName=javaType ')'? ('via'|'=')

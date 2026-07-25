@@ -1445,6 +1445,28 @@ public class UnparserCodeGenerator {
                 + convertMethod + "(__vmfLexVal));").append('\n');
     }
 
+    /**
+     * Emits code that unparses a rule-typed child value. {@code valueExpr} is a
+     * Java expression (evaluated exactly once) yielding the child value. For a
+     * rule-mapped property (issue #1) the value is the flattened target; it is
+     * reconstructed into its source model type via the RuleMap's
+     * target-to-source expression (the target is bound as {@code second}) and
+     * that source object is unparsed, so the emitted text matches the original
+     * grammar rule. Otherwise the value is unparsed directly.
+     */
+    private static void appendRuleChildUnparse(Writer w, String indent, Property p,
+                                               String valueExpr) throws IOException {
+        if (p != null && p.getRuleMapSourceTypeName() != null) {
+            w.append(indent + "{ // rule-mapped (issue #1): reconstruct source from target, then unparse").append('\n');
+            w.append(indent + "  var second = " + valueExpr + ";").append('\n');
+            w.append(indent + "  " + p.getRuleMapSourceTypeName() + " __src = " + p.getRuleMapTargetToSourceCode() + ";").append('\n');
+            w.append(indent + "  getUnparser().unparse( __src, internalW );").append('\n');
+            w.append(indent + "}").append('\n');
+        } else {
+            w.append(indent + "getUnparser().unparse( " + valueExpr + ", internalW );").append('\n');
+        }
+    }
+
     private static void generateNamedElementCode(Writer w, String indent, UnparserModel model, UPNamedElement sre,
                                                  UPRule rule, RuleClass gRule, GrammarModel gModel, String altName,
                                                  boolean noCheck) throws IOException {
@@ -1467,8 +1489,9 @@ public class UnparserCodeGenerator {
                 if(sre.ebnfOptional()) {
                     w.append(indent+"    if(" + indexName+ ".get()" +" < " +propName+ ".size() ) {").append('\n');
                     if(sre.isParserRule()) {
-                        w.append(indent+"      " + sre.getRuleName() + " listElemObj = obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc());").append('\n');
-                        w.append(indent+"      getUnparser().unparse(listElemObj, internalW );").append('\n');
+                        appendRuleChildUnparse(w, indent+"      ",
+                                gRule.getModel().propertyByName(gRule.nameWithUpper(), sre.getName()).orElse(null),
+                                "obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())");
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"      {").append('\n');
                         String targetTypeOfMapping = gModel.getTypeMappings().targetTypeNameOfMapping(rule.getName(), lexerRuleName);
@@ -1521,7 +1544,9 @@ public class UnparserCodeGenerator {
                     w.append(indent+"      " +breakOrReturn).append('\n');
                     w.append(indent+"    }").append('\n');
                     if(sre.isParserRule()) {
-                        w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
+                        appendRuleChildUnparse(w, indent+"      ",
+                                gRule.getModel().propertyByName(gRule.nameWithUpper(), sre.getName()).orElse(null),
+                                "obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())");
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"      {").append('\n');
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
@@ -1576,7 +1601,9 @@ public class UnparserCodeGenerator {
                 if(sre.ebnfOptional()||sre.ebnfZeroMany()) {
                     w.append(indent+"    while(" + indexName+ ".get()" +" < " +propName+ ".size() ) {").append('\n');
                     if(sre.isParserRule()) {
-                        w.append(indent+"      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
+                        appendRuleChildUnparse(w, indent+"      ",
+                                gRule.getModel().propertyByName(gRule.nameWithUpper(), sre.getName()).orElse(null),
+                                "obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())");
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"      {").append('\n');
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
@@ -1629,7 +1656,9 @@ public class UnparserCodeGenerator {
                     w.append(indent+"    while(" + indexName+ ".get()" +" < " +propName+ ".size() && !" + propName + ".isEmpty()) {").append('\n');
                     if(sre.isParserRule()) {
                         w.append(indent + "      matched"+StringUtil.firstToUpper(sre.getName()) +" = true;").append('\n');
-                        w.append(indent + "      getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc()), internalW );").append('\n');
+                        appendRuleChildUnparse(w, indent + "      ",
+                                gRule.getModel().propertyByName(gRule.nameWithUpper(), sre.getName()).orElse(null),
+                                "obj.get" + StringUtil.firstToUpper(sre.getName()) + "().get(" + indexName +".getAndInc())");
                     } else if(sre.isLexerRule()) {
                         w.append(indent+"        {").append('\n');
                         boolean mappingExists = gModel.getTypeMappings().mappingByRuleNameExists(rule.getName(), lexerRuleName);
@@ -1688,7 +1717,9 @@ public class UnparserCodeGenerator {
         } else {
             if(sre.isParserRule()) {
                 w.append(indent+"    if(obj.get" + StringUtil.firstToUpper(sre.getName()) + "() !=null) {").append('\n');
-                w.append(indent+"        getUnparser().unparse( obj.get" + StringUtil.firstToUpper(sre.getName()) + "(), internalW );").append('\n');
+                appendRuleChildUnparse(w, indent+"        ",
+                        gRule.getModel().propertyByName(gRule.nameWithUpper(), sre.getName()).orElse(null),
+                        "obj.get" + StringUtil.firstToUpper(sre.getName()) + "()");
                 w.append(indent+"    }").append('\n');
             } else if(sre.isLexerRule()) {
                 w.append(indent + "    if(!prop" + StringUtil.firstToUpper(sre.getName()) + "Used.is())").append('\n');
@@ -1818,7 +1849,9 @@ public class UnparserCodeGenerator {
             }
         } else {
             // this is a normal sub-rule
-            w.append(indent+"    getUnparser().unparse( " + propName +", internalW);").append('\n');
+            appendRuleChildUnparse(w, indent+"    ",
+                    gRule.getModel().propertyByName(gRule.nameWithUpper(), sre.getName()).orElse(null),
+                    propName);
         }
     }
 

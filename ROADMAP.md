@@ -183,6 +183,16 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 - **Isolate Java-target ANTLR action injection** — keeps a future door open
   for other ANTLR targets without committing to them.
 
+## Parser rule maps / model rewriting (#1) — landed (unreleased)
+
+`RuleMap()` flattens a single-alternative wrapper rule at its reference sites:
+DSL (`TypeMapping.g4`) + model (`RuleMappings`) + a post-model type-redirect pass
+(`RuleMapModelRewriter`) + parse-direction conversion + unparse-direction
+reconstruction. Round-trip is byte-exact for transparent wrapper rules; see
+[`docs/RULE_MAPS.md`](docs/RULE_MAPS.md). Feeds the broader model-flattening goal
+in this phase. (Byte-exact preservation for token-bearing wrappers is a possible
+follow-up.)
+
 ## Non-goals
 
 - Competing with Xtext/Langium on bundled IDE/editor tooling.

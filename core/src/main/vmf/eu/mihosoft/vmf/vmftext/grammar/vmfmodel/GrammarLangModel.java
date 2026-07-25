@@ -61,6 +61,9 @@ interface GrammarModel {
 
     @Contains(opposite = "model")
     CustomRule[] getCustomRules();
+
+    @Contains(opposite = "model")
+    RuleMappings getRuleMappings();
 }
 
 interface Options {
@@ -190,6 +193,14 @@ interface Property extends WithName, WithType, CodeElement {
 
     @Contains(opposite = "property")
     PropertyAnnotation[] getAnnotations();
+
+    // Parser-rule map (issue #1): non-null on a property that a RuleMap
+    // redirected. getType() is the (target) model type exposed by the API;
+    // these carry what the code generator needs to bridge source<->target.
+    // Conversion expressions use 'first' (source object) and 'second' (target).
+    String getRuleMapSourceTypeName();      // source model type, PascalCase (e.g. ValueExpression)
+    String getRuleMapSourceToTargetCode();  // parse: source 'first' -> target
+    String getRuleMapTargetToSourceCode();  // unparse: target 'second' -> source
 }
 
 interface DelegationMethod extends WithText{
@@ -273,6 +284,51 @@ interface Mapping {
     String getStringToTypeCode();
 
     String getDefaultValueCode();
+}
+
+// RuleMapping (parser-rule maps / model rewriting, issue #1)
+//
+// A RuleMapping (one RuleMap(){} block) redirects a parser-rule-typed property
+// from a source model type to a target model type. Each RuleMapEntry carries
+// the source and target type names plus a conversion expression for each
+// direction: sourceToTargetCode (parse: build source, then extract target) and
+// targetToSourceCode (unparse: reconstruct source from target).
+
+interface RuleMappings {
+    @Contains(opposite = "parent")
+    RuleMapping[] getRuleMappings();
+
+    @Container(opposite = "ruleMappings")
+    GrammarModel getModel();
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.RuleMappingsLookup")
+    public Optional<RuleMapEntry> mappingBySourceName(String containerRuleName, String sourceName);
+
+    @DelegateTo(className = "eu.mihosoft.vmf.vmftext.grammar.RuleMappingsLookup")
+    public boolean mappingBySourceNameExists(String containerRuleName, String sourceName);
+}
+
+interface RuleMapping {
+    @Container(opposite = "ruleMappings")
+    RuleMappings getParent();
+
+    @Contains(opposite = "parent")
+    RuleMapEntry[] getEntries();
+
+    String[] getApplyToNames();
+}
+
+interface RuleMapEntry {
+    @Container(opposite = "entries")
+    RuleMapping getParent();
+
+    String getSourceName();
+
+    String getTargetName();
+
+    String getSourceToTargetCode();
+
+    String getTargetToSourceCode();
 }
 
 
