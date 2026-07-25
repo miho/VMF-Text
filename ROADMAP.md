@@ -1,6 +1,6 @@
 # VMF-Text Roadmap
 
-*Last updated: 2026-07-16*
+*Last updated: 2026-07-25*
 
 VMF-Text occupies a niche no other framework covers: **a plain (labeled or
 auto-labeled) ANTLR4 grammar in → a rich, typed VMF model plus an exact
@@ -133,40 +133,55 @@ sh ./gradlew publishPlugins --no-daemon
   a rule-level `options { … }` block no longer clobbers the captured
   grammar-level `superClass` (`GrammarToModelListener.enterOptionsSpec`), with a
   regression test (`core` `GrammarOptionsTest`).
+- **aarch64 miniclang test guard ([#23](https://github.com/miho/VMF-Text/issues/23)) — done.**
+  `parseUnparseRunCodeTest` still runs the parse → unparse round trip on every
+  platform, but its native compile-and-run step (vtcc/TCC 0.9.27, which can't link
+  modern glibc on aarch64) is now skipped via JUnit `Assume` on aarch64/arm
+  instead of failing the whole suite; amd64 (including CI) is unaffected. A real
+  aarch64 fix needs a newer TCC upstream (`vtcc` / `tcc-dist`), out of this repo's
+  scope.
 
-## Phase 1 — Prove the differentiator (~2 weeks after 0.2.0)
+## Phase 1 — Prove the differentiator (delivered)
 
-- **Round-trip showcase.** Parse a real Java 24 source file with the bundled
-  `java24` grammar, apply a programmatic model edit (rename a method, add an
-  annotation), unparse — everything untouched stays byte-identical. Runnable
-  example + prominent README section. This is the demo no comparable tool
-  can reproduce generically.
-- **Honest comparison page** (in the style of textX's comparison docs):
-  VMF-Text vs Xtext, Langium, textX, plain ANTLR, JavaParser — grammar reuse,
-  round-trip fidelity, model API depth (immutable views, change recording,
-  undo, clone), editor/LSP story (VMF-Text: none built-in — documented
-  bridge instead), platform and runtime weight.
-- **README refresh.** Lead with the one-sentence value proposition, document
-  `autoLabel = true` for unlabeled/partially labeled grammars, state the
-  lexical-preservation guarantee precisely (exact for parsed models,
+- [x] **Round-trip showcase.** [`examples/java24-roundtrip`](examples/java24-roundtrip)
+  parses a real Java 24 source file with the bundled `java24` grammar, proves the
+  unparse is byte-identical, then applies one surgical model edit
+  (`methodDecl.getMethodName().setText("render")`) and shows exactly one line
+  changes — the demo no comparable tool reproduces generically. Prominent README
+  "Round-Trip Fidelity" section + a runnable example ladder
+  (ArrayLang → Java 8 → Java 24).
+- [x] **Honest comparison page** — [`COMPARISON.md`](COMPARISON.md) (in the style
+  of textX's comparison docs) covers VMF-Text vs Xtext, Langium, textX, plain
+  ANTLR, JavaParser across grammar reuse, round-trip fidelity, model API depth
+  (immutable views, change recording, undo, clone), editor/LSP story (VMF-Text:
+  none built-in — documented bridge instead), platform and runtime weight; linked
+  from the README lead.
+- [x] **README refresh** — leads with the one-sentence value proposition,
+  documents `autoLabel = true` for unlabeled/partially labeled grammars, and
+  states the lexical-preservation guarantee precisely (exact for parsed models,
   conservative separator fallback for programmatically set values).
 
 ## Phase 2 — Harden the core (design work, scope after Phase 1)
 
-Shipped so far: the written LSP stance ([LSP_INTEGRATION.md](LSP_INTEGRATION.md))
-and path-keyed optional-presence state (`899ab47`). The remaining items below
-are tracked in [#19](https://github.com/miho/VMF-Text/issues/19) together with
-the 0.2.1 cleanup queue.
+Shipped so far: the written LSP stance ([LSP_INTEGRATION.md](LSP_INTEGRATION.md)),
+path-keyed optional-presence state (`899ab47`), and — post-0.2.1, unreleased —
+parser rule maps / model rewriting ([#1](https://github.com/miho/VMF-Text/issues/1),
+see below) plus the `superClass` option fix
+([#14](https://github.com/miho/VMF-Text/issues/14)). The still-open design items
+are the **typed lexical-metadata migration**, the **formatter policy for
+programmatically created models**, and **isolating Java-target ANTLR action
+injection** (all marked below); these plus the 0.2.1 cleanup queue are tracked in
+[#19](https://github.com/miho/VMF-Text/issues/19).
 
 From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 
-- **Complete the typed lexical metadata migration** — a typed `LexicalInfo`
-  mirror already ships (see README "Typed Lexical Metadata"); retire the
-  untyped payload-map fallback for a clean VMF-Jackson / JSON-schema story.
+- **Complete the typed lexical metadata migration** *(still open)* — a typed
+  `LexicalInfo` mirror already ships (see README "Typed Lexical Metadata"); retire
+  the untyped payload-map fallback for a clean VMF-Jackson / JSON-schema story.
 - **Path-keyed optional-presence state** — `OptionalState` only; positional
   `optionalSymbols` removed (0.2.1).
-- **Formatter policy for programmatically created models** — pluggable
-  pretty-printing / grammar-aware separators where exact preservation is
+- **Formatter policy for programmatically created models** *(still open)* —
+  pluggable pretty-printing / grammar-aware separators where exact preservation is
   undefined by construction.
 - **Trivia splice + list-shape hints** — bare/parenthesized `T (',' T)*`,
   multi-list `ListShapeHint`, `separatorCount`, optional trailing `','?`,
@@ -180,10 +195,10 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 - **Unparsing guide** — [`docs/UNPARSING.md`](docs/UNPARSING.md) (0.2.1).
 - **Written LSP stance** — document how to feed the generated model into an
   LSP4J-based server; deliberately do not build a language workbench.
-- **Isolate Java-target ANTLR action injection** — keeps a future door open
-  for other ANTLR targets without committing to them.
+- **Isolate Java-target ANTLR action injection** *(still open)* — keeps a future
+  door open for other ANTLR targets without committing to them.
 
-## Parser rule maps / model rewriting (#1) — landed (unreleased)
+## Parser rule maps / model rewriting — landed (unreleased), closed [#1](https://github.com/miho/VMF-Text/issues/1)
 
 `RuleMap()` flattens a single-alternative wrapper rule at its reference sites:
 DSL (`TypeMapping.g4`) + model (`RuleMappings`) + a post-model type-redirect pass

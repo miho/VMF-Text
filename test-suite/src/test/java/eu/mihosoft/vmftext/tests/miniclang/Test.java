@@ -50,6 +50,17 @@ public class Test {
 
         System.out.println(newCode);
 
+        // The parse -> unparse round trip above is the VMF-Text behavior under
+        // test and runs on every platform. The step below compiles and *runs*
+        // the unparsed C via vtcc/TCC 0.9.27, which cannot link modern glibc on
+        // aarch64 (see issue #23); on amd64 (incl. CI) vtcc uses the
+        // self-contained -nostdlib -run path and works. Skip -- don't fail --
+        // the native execution + assertion on aarch64/arm.
+        org.junit.Assume.assumeFalse(
+                "vtcc/TCC 0.9.27 cannot link glibc on aarch64 (see issue #23)",
+                System.getProperty("os.arch", "").toLowerCase()
+                        .matches(".*(aarch64|arm).*"));
+
         StringPrintStream stringPrintStream = new StringPrintStream();
         CInterpreter.execute(newCode).print(stringPrintStream,System.err).waitFor();
 

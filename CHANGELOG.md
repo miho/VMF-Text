@@ -25,6 +25,14 @@ All notable changes to VMF-Text are documented here.
   Round-trip is byte-exact for transparent wrapper rules. Details:
   [`docs/RULE_MAPS.md`](docs/RULE_MAPS.md).
 
+### Changed
+
+- **`test-suite` miniclang `parseUnparseRunCodeTest`** now skips its native
+  compile-and-run step on aarch64/arm (via JUnit `Assume`) instead of failing the
+  suite: the bundled vtcc/TCC 0.9.27 cannot link modern glibc there. The
+  parse → unparse round trip still runs on every platform; amd64 (including CI)
+  is unaffected (#23).
+
 ### Fixed
 
 - **Grammar `superClass` option preserved across rule-level `options {}`** (#14)
