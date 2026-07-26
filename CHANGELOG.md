@@ -4,8 +4,9 @@ All notable changes to VMF-Text are documented here.
 
 ## [0.2.2] — 2026-07-26
 
-Parser rule maps (model rewriting), plus option-handling and
-test-environment robustness fixes.
+Parser rule maps (model rewriting), fail-fast code generation and quieter
+tinylog-based logging, plus option-handling and test-environment robustness
+fixes.
 
 ### Added
 
@@ -35,6 +36,18 @@ test-environment robustness fixes.
   suite: the bundled vtcc/TCC 0.9.27 cannot link modern glibc there. The
   parse → unparse round trip still runs on every platform; amd64 (including CI)
   is unaffected (#23).
+- **Code generation now fails loudly instead of emitting partial output** —
+  `VMFText.generate`/`generateModelCode` and `ModelGenerator` no longer swallow
+  exceptions (`printStackTrace` + continue); they throw a new
+  `VMFTextGenerationException`, and a non-zero ANTLR tool exit aborts generation
+  rather than silently writing partial code that only fails later at `javac`
+  time. The Gradle plugin surfaces this as a `GradleException`. Coverage: `core`
+  `GenerationFailureTest`.
+- **Logging migrated to tinylog** — ~60 direct
+  `System.out`/`System.err`/`printStackTrace` sites across the core pipeline now
+  go through a `Logger` (tinylog-api/impl + `tinylog.properties`), quiet by
+  default at `info` level, removing the unconditional stdout writes previously
+  emitted on every `generate()`.
 
 ### Fixed
 
@@ -46,6 +59,9 @@ test-environment robustness fixes.
   parsers then extended nothing. The options object is now initialized once
   (first block wins, subsequent blocks merge). Regression coverage:
   `core` `GrammarOptionsTest`.
+- **Gradle plugin loads under a Gradle daemon on JDK 17** — the plugin's Groovy
+  is now compiled to Java 11 bytecode (was Java 21, which a Gradle running on
+  JDK 17 could not load); Groovy also bumped `2.4.12` → `4.0.21`.
 
 ### Publish (pending)
 
