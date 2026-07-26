@@ -2,7 +2,10 @@
 
 All notable changes to VMF-Text are documented here.
 
-## [Unreleased]
+## [0.2.2] — 2026-07-26
+
+Parser rule maps (model rewriting), plus option-handling and
+test-environment robustness fixes.
 
 ### Added
 
@@ -43,6 +46,15 @@ All notable changes to VMF-Text are documented here.
   parsers then extended nothing. The options object is now initialized once
   (first block wins, subsequent blocks merge). Regression coverage:
   `core` `GrammarOptionsTest`.
+
+### Publish (pending)
+
+To be published to Maven Central as `eu.mihosoft.vmf:vmf-text:0.2.2` and
+`eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.2`, and to the Gradle Plugin Portal
+(plugin id `eu.mihosoft.vmftext` version `0.2.2`, incl. the Central marker), then
+tagged `v0.2.2` with a GitHub release. VMF stays `0.2.10`, ANTLR `4.13.2`. Release
+credentials are held offline — see the ROADMAP "Publishing prerequisites" and
+"Publish commands (reference)".
 
 ## [0.2.1] — 2026-07-17
 

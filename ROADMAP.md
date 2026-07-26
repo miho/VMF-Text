@@ -123,23 +123,42 @@ sh ./gradlew publishPlugins --no-daemon
 # currently published by a separate POM-only project (see cleanup queue)
 ```
 
-## Post-0.2.1 fixes (unreleased)
+## Ship 0.2.2 (prep — 2026-07-26)
 
-- **`superClass` option ([#14](https://github.com/miho/VMF-Text/issues/14)) — done.**
-  A grammar-level `options { superClass = … }` flows through to both generated
-  parsers (main parser inherits it via grammar pass-through; the synthesized
-  unparser grammar re-emits it in `UnparserCodeGenerator`). Implemented in
-  `a9a3c00`, exercised end-to-end by `examples/java24-roundtrip`. Hardened here:
-  a rule-level `options { … }` block no longer clobbers the captured
-  grammar-level `superClass` (`GrammarToModelListener.enterOptionsSpec`), with a
-  regression test (`core` `GrammarOptionsTest`).
-- **aarch64 miniclang test guard ([#23](https://github.com/miho/VMF-Text/issues/23)) — done.**
-  `parseUnparseRunCodeTest` still runs the parse → unparse round trip on every
-  platform, but its native compile-and-run step (vtcc/TCC 0.9.27, which can't link
-  modern glibc on aarch64) is now skipped via JUnit `Assume` on aarch64/arm
-  instead of failing the whole suite; amd64 (including CI) is unaffected. A real
-  aarch64 fix needs a newer TCC upstream (`vtcc` / `tcc-dist`), out of this repo's
-  scope.
+Model rewriting + option/robustness fixes. Details: [`CHANGELOG.md`](CHANGELOG.md).
+Prepped on the release branch; the publish + tag steps below are the remaining
+work and need the offline release credentials.
+
+- [x] **Parser rule maps / model rewriting**
+      ([#1](https://github.com/miho/VMF-Text/issues/1)) — `RuleMap()` flattens
+      single-alt wrapper rules at their reference sites; byte-exact round trip for
+      transparent wrappers (dedicated section below +
+      [`docs/RULE_MAPS.md`](docs/RULE_MAPS.md)).
+- [x] **`superClass` option** ([#14](https://github.com/miho/VMF-Text/issues/14))
+      — a grammar-level `options { superClass = … }` flows through to both
+      generated parsers (main parser via grammar pass-through; the synthesized
+      unparser grammar re-emits it in `UnparserCodeGenerator`, `a9a3c00`) and is no
+      longer clobbered by a later rule-level `options { … }` block
+      (`GrammarToModelListener.enterOptionsSpec`; regression `core`
+      `GrammarOptionsTest`).
+- [x] **aarch64 miniclang test guard**
+      ([#23](https://github.com/miho/VMF-Text/issues/23)) — the native
+      compile-and-run step (vtcc/TCC 0.9.27, which can't link modern glibc on
+      aarch64) is skipped via JUnit `Assume` instead of failing the suite; the
+      parse → unparse round trip still runs on every platform, amd64 (incl. CI)
+      unaffected. A real aarch64 fix needs a newer TCC upstream
+      (`vtcc` / `tcc-dist`), out of this repo's scope.
+- [x] Version → `0.2.2` (`config/common.properties`); `README.md`,
+      `gradle-plugin/README.md`, and the aligned `examples/**` plugin ids bumped.
+      VMF stays `0.2.10`, ANTLR `4.13.2`. (Showcases `java8`/`java24` stay pinned
+      to a Central-published version so `./gradlew run` works out of the box.)
+- [ ] Full-chain validation green (`sh ./build-and-test-all.sh`; PR CI runs the
+      same chain on ubuntu + windows, plus the ArrayLang example from `mavenLocal`).
+- [ ] Publish `eu.mihosoft.vmf:vmf-text:0.2.2` +
+      `vmf-text-gradle-plugin:0.2.2` to Maven Central and the Gradle Plugin Portal
+      (plugin id `eu.mihosoft.vmftext` 0.2.2 + Central marker); tag `v0.2.2`,
+      GitHub release. **Pending** — release credentials are offline (see
+      "Publishing prerequisites" / "Publish commands (reference)").
 
 ## Phase 1 — Prove the differentiator (delivered)
 
@@ -164,7 +183,7 @@ sh ./gradlew publishPlugins --no-daemon
 ## Phase 2 — Harden the core (design work, scope after Phase 1)
 
 Shipped so far: the written LSP stance ([LSP_INTEGRATION.md](LSP_INTEGRATION.md)),
-path-keyed optional-presence state (`899ab47`), and — post-0.2.1, unreleased —
+path-keyed optional-presence state (`899ab47`), and — in 0.2.2 —
 parser rule maps / model rewriting ([#1](https://github.com/miho/VMF-Text/issues/1),
 see below) plus the `superClass` option fix
 ([#14](https://github.com/miho/VMF-Text/issues/14)). The still-open design items
@@ -198,7 +217,7 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 - **Isolate Java-target ANTLR action injection** *(still open)* — keeps a future
   door open for other ANTLR targets without committing to them.
 
-## Parser rule maps / model rewriting — landed (unreleased), closed [#1](https://github.com/miho/VMF-Text/issues/1)
+## Parser rule maps / model rewriting — landed in 0.2.2, closed [#1](https://github.com/miho/VMF-Text/issues/1)
 
 `RuleMap()` flattens a single-alternative wrapper rule at its reference sites:
 DSL (`TypeMapping.g4`) + model (`RuleMappings`) + a post-model type-redirect pass
