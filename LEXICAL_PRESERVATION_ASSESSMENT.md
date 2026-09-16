@@ -225,19 +225,30 @@ clean API, and they should remain authoritative. However, for the larger goal of
 feeding VMF-Text a Java/C++/JavaScript/DSL grammar and receiving a rich VMF
 model, explicit labels everywhere are too expensive.
 
-Recommended naming policy:
+Recommended naming policy (largely implemented by `AutoLabeler`):
 
 - explicit labels always win;
-- parser-rule references default to lower-camel rule names;
-- token references default to lower-camel token names;
+- parser-rule references default to lower-camel rule names (no `Node` suffix);
+  when that name collides with a parser rule (ANTLR error 69), AutoLabeler uses
+  PascalCase of the same word so getters stay `getStatement()` / `getValue()`;
+- token references default to lower-camel token names (Java keywords get a
+  `Value` suffix);
 - repeated elements become list properties;
-- duplicate references get deterministic suffixes or path-derived names;
+- duplicate references prefer a keyword-context name when the nearest preceding
+  sibling is a keyword-like string literal (e.g. `'else' statement` →
+  `elseStatement`), otherwise stable numeric suffixes;
 - literals are usually syntax, not semantic properties, except operator-like
-  literals that should be represented as discriminators;
+  literals in repeated blocks that are captured so unparsing round-trips;
 - unlabeled alternatives get deterministic generated class names unless ANTLR
   alt labels are present;
-- the generator should emit a report of inferred names so users can decide where
-  to add explicit labels.
+- the generator emits a report of inferred names (log and optional report file
+  under `build/reports/vmf-text/`) so users can decide where to add explicit
+  labels.
+
+Remaining gaps relative to a fully polished public API include richer English
+pluralization (e.g. `entry*` → `entrys` today), path-derived names beyond
+keyword context / PascalCase ANTLR-safety, and treating more operator-like
+literals as typed discriminators.
 
 This gives VMF-Text a migration path from "labeled ANTLR grammar required" to
 "ANTLR-compatible grammar accepted, explicit labels improve API quality".

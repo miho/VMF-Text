@@ -151,7 +151,8 @@ public class VMFText {
             // GenerationOptions flag can enable it globally (e.g. from Gradle).
             List<String> comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
             if(options.isAutoLabel() || GrammarMetaInformationUtil.isAutoLabelEnabled(comments)) {
-                grammar = AutoLabeler.rewrite(grammar, options.isEmitAutoLabelReport());
+                grammar = AutoLabeler.rewrite(grammar, options.isEmitAutoLabelReport(),
+                        options.getAutoLabelReportFile());
             }
 
             // Rewrite list-labeled wildcards (label+=.) before optional wrapping / AntlrTool

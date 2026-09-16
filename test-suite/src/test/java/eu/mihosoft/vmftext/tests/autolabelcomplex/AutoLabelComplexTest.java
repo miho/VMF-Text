@@ -21,26 +21,26 @@ public class AutoLabelComplexTest {
         AutoLabelComplexModel model = parser.parse(SOURCE);
 
         Program program = model.getRoot();
-        Assert.assertEquals(2, program.getStatementNodes().size());
+        Assert.assertEquals(2, program.getStatements().size());
 
         // first statement: assignment 'x = 1 + 2 + 3;'
-        Statement first = program.getStatementNodes().get(0);
+        Statement first = program.getStatements().get(0);
         Assert.assertTrue("assignment alternative -> StatementAlt1",
                 first instanceof StatementAlt1);
-        Assignment assignment = ((StatementAlt1) first).getAssignmentNode();
+        Assignment assignment = ((StatementAlt1) first).getAssignment();
         Assert.assertEquals("x", assignment.getIdentifier());
 
         // second statement: if/else -> StatementAlt2
-        Statement second = program.getStatementNodes().get(1);
+        Statement second = program.getStatements().get(1);
         Assert.assertTrue("if alternative -> StatementAlt2",
                 second instanceof StatementAlt2);
-        IfStatement ifStatement = ((StatementAlt2) second).getIfStatementNode();
+        IfStatement ifStatement = ((StatementAlt2) second).getIfStatement();
 
         // then-branch is a block statement, else-branch an assignment statement
         Assert.assertTrue("then-branch is a block statement",
-                ifStatement.getStatementNode() instanceof StatementAlt3);
+                ifStatement.getStatement() instanceof StatementAlt3);
         Assert.assertTrue("else-branch is an assignment statement",
-                ifStatement.getStatementNode2() instanceof StatementAlt1);
+                ifStatement.getElseStatement() instanceof StatementAlt1);
     }
 
     @Test
@@ -49,27 +49,27 @@ public class AutoLabelComplexTest {
         AutoLabelComplexModel model = parser.parse(SOURCE);
 
         // '1 + 2 + 3' -> one leading term + two repeated terms in the list
-        Assignment assignment = ((StatementAlt1) model.getRoot().getStatementNodes().get(0))
-                .getAssignmentNode();
-        Expression expression = assignment.getExpressionNode();
-        Assert.assertNotNull("leading term is captured", expression.getTermNode());
+        Assignment assignment = ((StatementAlt1) model.getRoot().getStatements().get(0))
+                .getAssignment();
+        Expression expression = assignment.getExpression();
+        Assert.assertNotNull("leading term is captured", expression.getTerm());
         Assert.assertEquals("repeated terms are collected into a list",
-                2, expression.getTermNodes().size());
+                2, expression.getTerms().size());
 
-        // the leading term '1' resolves to a FactorAlt1 (INT) via factorNode
-        Factor leadingFactor = expression.getTermNode().getFactorNode();
+        // the leading term '1' resolves to a FactorAlt1 (INT) via factor
+        Factor leadingFactor = expression.getTerm().getFactor();
         Assert.assertTrue("INT factor -> FactorAlt1", leadingFactor instanceof FactorAlt1);
         Assert.assertEquals("1", ((FactorAlt1) leadingFactor).getIntValue());
 
         // 'a * b * c' inside the block -> one leading factor + two in the list
-        IfStatement ifStatement = ((StatementAlt2) model.getRoot().getStatementNodes().get(1))
-                .getIfStatementNode();
-        Block block = ((StatementAlt3) ifStatement.getStatementNode()).getBlockNode();
-        Assignment inner = ((StatementAlt1) block.getStatementNodes().get(0)).getAssignmentNode();
-        Term term = inner.getExpressionNode().getTermNode();
-        Assert.assertNotNull("leading factor is captured", term.getFactorNode());
+        IfStatement ifStatement = ((StatementAlt2) model.getRoot().getStatements().get(1))
+                .getIfStatement();
+        Block block = ((StatementAlt3) ifStatement.getStatement()).getBlock();
+        Assignment inner = ((StatementAlt1) block.getStatements().get(0)).getAssignment();
+        Term term = inner.getExpression().getTerm();
+        Assert.assertNotNull("leading factor is captured", term.getFactor());
         Assert.assertEquals("repeated factors are collected into a list",
-                2, term.getFactorNodes().size());
+                2, term.getFactors().size());
     }
 
     @Test
@@ -79,8 +79,8 @@ public class AutoLabelComplexTest {
         AutoLabelComplexModelParser parser = new AutoLabelComplexModelParser();
         AutoLabelComplexModel model = parser.parse(source);
 
-        Expression expression = ((StatementAlt1) model.getRoot().getStatementNodes().get(0))
-                .getAssignmentNode().getExpressionNode();
+        Expression expression = ((StatementAlt1) model.getRoot().getStatements().get(0))
+                .getAssignment().getExpression();
         Assert.assertEquals("both operators are captured", 2, expression.getOperators().size());
         Assert.assertEquals("+", expression.getOperators().get(0));
         Assert.assertEquals("-", expression.getOperators().get(1));
@@ -95,21 +95,21 @@ public class AutoLabelComplexTest {
     public void altTypedRulesNumberElementNamesPerAlternative() {
         // FactorAlt3 ('(' expression ')') and FactorAlt4 ('[' ... ']') are
         // separate types, so each starts its name numbering fresh: the leading
-        // expression of FactorAlt4 is 'expressionNode', not 'expressionNode2'.
+        // expression of FactorAlt4 is 'expression', not 'expression2'.
         String source = "x = [1, 2];\n";
 
         AutoLabelComplexModelParser parser = new AutoLabelComplexModelParser();
         AutoLabelComplexModel model = parser.parse(source);
 
-        Factor factor = ((StatementAlt1) model.getRoot().getStatementNodes().get(0))
-                .getAssignmentNode().getExpressionNode().getTermNode().getFactorNode();
+        Factor factor = ((StatementAlt1) model.getRoot().getStatements().get(0))
+                .getAssignment().getExpression().getTerm().getFactor();
         Assert.assertTrue("array factor -> FactorAlt4", factor instanceof FactorAlt4);
         FactorAlt4 arrayFactor = (FactorAlt4) factor;
 
-        Assert.assertEquals("1", ((FactorAlt1) arrayFactor.getExpressionNode()
-                .getTermNode().getFactorNode()).getIntValue());
+        Assert.assertEquals("1", ((FactorAlt1) arrayFactor.getExpression()
+                .getTerm().getFactor()).getIntValue());
         Assert.assertEquals("repeated expressions are collected into a list",
-                1, arrayFactor.getExpressionNodes().size());
+                1, arrayFactor.getExpressions().size());
         Assert.assertEquals("the ',' separator is captured",
                 1, arrayFactor.getSymbols().size());
 
@@ -128,10 +128,10 @@ public class AutoLabelComplexTest {
         AutoLabelComplexModelParser parser = new AutoLabelComplexModelParser();
         AutoLabelComplexModel model = parser.parse(source);
 
-        Statement statement = model.getRoot().getStatementNodes().get(0);
+        Statement statement = model.getRoot().getStatements().get(0);
         Assert.assertTrue("dims alternative -> StatementAlt4",
                 statement instanceof StatementAlt4);
-        Dims dims = ((StatementAlt4) statement).getDimsNode();
+        Dims dims = ((StatementAlt4) statement).getDims();
 
         Assert.assertEquals("d", dims.getIdentifier());
         Assert.assertEquals("each '[' is captured in order",

@@ -61,7 +61,7 @@ public class AutoLabelPartialTest {
         AutoLabelPartialModelParser parser = new AutoLabelPartialModelParser();
         AutoLabelPartialModel model = parser.parse(source);
 
-        Assert.assertEquals(4, model.getRoot().getEntryNodes().size());
+        Assert.assertEquals(4, model.getRoot().getEntries().size());
 
         AutoLabelPartialModelUnparser unparser = new AutoLabelPartialModelUnparser();
         String unparsed = unparser.unparse(model);

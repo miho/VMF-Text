@@ -1460,6 +1460,17 @@ public class UnparserCodeGenerator {
             w.append(indent + "{ // rule-mapped (issue #1): reconstruct source from target, then unparse").append('\n');
             w.append(indent + "  var second = " + valueExpr + ";").append('\n');
             w.append(indent + "  " + p.getRuleMapSourceTypeName() + " __src = " + p.getRuleMapTargetToSourceCode() + ";").append('\n');
+            // Restore RuleMap wrapper-shell lexical info onto the reconstructed
+            // source so token-bearing wrappers round-trip byte-exactly (#32).
+            w.append(indent + "  if (second instanceof CodeElement) {").append('\n');
+            w.append(indent + "    LexicalInfo __shell = ((CodeElement) second).getRuleMapShellLexicalInfo();").append('\n');
+            w.append(indent + "    if (__shell != null) {").append('\n');
+            w.append(indent + "      __src.setLexicalInfo(__shell);").append('\n');
+            w.append(indent + "      if (__shell.getOriginalRange() != null) {").append('\n');
+            w.append(indent + "        __src.setCodeRange(__shell.getOriginalRange());").append('\n');
+            w.append(indent + "      }").append('\n');
+            w.append(indent + "    }").append('\n');
+            w.append(indent + "  }").append('\n');
             w.append(indent + "  getUnparser().unparse( __src, internalW );").append('\n');
             w.append(indent + "}").append('\n');
         } else {

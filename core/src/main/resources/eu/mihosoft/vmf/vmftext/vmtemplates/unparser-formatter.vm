@@ -231,6 +231,16 @@ public interface Formatter {
             }
 
             @Override
+            public void setRuleMapShellLexicalInfo(LexicalInfo ruleMapShellLexicalInfo) {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
+            public LexicalInfo getRuleMapShellLexicalInfo() {
+                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
+            }
+
+            @Override
             public CodeElement getParent() {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }

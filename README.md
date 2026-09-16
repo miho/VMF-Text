@@ -213,10 +213,21 @@ AutoLabel(enabled=true)
 ```
 
 Explicit labels always win and mix consistently with auto-labeling. Unlabeled
-parser-rule and token references receive deterministic names based on grammar
-order; duplicate names receive stable numeric suffixes. Suffix numbering is
-scoped to the generated type: in rules whose alternatives become separate typed
-sub classes each alternative numbers its names independently. Generated element
+parser-rule and token references receive deterministic lower-camel names based
+on the referenced rule or token (no `Node` suffix). Parser-rule refs become
+plain names such as `statements` for lists; a singular ref whose lower-camel
+name would collide with a parser rule (ANTLR error 69) is emitted in PascalCase
+(e.g. `Statement=statement`) so getters stay `getStatement()`. Token refs stay
+lower-camel, and Java-keyword token names get a `Value` suffix (e.g. `INT` →
+`intValue`). Repeated elements are pluralized into list properties.
+
+When the same base name would collide inside a type, AutoLabeler prefers a
+keyword-context name if the nearest preceding sibling is a keyword-like string
+literal (`[a-zA-Z_][a-zA-Z0-9_]*` after stripping quotes): e.g.
+`'else' statement` becomes `elseStatement` instead of `statement2`. Otherwise
+duplicate names receive stable numeric suffixes. Suffix numbering is scoped to
+the generated type: in rules whose alternatives become separate typed sub
+classes each alternative numbers its names independently. Generated element
 names never collide with manually chosen labels (a hand-written `identifier=`
 label keeps its name, and an auto-labeled sibling becomes `identifier2`). If a rule
 labels only *some* of its alternatives with `#` (which ANTLR rejects on its own,
@@ -245,7 +256,10 @@ ANTLR4 grammars:
 Isolated string literals outside of repeated blocks remain syntax and are not
 exposed as semantic properties. During generation, VMF-Text prints an auto-label
 report that maps grammar element paths to inferred property and alternative
-names.
+names. When enabled via Gradle (`emitAutoLabelReport`, default `true`), the
+same report is also written under `build/reports/vmf-text/` (default file
+`autolabel-report.txt`, overridable with `autoLabelReportFile`). Explicit
+labels always win over inferred names.
 
 ## Typed Lexical Metadata
 
