@@ -72,17 +72,22 @@ rule or split the alternatives.
 
 ## Lexical preservation
 
-Round-trip is **byte-exact for transparent wrapper rules** — rules that only
-delegate (e.g. `expression: value = numberLiteral`), which are the meaningful
-flattening targets. The wrapped target subtree keeps its own parse-time trivia
-and separators owned by the parent rule survive, so an unedited parse/unparse
-reproduces the input exactly (verified by
-`RuleMapTest.roundTripIsByteExact`).
+Round-trip is **byte-exact for unedited parsed models**, including both
+transparent wrappers and token-bearing wrappers:
 
-**Boundary.** A wrapper that contributes its *own* terminals (e.g.
-`expr: '(' value=numberLiteral ')'`) has those terminals re-emitted from the
-reconstructed source using the formatter's conservative separators, so such a
-wrapper is not guaranteed byte-exact after flattening. Flattening a token-bearing
-rule also discards that syntax from the model, so it is rarely a sensible target;
-storing and restoring the wrapper's original source span for that case is a
-possible follow-up.
+- **Transparent wrappers** (e.g. `expression: value = numberLiteral`) — the
+  wrapped target subtree keeps its own parse-time trivia and separators owned
+  by the parent rule survive, so an unedited parse/unparse reproduces the input
+  exactly (verified by `RuleMapTest.roundTripIsByteExact`).
+- **Token-bearing wrappers** (e.g. `expr: '(' value=numberLiteral ')'`) — the
+  discarded wrapper's ANTLR context is captured as a shell `LexicalInfo`
+  sidecar on the flattened target (`CodeElement.getRuleMapShellLexicalInfo()`).
+  On unparse the shell is restored onto the reconstructed source so
+  wrapper-owned terminals and trivia round-trip byte-exactly (verified by
+  `RuleMapTokenBearingTest.roundTripIsByteExact`).
+
+**Boundary.** Programmatic targets (or any target whose shell LexicalInfo was
+cleared by a semantic edit) have no shell to restore; unparse reconstructs the
+wrapper with the formatter's conservative separators. That output is still
+valid grammar text, but not guaranteed byte-exact relative to a prior source
+span.

@@ -1,6 +1,6 @@
 # VMF-Text Roadmap
 
-*Last updated: 2026-07-25*
+*Last updated: 2026-09-16*
 
 VMF-Text occupies a niche no other framework covers: **a plain (labeled or
 auto-labeled) ANTLR4 grammar in → a rich, typed VMF model plus an exact
@@ -75,7 +75,8 @@ Lexical-preservation polish release. Details: [`CHANGELOG.md`](CHANGELOG.md),
 ### 0.2.1 / 0.2.11 build cleanup queue
 
 Small papercuts found during the 0.2.0 release, tracked in
-[#19](https://github.com/miho/VMF-Text/issues/19) (closed):
+[#19](https://github.com/miho/VMF-Text/issues/19) (closed — most items done in
+0.2.1):
 
 - ~~Set `project.group` and `project.version` at project level in **both**
   gradle-plugin builds (VMF and VMF-Text)~~ — already done for VMF-Text at
@@ -92,6 +93,8 @@ Small papercuts found during the 0.2.0 release, tracked in
 - Verify the Plugin Portal listings once Gradle approves the group
   migration (notification arrives by email) — still pending on Gradle's
   side.
+- `publishPlugins` from a release tag still needs
+  `-Pgroup=eu.mihosoft.vmf -Pversion=<version>` — residual papercut.
 
 ### Publishing prerequisites
 
@@ -119,15 +122,16 @@ sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft --no-daemon
 sh ./gradlew publishPlugins --no-daemon
 # publishPlugins from a release tag currently needs
 #   -Pgroup=eu.mihosoft.vmf -Pversion=<version>
-# (fix queued in the 0.2.1 cleanup above); the Central plugin marker is
-# currently published by a separate POM-only project (see cleanup queue)
+# (residual papercut); the Central plugin marker is published by the
+# plugin build itself since 0.2.1
 ```
 
-## Ship 0.2.2 (prep — 2026-07-26)
+## Ship 0.2.2 (prep done — publish pending, [#29](https://github.com/miho/VMF-Text/issues/29))
 
-Model rewriting + option/robustness fixes. Details: [`CHANGELOG.md`](CHANGELOG.md).
-Prepped on the release branch; the publish + tag steps below are the remaining
-work and need the offline release credentials.
+Model rewriting + option/robustness fixes. Details: [`CHANGELOG.md`](CHANGELOG.md),
+[`docs/releases/0.2.2.md`](docs/releases/0.2.2.md). Code is on `main`; annotated
+tag `v0.2.2` and a GitHub release **draft** exist. Artifact publish needs the
+offline release credentials.
 
 - [x] **Parser rule maps / model rewriting**
       ([#1](https://github.com/miho/VMF-Text/issues/1)) — `RuleMap()` flattens
@@ -137,7 +141,7 @@ work and need the offline release credentials.
 - [x] **`superClass` option** ([#14](https://github.com/miho/VMF-Text/issues/14))
       — a grammar-level `options { superClass = … }` flows through to both
       generated parsers (main parser via grammar pass-through; the synthesized
-      unparser grammar re-emits it in `UnparserCodeGenerator`, `a9a3c00`) and is no
+      unparser grammar re-emits it in `UnparserCodeGenerator`) and is no
       longer clobbered by a later rule-level `options { … }` block
       (`GrammarToModelListener.enterOptionsSpec`; regression `core`
       `GrammarOptionsTest`).
@@ -152,11 +156,13 @@ work and need the offline release credentials.
       `gradle-plugin/README.md`, and the aligned `examples/**` plugin ids bumped.
       VMF stays `0.2.10`, ANTLR `4.13.2`. (Showcases `java8`/`java24` stay pinned
       to a Central-published version so `./gradlew run` works out of the box.)
+- [x] Release prep merged to `main`; CI green; tag `v0.2.2` cut; GitHub release
+      drafted ([#29](https://github.com/miho/VMF-Text/issues/29))
 - [ ] Full-chain validation green (`sh ./build-and-test-all.sh`; PR CI runs the
       same chain on ubuntu + windows, plus the ArrayLang example from `mavenLocal`).
 - [ ] Publish `eu.mihosoft.vmf:vmf-text:0.2.2` +
       `vmf-text-gradle-plugin:0.2.2` to Maven Central and the Gradle Plugin Portal
-      (plugin id `eu.mihosoft.vmftext` 0.2.2 + Central marker); tag `v0.2.2`,
+      (plugin id `eu.mihosoft.vmftext` 0.2.2 + Central marker); publish the drafted
       GitHub release. **Pending** — release credentials are offline (see
       "Publishing prerequisites" / "Publish commands (reference)").
 
@@ -180,42 +186,63 @@ work and need the offline release credentials.
   states the lexical-preservation guarantee precisely (exact for parsed models,
   conservative separator fallback for programmatically set values).
 
-## Phase 2 — Harden the core (design work, scope after Phase 1)
+## Phase 2 — Harden the core (mostly delivered in 0.2.1)
 
-Shipped so far: the written LSP stance ([LSP_INTEGRATION.md](LSP_INTEGRATION.md)),
-path-keyed optional-presence state (`899ab47`), and — in 0.2.2 —
-parser rule maps / model rewriting ([#1](https://github.com/miho/VMF-Text/issues/1),
-see below) plus the `superClass` option fix
-([#14](https://github.com/miho/VMF-Text/issues/14)). The still-open design items
-are the **typed lexical-metadata migration**, the **formatter policy for
-programmatically created models**, and **isolating Java-target ANTLR action
-injection** (all marked below); these plus the 0.2.1 cleanup queue are tracked in
-[#19](https://github.com/miho/VMF-Text/issues/19).
+Shipped: the written LSP stance ([LSP_INTEGRATION.md](LSP_INTEGRATION.md)),
+path-keyed optional-presence state, and — in 0.2.2 — parser rule maps / model
+rewriting ([#1](https://github.com/miho/VMF-Text/issues/1)) plus the `superClass`
+option fix ([#14](https://github.com/miho/VMF-Text/issues/14)). Phase 2 follow-ups
+from [#19](https://github.com/miho/VMF-Text/issues/19) landed in **0.2.1**:
+
+- [x] **Complete the typed lexical metadata migration** — typed `LexicalInfo`
+      (`TriviaPiece`, `OptionalState`, …); untyped `vmf-text:` payload fallback
+      retired; `CodeElement.getPayload()` deprecated for VMF-Text internals.
+- [x] **Path-keyed optional-presence state** — `OptionalState` only; positional
+      `optionalSymbols` removed (0.2.1).
+- [x] **Formatter policy for programmatically created models** — pluggable
+      `ProgrammaticSeparatorPolicy`; default matches the previous conservative
+      separator fallback.
+- [x] **Trivia splice + list-shape hints** — bare/parenthesized `T (',' T)*`,
+      multi-list `ListShapeHint`, `separatorCount`, optional trailing `','?`,
+      multi-alt hints, opener-after-trailer, bare model-typed lists,
+      insert-at-0 padding/undo (0.2.1); irregular/context-sensitive separators
+      still fall back (see assessment § Edit invalidation).
+- [x] **Original lexeme preservation** — type-mapped lexer spellings round-trip
+      when semantic values are unchanged (0.2.1).
+- [x] **Optional null↔value + occurrenceIndex** — presence metadata updates;
+      repeated optional paths use exact occurrence indices (0.2.1).
+- [x] **Unparsing guide** — [`docs/UNPARSING.md`](docs/UNPARSING.md) (0.2.1).
+- [x] **Written LSP stance** — document how to feed the generated model into an
+      LSP4J-based server; deliberately do not build a language workbench.
+- [x] **Isolate Java-target ANTLR action injection** — `AntlrTargetOptionalStateProvider`
+      / `JavaAntlrOptionalStateProvider` (0.2.1); door left open for other
+      targets without committing to them (explicit non-goal).
+
+### Active follow-ups (post-0.2.2)
+
+Tracked as GitHub issues; implemented in [#33](https://github.com/miho/VMF-Text/pull/33):
+
+- [x] **Docs: sync ROADMAP to actual status**
+      ([#30](https://github.com/miho/VMF-Text/issues/30)) — this file.
+- [x] **Automatic naming: richer inference + inferred-name report**
+      ([#31](https://github.com/miho/VMF-Text/issues/31)) — plain lower-camel
+      rule/token names (no `Node` suffix), keyword-context disambiguation for
+      duplicates (e.g. `'else' statement` → `elseStatement`), write the
+      auto-label report to the build directory, core + test-suite coverage.
+      Background: assessment § "Recommended next design step: automatic naming".
+- [x] **RuleMap: byte-exact round-trip for token-bearing wrappers**
+      ([#32](https://github.com/miho/VMF-Text/issues/32)) — store/restore wrapper
+      shell `LexicalInfo` on the flattened target so `( 1 )`-style wrappers
+      round-trip exactly. Transparent wrappers stay as in 0.2.2.
+
+### Explicitly deferred (needs CST / per-gap model — not 0.2.x splice polish)
 
 From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 
-- **Complete the typed lexical metadata migration** *(still open)* — a typed
-  `LexicalInfo` mirror already ships (see README "Typed Lexical Metadata"); retire
-  the untyped payload-map fallback for a clean VMF-Jackson / JSON-schema story.
-- **Path-keyed optional-presence state** — `OptionalState` only; positional
-  `optionalSymbols` removed (0.2.1).
-- **Formatter policy for programmatically created models** *(still open)* —
-  pluggable pretty-printing / grammar-aware separators where exact preservation is
-  undefined by construction.
-- **Trivia splice + list-shape hints** — bare/parenthesized `T (',' T)*`,
-  multi-list `ListShapeHint`, `separatorCount`, optional trailing `','?`,
-  multi-alt hints, opener-after-trailer, bare model-typed lists,
-  insert-at-0 padding/undo (0.2.1); irregular/context-sensitive separators
-  still fall back (see assessment § Edit invalidation).
-- **Original lexeme preservation** — type-mapped lexer spellings round-trip
-  when semantic values are unchanged (0.2.1).
-- **Optional null↔value + occurrenceIndex** — presence metadata updates;
-  repeated optional paths use exact occurrence indices (0.2.1).
-- **Unparsing guide** — [`docs/UNPARSING.md`](docs/UNPARSING.md) (0.2.1).
-- **Written LSP stance** — document how to feed the generated model into an
-  LSP4J-based server; deliberately do not build a language workbench.
-- **Isolate Java-target ANTLR action injection** *(still open)* — keeps a future
-  door open for other ANTLR targets without committing to them.
+- Separators that differ by **index** (Oxford: `,` then `, and`)
+- Unlabeled alt separators (`(('+'|'-') t)*` with no model property)
+- Optional separator **per gap** (`(','? item)*`)
+- Arbitrary cross-rule structural moves with perfect outer-container fidelity
 
 ## Parser rule maps / model rewriting — landed in 0.2.2, closed [#1](https://github.com/miho/VMF-Text/issues/1)
 
@@ -223,9 +250,8 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 DSL (`TypeMapping.g4`) + model (`RuleMappings`) + a post-model type-redirect pass
 (`RuleMapModelRewriter`) + parse-direction conversion + unparse-direction
 reconstruction. Round-trip is byte-exact for transparent wrapper rules; see
-[`docs/RULE_MAPS.md`](docs/RULE_MAPS.md). Feeds the broader model-flattening goal
-in this phase. (Byte-exact preservation for token-bearing wrappers is a possible
-follow-up.)
+[`docs/RULE_MAPS.md`](docs/RULE_MAPS.md). Token-bearing wrapper fidelity landed
+in [#32](https://github.com/miho/VMF-Text/issues/32) / [#33](https://github.com/miho/VMF-Text/pull/33).
 
 ## Non-goals
 

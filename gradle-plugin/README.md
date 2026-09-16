@@ -17,12 +17,16 @@ vmfText {
     vmfVersion   = '0.2.10'  // runtime version
     antlrVersion = '4.13.2'  // runtime version
     autoLabel    = false     // opt-in inferred labels for unlabeled grammar refs
+    // emitAutoLabelReport = true  // write/log inferred-name report (default on)
+    // autoLabelReportFile = file("$buildDir/reports/vmf-text/autolabel-report.txt")
 }
 ```
 
 `autoLabel` is disabled by default. When enabled, VMF-Text deterministically
 labels unlabeled parser-rule and token references before generating the VMF
-model. Explicit ANTLR labels always take precedence.
+model. Explicit ANTLR labels always take precedence. With the default
+`emitAutoLabelReport = true`, the plugin writes an inferred-name report under
+`build/reports/vmf-text/autolabel-report.txt` (override via `autoLabelReportFile`).
 
 ## Building the VMF-Text Gradle Plugin
 

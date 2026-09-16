@@ -51,10 +51,15 @@ import org.tinylog.Logger;
  * remaining alternatives labeled automatically so the grammar stays valid.
  * String literals outside of repeated blocks are left unchanged.</p>
  *
- * <p>Duplicate element names receive stable numeric suffixes. The numbering is
- * scoped to the generated type: in rules whose alternatives become separate
- * typed sub classes each top-level alternative numbers its names
- * independently, everywhere else names are unique per rule.</p>
+ * <p>Duplicate element names prefer a keyword-context name when the nearest
+ * preceding sibling is a keyword-like string literal (e.g. {@code 'else'
+ * statement} becomes {@code elseStatement}); otherwise they receive stable
+ * numeric suffixes. Names that would collide with a parser rule or alternative
+ * label (ANTLR error 69) are emitted in PascalCase (e.g. {@code Statement})
+ * so getters stay {@code getStatement()} without a {@code Node} suffix. The
+ * numbering is scoped to the generated type: in rules whose alternatives
+ * become separate typed sub classes each top-level alternative numbers its
+ * names independently, everywhere else names are unique per rule.</p>
  */
 final class AutoLabeler {
 
@@ -63,6 +68,10 @@ final class AutoLabeler {
     }
 
     static File rewrite(File grammar, boolean emitReport) throws IOException {
+        return rewrite(grammar, emitReport, null);
+    }
+
+    static File rewrite(File grammar, boolean emitReport, File reportFile) throws IOException {
         try(FileInputStream codeStream = new FileInputStream(grammar)) {
             CharStream input = CharStreams.fromStream(codeStream);
 
@@ -84,7 +93,15 @@ final class AutoLabeler {
             ParseTreeWalker.DEFAULT.walk(listener, tree);
 
             if(emitReport && listener.hasEntries()) {
-                Logger.info(listener.report());
+                String report = listener.report(grammar.getName());
+                Logger.info(report);
+                if(reportFile != null) {
+                    File parent = reportFile.getParentFile();
+                    if(parent != null) {
+                        Files.createDirectories(parent.toPath());
+                    }
+                    Files.write(reportFile.toPath(), report.getBytes(StandardCharsets.UTF_8));
+                }
             }
 
             Path dir = Files.createTempDirectory("vmf-text-autolabel");
@@ -318,7 +335,6 @@ final class AutoLabeler {
 
         private void labelAtomElement(ANTLRv4Parser.ElementContext ctx, int elementIndex) {
             boolean repeated = isRepeated(ctx);
-            boolean parserRuleReference = isParserRuleReference(ctx.atom());
             String referencedName = referencedRuleName(ctx.atom());
 
             String baseName;
@@ -327,9 +343,6 @@ final class AutoLabeler {
                     return;
                 }
                 baseName = toPropertyBaseName(referencedName);
-                if(parserRuleReference && baseName.equals(referencedName)) {
-                    baseName = baseName + "Node";
-                }
             } else if(repeated && isStringLiteralAtom(ctx.atom())) {
                 // unnamed string literals inside a repeated block (e.g. the ','
                 // in '(',' item)*') would be dropped when unparsing. Capturing
@@ -343,10 +356,83 @@ final class AutoLabeler {
                 baseName = pluralize(baseName);
             }
 
-            String labelName = uniqueName(baseName);
+            // Prefer keyword-context names over numeric suffixes when a duplicate
+            // would otherwise become baseName2 and a preceding keyword literal
+            // is available (e.g. 'else' statement → elseStatement). Also treat
+            // ANTLR-reserved rule/alt names as taken so we try context first.
+            String labelBase = baseName;
+            boolean taken = nameCountsInRule.containsKey(baseName)
+                    || reservedNamesLower.contains(baseName.toLowerCase());
+            if(taken) {
+                String keyword = precedingKeywordLiteral(ctx);
+                if(keyword != null) {
+                    String contextual = StringUtil.firstToLower(keyword)
+                            + StringUtil.firstToUpper(baseName);
+                    if(!nameCountsInRule.containsKey(contextual)
+                            && !reservedNamesLower.contains(contextual.toLowerCase())) {
+                        labelBase = contextual;
+                    }
+                }
+            }
+
+            // ANTLR error 69: a label must not match a parser rule (or alt) name.
+            // Prefer PascalCase of the same word over the old "Node" suffix so the
+            // public getter stays getValue()/getStatement() while the grammar stays
+            // valid (label Value vs rule value).
+            if(reservedNamesLower.contains(labelBase.toLowerCase())) {
+                labelBase = StringUtil.firstToUpper(labelBase);
+            }
+
+            String labelName = uniqueName(labelBase);
             String assignment = repeated ? "+=" : "=";
             rewriter.insertBefore(ctx.start, labelName + assignment);
             recordEntry(elementIndex, labelName);
+        }
+
+        /**
+         * Walks left among sibling {@code element()}s of the parent alternative
+         * (rule or block) and returns the unquoted text of the nearest earlier
+         * string-literal atom when it looks like a keyword
+         * ({@code [a-zA-Z_][a-zA-Z0-9_]*}), otherwise {@code null}.
+         */
+        private String precedingKeywordLiteral(ANTLRv4Parser.ElementContext ctx) {
+            ParserRuleContext parent = ctx.getParent();
+            if(!(parent instanceof ANTLRv4Parser.AlternativeContext)) {
+                return null;
+            }
+
+            ANTLRv4Parser.AlternativeContext alt = (ANTLRv4Parser.AlternativeContext) parent;
+            List<ANTLRv4Parser.ElementContext> siblings = alt.element();
+            int index = siblings.indexOf(ctx);
+            if(index <= 0) {
+                return null;
+            }
+
+            for(int i = index - 1; i >= 0; i--) {
+                ANTLRv4Parser.ElementContext sibling = siblings.get(i);
+                if(sibling.atom() == null || !isStringLiteralAtom(sibling.atom())) {
+                    continue;
+                }
+                String literal = sibling.atom().terminal().STRING_LITERAL().getText();
+                String unquoted = unquoteStringLiteral(literal);
+                if(unquoted != null && unquoted.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
+                    return unquoted;
+                }
+                return null;
+            }
+            return null;
+        }
+
+        private String unquoteStringLiteral(String literal) {
+            if(literal == null || literal.length() < 2) {
+                return null;
+            }
+            char first = literal.charAt(0);
+            char last = literal.charAt(literal.length() - 1);
+            if((first == '\'' && last == '\'') || (first == '"' && last == '"')) {
+                return literal.substring(1, literal.length() - 1);
+            }
+            return literal;
         }
 
         /**
@@ -433,10 +519,6 @@ final class AutoLabeler {
             }
 
             return null;
-        }
-
-        private boolean isParserRuleReference(ANTLRv4Parser.AtomContext atom) {
-            return atom.ruleref() != null;
         }
 
         /**
@@ -531,20 +613,36 @@ final class AutoLabeler {
             if(baseName.endsWith("s")) {
                 return baseName + "List";
             }
+            // entry → entries, property → properties (consonant + y)
+            if(baseName.length() > 1
+                    && baseName.endsWith("y")
+                    && !isVowel(baseName.charAt(baseName.length() - 2))) {
+                return baseName.substring(0, baseName.length() - 1) + "ies";
+            }
             return baseName + "s";
+        }
+
+        private boolean isVowel(char c) {
+            return "aeiouAEIOU".indexOf(c) >= 0;
         }
 
         boolean hasEntries() {
             return !entriesByRule.isEmpty();
         }
 
-        String report() {
-            StringBuilder result = new StringBuilder("AutoLabel report:\n");
+        String report(String grammarFileName) {
+            StringBuilder result = new StringBuilder();
+            result.append("AutoLabel report");
+            if(grammarFileName != null && !grammarFileName.isEmpty()) {
+                result.append(" for ").append(grammarFileName);
+            }
+            result.append(":\n");
             entriesByRule.forEach((rule, entries) -> {
                 result.append("  rule ").append(rule).append(":\n");
                 entries.forEach((path, name) ->
                         result.append("    element ").append(path).append(" -> ").append(name).append('\n'));
             });
+            result.append("Note: explicit ANTLR labels always win over inferred names.\n");
             return result.toString();
         }
     }

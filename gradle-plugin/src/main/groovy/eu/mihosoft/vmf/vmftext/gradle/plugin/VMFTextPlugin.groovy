@@ -74,6 +74,8 @@ class VMFTextPluginExtension {
     String vmfVersion     = "0.2.10"
     String antlrVersion   = "4.13.2"
     boolean autoLabel     = false
+    boolean emitAutoLabelReport = true
+    File autoLabelReportFile = null
 }
 
 
@@ -212,6 +214,13 @@ public class VMFTextPlugin implements Plugin<Project> {
                                 vmfTextTask.sourceSetCompileClassPath = sourceSet.compileClasspath;
                                 vmfTextTask.sourceDirectorySet.set(sourceDirectorySet);
                                 vmfTextTask.autoLabel = extension.autoLabel;
+                                vmfTextTask.emitAutoLabelReport = extension.emitAutoLabelReport;
+                                if(extension.autoLabelReportFile != null) {
+                                    vmfTextTask.autoLabelReportFile = extension.autoLabelReportFile;
+                                } else if(extension.emitAutoLabelReport) {
+                                    vmfTextTask.autoLabelReportFile = project.layout.buildDirectory
+                                            .file("reports/vmf-text/autolabel-report.txt").get().asFile;
+                                }
                                 // vmfTextTask.vmfTextClass = vmfTextClass;
                             }
                         });
@@ -260,6 +269,12 @@ class CompileVMFTextTask extends DefaultTask {
 
     @org.gradle.api.tasks.Input
     boolean autoLabel;
+
+    @org.gradle.api.tasks.Input
+    boolean emitAutoLabelReport = true;
+
+    @org.gradle.api.tasks.Internal
+    File autoLabelReportFile;
 
     // Class<?> vmfTextClass;
 
@@ -311,6 +326,8 @@ class CompileVMFTextTask extends DefaultTask {
 
                 def generationOptions = new eu.mihosoft.vmf.vmftext.GenerationOptions()
                         .setAutoLabel(autoLabel)
+                        .setEmitAutoLabelReport(emitAutoLabelReport)
+                        .setAutoLabelReportFile(autoLabelReportFile)
 
                 vmfTextClass.generate(
                         // grammar file

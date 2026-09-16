@@ -68,6 +68,14 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     private final java.util.IdentityHashMap<CodeElement, ParserRuleContext> conversionRuleContexts =
             new java.util.IdentityHashMap<>();
 
+    /**
+     * Maps RuleMap-flattened target elements to the ANTLR context of the
+     * discarded wrapper (shell) rule, so wrapper-owned trivia/terminals can be
+     * restored on unparse (issue #32). Cleared with {@link #conversionRuleContexts}.
+     */
+    private final java.util.IdentityHashMap<CodeElement, ParserRuleContext> ruleMapShellContexts =
+            new java.util.IdentityHashMap<>();
+
     private final List<ANTLRErrorListener> errorListeners = new ArrayList<>();
     private ANTLRErrorStrategy errorHandler;
     private boolean consoleOutputDisabled;
@@ -269,7 +277,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
             // ignore typed lexical-metadata mutations (e.g. whitespace padding for
             // newly inserted model elements must not invalidate existing trivia)
-            if("lexicalInfo".equals(evt.propertyName())) {
+            if("lexicalInfo".equals(evt.propertyName())
+                    || "ruleMapShellLexicalInfo".equals(evt.propertyName())) {
                 return;
             }
 
@@ -351,6 +360,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                         if(!${Util.firstToUpper($model.grammarName)}TriviaSupport.spliceDelimitedPrimitiveListTrivia(
                                 element, evt.propertyName(), listChange)) {
                             element.getLexicalInfo().getTriviaPieces().clear();
+                            element.setRuleMapShellLexicalInfo(null);
                         }
                         ${Util.firstToUpper($model.grammarName)}TriviaSupport.spliceOriginalLexemesForListChange(element, evt.propertyName(), listChange);
                     } finally {
@@ -387,6 +397,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 mutatingTrivia[0] = true;
                 try {
                     element.getLexicalInfo().getTriviaPieces().clear();
+                    element.setRuleMapShellLexicalInfo(null);
                 } finally {
                     mutatingTrivia[0] = false;
                 }
@@ -469,7 +480,49 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
         } // end for each code element
 
+        // Attach RuleMap wrapper-shell lexical info onto flattened targets
+        // (issue #32). Shell contexts are descendants of rootCtx, so their
+        // ignored pieces were already collected by the walk above.
+        for(java.util.Map.Entry<CodeElement, ParserRuleContext> shellEntry
+                : ruleMapShellContexts.entrySet()) {
+            CodeElement target = shellEntry.getKey();
+            ParserRuleContext shellCtx = shellEntry.getValue();
+            if(target == null || shellCtx == null) {
+                continue;
+            }
+
+            java.util.List<String> ignoredPiecesOfText =
+                    ignoredPiecesOfTextListener.getIgnoredPiecesOfText(shellCtx);
+            java.util.List<String> optionalStateEntries =
+                    getOptionalStateEntryList(shellCtx);
+
+            LexicalInfo shellInfo = LexicalInfo.newInstance();
+            for(String piece : ignoredPiecesOfText) {
+                shellInfo.getTriviaPieces().add(TriviaPiece.newBuilder().
+                        withText(piece).
+                        withKind(${Util.firstToUpper($model.grammarName)}TriviaSupport.classifyTriviaKind(piece)).
+                        build());
+            }
+            java.util.Map<String,Integer> optionalOccurrenceCounters =
+                    new java.util.HashMap<>();
+            for(String optionalStateEntry : optionalStateEntries) {
+                int sepIdx = optionalStateEntry.lastIndexOf('=');
+                String path = optionalStateEntry.substring(0, sepIdx);
+                int occurrence = optionalOccurrenceCounters.getOrDefault(path, 0);
+                optionalOccurrenceCounters.put(path, occurrence + 1);
+                shellInfo.getOptionalStates().add(OptionalState.newBuilder().
+                        withGrammarElementPath(path).
+                        withOccurrenceIndex(occurrence).
+                        withPresent(Boolean.parseBoolean(optionalStateEntry.substring(sepIdx+1))).
+                        build());
+            }
+            shellInfo.setOriginalRange(ctxToCodeRange(shellCtx));
+            shellInfo.setGrammarElementPath(shellCtx.getClass().getSimpleName());
+            target.setRuleMapShellLexicalInfo(shellInfo);
+        }
+
         conversionRuleContexts.clear();
+        ruleMapShellContexts.clear();
     }
 
 
@@ -781,28 +834,47 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 #if($p.ruleMapSourceTypeName)
 #if($p.type.arrayType)
         // rule-mapped list (issue #1): build source '$p.ruleMapSourceTypeName', extract target '${p.type.asJavaTypeNameNoCollections()}'
-        List<${p.type.asJavaTypeNameNoCollections()}> convertedElements$p.nameWithUpper() = ctx.${p.nameWithLower()}.stream().
-            map(entry->{ ${p.ruleMapSourceTypeName} first = (${p.ruleMapSourceTypeName})convert(entry); return ${p.ruleMapSourceToTargetCode}; }).collect(Collectors.toList());
+        // Capture wrapper shell context for token-bearing wrappers (issue #32).
+        List<${p.type.asJavaTypeNameNoCollections()}> convertedElements$p.nameWithUpper() = ctx.${p.name}.stream().
+            map(entry->{
+                ${p.ruleMapSourceTypeName} first = (${p.ruleMapSourceTypeName})convert(entry);
+                ${p.type.asJavaTypeNameNoCollections()} __vmfMapped = ${p.ruleMapSourceToTargetCode};
+                if(__vmfMapped instanceof CodeElement) {
+                    ParserRuleContext __shellCtx = conversionRuleContexts.get(first);
+                    if(__shellCtx != null) {
+                        ruleMapShellContexts.put((CodeElement)__vmfMapped, __shellCtx);
+                    }
+                }
+                return __vmfMapped;
+            }).collect(Collectors.toList());
         ${rcls.nameWithLower()}.get${p.nameWithUpper()}().addAll(convertedElements$p.nameWithUpper());
 #else
         // rule-mapped (issue #1): build source '$p.ruleMapSourceTypeName', extract target '${p.type.asJavaTypeNameNoCollections()}'
-        if(ctx.${p.nameWithLower()}!=null) {
-            ${p.ruleMapSourceTypeName} first = (${p.ruleMapSourceTypeName})convert(ctx.${p.nameWithLower()});
-            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(${p.ruleMapSourceToTargetCode});
+        // Capture wrapper shell context for token-bearing wrappers (issue #32).
+        if(ctx.${p.name}!=null) {
+            ${p.ruleMapSourceTypeName} first = (${p.ruleMapSourceTypeName})convert(ctx.${p.name});
+            ${p.type.asJavaTypeNameNoCollections()} __vmfMapped = ${p.ruleMapSourceToTargetCode};
+            if(__vmfMapped instanceof CodeElement) {
+                ParserRuleContext __shellCtx = conversionRuleContexts.get(first);
+                if(__shellCtx != null) {
+                    ruleMapShellContexts.put((CodeElement)__vmfMapped, __shellCtx);
+                }
+            }
+            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(__vmfMapped);
         }
 #end## if array type
 #else## not rule-mapped
 #if($p.type.arrayType)
         // convert elements of rule attribute $rcls.nameWithUpper().$p.nameWithLower()
-        List<${p.type.asJavaTypeNameNoCollections()}> convertedElements$p.nameWithUpper() = ctx.${p.nameWithLower()}.stream().
+        List<${p.type.asJavaTypeNameNoCollections()}> convertedElements$p.nameWithUpper() = ctx.${p.name}.stream().
             map(entry->convert(entry)).collect(Collectors.toList());
         // assign elements to model entity
         ${rcls.nameWithLower()}.get${p.nameWithUpper()}().addAll(convertedElements$p.nameWithUpper());
 #else
         // convert and assign rule attribute $rcls.nameWithUpper().$p.nameWithLower()
         // if it is present
-        if(ctx.${p.nameWithLower()}!=null) {
-            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(convert(ctx.${p.nameWithLower()}));
+        if(ctx.${p.name}!=null) {
+            ${rcls.nameWithLower()}.set${p.nameWithUpper()}(convert(ctx.${p.name}));
         }
 #end## if array type
 #end## if rule-mapped
@@ -818,11 +890,11 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         //   List <typeMapping.targetType> convertedElements = ... map(entry->typemapping.convert(entry)) ...
         //
            List<$model.getTypeMappings().targetTypeNameOfMapping($rcls.nameWithUpper(), $p.type.getAntlrRuleName())> convertedElements$p.nameWithUpper() =
-           ctx.${p.nameWithLower()}.stream().map(entry->${model.getTypeMappings().conversionCodeOfMappingStringToType($rcls.nameWithUpper(), $p.type.getAntlrRuleName())}).
+           ctx.${p.name}.stream().map(entry->${model.getTypeMappings().conversionCodeOfMappingStringToType($rcls.nameWithUpper(), $p.type.getAntlrRuleName())}).
              collect(Collectors.toList());
 
         // FALLBACK: for lexer rules without conversion rules
-        // List<String> convertedElements$p.nameWithUpper() = ctx.${p.nameWithLower()}.stream().
+        // List<String> convertedElements$p.nameWithUpper() = ctx.${p.name}.stream().
         //    map(entry->entry.getText()).collect(Collectors.toList());
         // assign elements to model entity
         ${rcls.nameWithLower()}.get${p.nameWithUpper()}().addAll(convertedElements$p.nameWithUpper());
@@ -833,8 +905,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
                 __lexInfo = LexicalInfo.newInstance();
                 ${rcls.nameWithLower()}.setLexicalInfo(__lexInfo);
             }
-            for(int __i = 0; __i < ctx.${p.nameWithLower()}.size(); __i++) {
-                var entry = ctx.${p.nameWithLower()}.get(__i);
+            for(int __i = 0; __i < ctx.${p.name}.size(); __i++) {
+                var entry = ctx.${p.name}.get(__i);
                 Object __val = convertedElements${p.nameWithUpper()}.get(__i);
                 __lexInfo.getOriginalLexemes().add(OriginalLexeme.newBuilder().
                         withPropertyName("${p.nameWithLower()}").
@@ -848,12 +920,12 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         // TODO proper conversion of primitives, e.g., lexer rules to int, double etc.
         // convert and assign rule attribute $rcls.nameWithUpper().$p.nameWithLower()
         // if it is present
-        if(ctx.${p.nameWithLower()}!=null) {
+        if(ctx.${p.name}!=null) {
             // FALLBACK:
-            // ${rcls.nameWithLower()}.set${p.nameWithUpper()}(ctx.${p.nameWithLower()}.getText());
+            // ${rcls.nameWithLower()}.set${p.nameWithUpper()}(ctx.${p.name}.getText());
             // Token for lexer/terminal labels; ParserRuleContext for the synthetic
             // any-token stand-in injected for list-labeled '.' (issue #8). Both expose getText().
-            var entry = ctx.${p.nameWithLower()};
+            var entry = ctx.${p.name};
             ${rcls.nameWithLower()}.set${p.nameWithUpper()}(${model.getTypeMappings().conversionCodeOfMappingStringToType($rcls.nameWithUpper(), $p.type.getAntlrRuleName())});
             {
                 LexicalInfo __lexInfo = ${rcls.nameWithLower()}.getLexicalInfo();
