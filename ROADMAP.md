@@ -220,18 +220,17 @@ from [#19](https://github.com/miho/VMF-Text/issues/19) landed in **0.2.1**:
 
 ### Active follow-ups (post-0.2.2)
 
-Tracked as GitHub issues; implementation in progress on the current branch:
+Tracked as GitHub issues; implemented in [#33](https://github.com/miho/VMF-Text/pull/33):
 
 - [x] **Docs: sync ROADMAP to actual status**
-      ([#30](https://github.com/miho/VMF-Text/issues/30)) — this file (done in the
-      same change set as #31/#32).
-- [ ] **Automatic naming: richer inference + inferred-name report**
+      ([#30](https://github.com/miho/VMF-Text/issues/30)) — this file.
+- [x] **Automatic naming: richer inference + inferred-name report**
       ([#31](https://github.com/miho/VMF-Text/issues/31)) — plain lower-camel
       rule/token names (no `Node` suffix), keyword-context disambiguation for
       duplicates (e.g. `'else' statement` → `elseStatement`), write the
       auto-label report to the build directory, core + test-suite coverage.
       Background: assessment § "Recommended next design step: automatic naming".
-- [ ] **RuleMap: byte-exact round-trip for token-bearing wrappers**
+- [x] **RuleMap: byte-exact round-trip for token-bearing wrappers**
       ([#32](https://github.com/miho/VMF-Text/issues/32)) — store/restore wrapper
       shell `LexicalInfo` on the flattened target so `( 1 )`-style wrappers
       round-trip exactly. Transparent wrappers stay as in 0.2.2.
