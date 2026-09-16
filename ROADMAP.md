@@ -222,8 +222,9 @@ from [#19](https://github.com/miho/VMF-Text/issues/19) landed in **0.2.1**:
 
 Tracked as GitHub issues; implementation in progress on the current branch:
 
-- [ ] **Docs: sync ROADMAP to actual status**
-      ([#30](https://github.com/miho/VMF-Text/issues/30)) — this file.
+- [x] **Docs: sync ROADMAP to actual status**
+      ([#30](https://github.com/miho/VMF-Text/issues/30)) — this file (done in the
+      same change set as #31/#32).
 - [ ] **Automatic naming: richer inference + inferred-name report**
       ([#31](https://github.com/miho/VMF-Text/issues/31)) — plain lower-camel
       rule/token names (no `Node` suffix), keyword-context disambiguation for
