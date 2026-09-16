@@ -250,8 +250,8 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 DSL (`TypeMapping.g4`) + model (`RuleMappings`) + a post-model type-redirect pass
 (`RuleMapModelRewriter`) + parse-direction conversion + unparse-direction
 reconstruction. Round-trip is byte-exact for transparent wrapper rules; see
-[`docs/RULE_MAPS.md`](docs/RULE_MAPS.md). Token-bearing wrapper fidelity is the
-active follow-up [#32](https://github.com/miho/VMF-Text/issues/32).
+[`docs/RULE_MAPS.md`](docs/RULE_MAPS.md). Token-bearing wrapper fidelity landed
+in [#32](https://github.com/miho/VMF-Text/issues/32) / [#33](https://github.com/miho/VMF-Text/pull/33).
 
 ## Non-goals
 
