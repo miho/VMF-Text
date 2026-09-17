@@ -1,6 +1,6 @@
 # VMF-Text Roadmap
 
-*Last updated: 2026-09-16*
+*Last updated: 2026-09-17*
 
 VMF-Text occupies a niche no other framework covers: **a plain (labeled or
 auto-labeled) ANTLR4 grammar in → a rich, typed VMF model plus an exact
@@ -128,10 +128,13 @@ sh ./gradlew publishPlugins --no-daemon
 
 ## Ship 0.2.2 (prep done — publish pending, [#29](https://github.com/miho/VMF-Text/issues/29))
 
-Model rewriting + option/robustness fixes. Details: [`CHANGELOG.md`](CHANGELOG.md),
-[`docs/releases/0.2.2.md`](docs/releases/0.2.2.md). Code is on `main`; annotated
-tag `v0.2.2` and a GitHub release **draft** exist. Artifact publish needs the
-offline release credentials.
+Model rewriting + option/robustness fixes, **plus** auto-naming polish and
+RuleMap token-bearing wrappers from [#33](https://github.com/miho/VMF-Text/pull/33)
+folded into this release (one Maven Central publish; no separate 0.2.3). Details:
+[`CHANGELOG.md`](CHANGELOG.md), [`docs/releases/0.2.2.md`](docs/releases/0.2.2.md).
+Code is on `main`; draft GitHub release exists. The annotated tag `v0.2.2` still
+points at pre-#33 and must be moved to `main` tip before publish. Artifact
+publish needs the offline release credentials.
 
 - [x] **Parser rule maps / model rewriting**
       ([#1](https://github.com/miho/VMF-Text/issues/1)) — `RuleMap()` flattens
@@ -152,12 +155,22 @@ offline release credentials.
       parse → unparse round trip still runs on every platform, amd64 (incl. CI)
       unaffected. A real aarch64 fix needs a newer TCC upstream
       (`vtcc` / `tcc-dist`), out of this repo's scope.
+- [x] **Automatic naming polish** ([#31](https://github.com/miho/VMF-Text/issues/31)
+      / [#33](https://github.com/miho/VMF-Text/pull/33)) — plain lower-camel
+      names, keyword-context duplicates, `…y`→`…ies` plurals, inferred-name
+      report under `build/reports/vmf-text/`.
+- [x] **RuleMap token-bearing wrapper fidelity**
+      ([#32](https://github.com/miho/VMF-Text/issues/32) /
+      [#33](https://github.com/miho/VMF-Text/pull/33)) — store/restore wrapper
+      shell `LexicalInfo` for byte-exact round trip of `( 1 )`-style wrappers.
 - [x] Version → `0.2.2` (`config/common.properties`); `README.md`,
       `gradle-plugin/README.md`, and the aligned `examples/**` plugin ids bumped.
       VMF stays `0.2.10`, ANTLR `4.13.2`. (Showcases `java8`/`java24` stay pinned
       to a Central-published version so `./gradlew run` works out of the box.)
-- [x] Release prep merged to `main`; CI green; tag `v0.2.2` cut; GitHub release
-      drafted ([#29](https://github.com/miho/VMF-Text/issues/29))
+- [x] Release prep + #33 merged to `main`; CI green; GitHub release drafted
+      ([#29](https://github.com/miho/VMF-Text/issues/29))
+- [ ] Retarget annotated tag `v0.2.2` to `main` tip (includes #33); refresh
+      draft release notes; close #30–#32
 - [ ] Full-chain validation green (`sh ./build-and-test-all.sh`; PR CI runs the
       same chain on ubuntu + windows, plus the ArrayLang example from `mavenLocal`).
 - [ ] Publish `eu.mihosoft.vmf:vmf-text:0.2.2` +
@@ -218,9 +231,9 @@ from [#19](https://github.com/miho/VMF-Text/issues/19) landed in **0.2.1**:
       / `JavaAntlrOptionalStateProvider` (0.2.1); door left open for other
       targets without committing to them (explicit non-goal).
 
-### Active follow-ups (post-0.2.2)
+### Folded into 0.2.2 via [#33](https://github.com/miho/VMF-Text/pull/33)
 
-Tracked as GitHub issues; implemented in [#33](https://github.com/miho/VMF-Text/pull/33):
+(Originally tracked as post-0.2.2 follow-ups; kept in the same Central publish.)
 
 - [x] **Docs: sync ROADMAP to actual status**
       ([#30](https://github.com/miho/VMF-Text/issues/30)) — this file.
@@ -233,7 +246,7 @@ Tracked as GitHub issues; implemented in [#33](https://github.com/miho/VMF-Text/
 - [x] **RuleMap: byte-exact round-trip for token-bearing wrappers**
       ([#32](https://github.com/miho/VMF-Text/issues/32)) — store/restore wrapper
       shell `LexicalInfo` on the flattened target so `( 1 )`-style wrappers
-      round-trip exactly. Transparent wrappers stay as in 0.2.2.
+      round-trip exactly. Transparent wrappers remain byte-exact as before.
 
 ### Explicitly deferred (needs CST / per-gap model — not 0.2.x splice polish)
 
@@ -250,8 +263,10 @@ From `LEXICAL_PRESERVATION_ASSESSMENT.md`:
 DSL (`TypeMapping.g4`) + model (`RuleMappings`) + a post-model type-redirect pass
 (`RuleMapModelRewriter`) + parse-direction conversion + unparse-direction
 reconstruction. Round-trip is byte-exact for transparent wrapper rules; see
-[`docs/RULE_MAPS.md`](docs/RULE_MAPS.md). Token-bearing wrapper fidelity landed
-in [#32](https://github.com/miho/VMF-Text/issues/32) / [#33](https://github.com/miho/VMF-Text/pull/33).
+[`docs/RULE_MAPS.md`](docs/RULE_MAPS.md). Token-bearing wrapper fidelity
+([#32](https://github.com/miho/VMF-Text/issues/32) /
+[#33](https://github.com/miho/VMF-Text/pull/33)) is part of this same 0.2.2
+ship.
 
 ## Non-goals
 

@@ -4,34 +4,12 @@ All notable changes to VMF-Text are documented here.
 
 ## [Unreleased]
 
-### Added
-
-- **Automatic naming polish** (#31) — auto-label drops the `Node` suffix (plain
-  lower-camel rule/token names); duplicate refs after a keyword literal prefer
-  contextual names (`'else' statement` → `elseStatement`); English-ish
-  plurals for `…y` → `…ies`; inferred-name report is written under
-  `build/reports/vmf-text/autolabel-report.txt` (Gradle `emitAutoLabelReport`).
-  Labels that would collide with a parser-rule name use PascalCase in the
-  rewritten grammar so ANTLR stays valid while getters remain `getStatement()`.
-- **RuleMap shell LexicalInfo for token-bearing wrappers** (#32) — when a
-  `RuleMap` flattens a wrapper that owns terminals (e.g.
-  `expr: '(' value=numberLiteral ')'`), parse stores the discarded wrapper's
-  trivia/optional-state/range as `CodeElement.getRuleMapShellLexicalInfo()` on
-  the flattened target; unparse restores it onto the reconstructed source so
-  unedited parse→unparse is byte-exact. Transparent wrappers and programmatic
-  targets without a shell are unchanged (conservative separators). See
-  [`docs/RULE_MAPS.md`](docs/RULE_MAPS.md).
-
-### Changed
-
-- **ROADMAP sync** (#30) — Phase 2 items delivered in 0.2.1 are marked done;
-  active follow-ups point at #31/#32; Ship 0.2.2 publish status matches #29.
-
-## [0.2.2] — 2026-07-26
+## [0.2.2] — 2026-09-17
 
 Parser rule maps (model rewriting), fail-fast code generation and quieter
-tinylog-based logging, plus option-handling and test-environment robustness
-fixes.
+tinylog-based logging, option/robustness fixes, plus auto-naming polish and
+byte-exact RuleMap token-bearing wrappers ([#33](https://github.com/miho/VMF-Text/pull/33)
+folded into this release — one Maven Central publish).
 
 ### Added
 
@@ -53,6 +31,21 @@ fixes.
   from the target (`second`) so emitted text matches the original grammar.
   Round-trip is byte-exact for transparent wrapper rules. Details:
   [`docs/RULE_MAPS.md`](docs/RULE_MAPS.md).
+- **RuleMap shell LexicalInfo for token-bearing wrappers** (#32 / #33) — when a
+  `RuleMap` flattens a wrapper that owns terminals (e.g.
+  `expr: '(' value=numberLiteral ')'`), parse stores the discarded wrapper's
+  trivia/optional-state/range as `CodeElement.getRuleMapShellLexicalInfo()` on
+  the flattened target; unparse restores it onto the reconstructed source so
+  unedited parse→unparse is byte-exact. Transparent wrappers and programmatic
+  targets without a shell are unchanged (conservative separators). See
+  [`docs/RULE_MAPS.md`](docs/RULE_MAPS.md).
+- **Automatic naming polish** (#31 / #33) — auto-label drops the `Node` suffix
+  (plain lower-camel rule/token names); duplicate refs after a keyword literal
+  prefer contextual names (`'else' statement` → `elseStatement`); English-ish
+  plurals for `…y` → `…ies`; inferred-name report is written under
+  `build/reports/vmf-text/autolabel-report.txt` (Gradle `emitAutoLabelReport`).
+  Labels that would collide with a parser-rule name use PascalCase in the
+  rewritten grammar so ANTLR stays valid while getters remain `getStatement()`.
 
 ### Changed
 
@@ -73,6 +66,8 @@ fixes.
   go through a `Logger` (tinylog-api/impl + `tinylog.properties`), quiet by
   default at `info` level, removing the unconditional stdout writes previously
   emitted on every `generate()`.
+- **ROADMAP sync** (#30 / #33) — Phase 2 items delivered in 0.2.1 are marked
+  done; #31/#32 folded into this release rather than a separate 0.2.3.
 
 ### Fixed
 
@@ -93,9 +88,9 @@ fixes.
 To be published to Maven Central as `eu.mihosoft.vmf:vmf-text:0.2.2` and
 `eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.2`, and to the Gradle Plugin Portal
 (plugin id `eu.mihosoft.vmftext` version `0.2.2`, incl. the Central marker), then
-tagged `v0.2.2` with a GitHub release. VMF stays `0.2.10`, ANTLR `4.13.2`. Release
-credentials are held offline — see the ROADMAP "Publishing prerequisites" and
-"Publish commands (reference)".
+tagged `v0.2.2` (retargeted to `main` tip including #33) with a GitHub release.
+VMF stays `0.2.10`, ANTLR `4.13.2`. Release credentials are held offline — see
+the ROADMAP "Publishing prerequisites" and "Publish commands (reference)".
 
 ## [0.2.1] — 2026-07-17
 
