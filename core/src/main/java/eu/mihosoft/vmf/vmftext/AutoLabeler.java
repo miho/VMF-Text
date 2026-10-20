@@ -87,6 +87,15 @@ final class AutoLabeler {
     }
 
     static File rewrite(File grammar, boolean emitReport, File reportFile) throws IOException {
+        return rewrite(grammar, null, emitReport, reportFile);
+    }
+
+    /**
+     * @param lexerGrammar the lexer grammar of a split grammar (#39), whose
+     *                     single-literal rules are the keywords; {@code null}
+     *                     for a combined grammar
+     */
+    static File rewrite(File grammar, File lexerGrammar, boolean emitReport, File reportFile) throws IOException {
         // pass A: lift nested alternative blocks into synthetic rules (repeat so
         // blocks nested inside lifted blocks are lifted too), then pass B labels
         // the result like any other grammar.
@@ -107,6 +116,13 @@ final class AutoLabeler {
             // never collide with existing model types.
             ReservedNameCollector reserved = new ReservedNameCollector();
             ParseTreeWalker.DEFAULT.walk(reserved, tree);
+            if(lexerGrammar != null) {
+                try(FileInputStream lexerStream = new FileInputStream(lexerGrammar)) {
+                    ANTLRv4Parser lexerParser = new ANTLRv4Parser(new CommonTokenStream(
+                            new ANTLRv4Lexer(CharStreams.fromStream(lexerStream))));
+                    ParseTreeWalker.DEFAULT.walk(reserved, lexerParser.grammarSpec());
+                }
+            }
 
             AutoLabelListener listener = new AutoLabelListener(tokens, rewriter, reserved.reservedNamesLower(),
                     reserved.keywordTokens());

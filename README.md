@@ -302,6 +302,23 @@ same report is also written under `build/reports/vmf-text/` (default file
 `autolabel-report.txt`, overridable with `autoLabelReportFile`). Explicit
 labels always win over inferred names.
 
+## Split Grammars (Lexer + Parser)
+
+Most grammars-v4 languages ship as a `lexer grammar` plus a `parser grammar`
+that refers to it through `options { tokenVocab = ...; }`. VMF-Text processes
+such a pair as one unit: put both files into the same directory and let the
+*parser* grammar be the input (the Gradle plugin skips lexer grammars and
+regenerates the parser grammar when its lexer changes). The model is named
+after the parser grammar minus its `Parser` suffix — `Python3Lexer.g4` +
+`Python3Parser.g4` give `Python3Model`, `Python3ModelParser` and
+`Python3ModelUnparser` — and the lexer is generated into the same
+`<package>.parser` package, which is also where a lexer `superClass` base
+class has to live. A parser `superClass` base class is needed in
+`<package>.parser` and in `<package>.unparser.antlr4` (the unparser's check
+grammar shares the lexer but has its own parser), exactly as for a combined
+grammar. Lexer rules that are a single literal (`Var: 'var';`) keep working
+as keywords, see above.
+
 ## Typed Lexical Metadata
 
 Parsed `CodeElement`s expose typed lexical metadata via `getLexicalInfo()`.

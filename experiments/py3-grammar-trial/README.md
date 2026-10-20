@@ -147,12 +147,15 @@ sh ./gradlew run -PmainClass=py3trial.Edit                      # programmatic e
    `Simple_stmts`). The 20 operand pairs of `expr op expr` shapes are `left` /
    `right`, keyword tokens such as `async` are no longer properties. Still
    cosmetic: nested lifting yields names like `dictorsetmakerChoiceChoice4`.
-9. **The split grammar is the real entry point.** Everything above was done
-   on a hand-combined grammar; `tokenVocab` plus lexer / parser
-   `superClass` support ([#39](https://github.com/miho/VMF-Text/issues/39))
-   would let the grammars-v4 files be used as they are (the lexer base would
-   still need the exact-range and hidden-channel changes, or VMF-Text has to
-   derive trivia from character positions instead of hidden tokens).
+9. **The split grammar is the real entry point (supported since
+   [#39](https://github.com/miho/VMF-Text/issues/39)).** Everything above was
+   done on a hand-combined grammar. VMF-Text now processes a `parser grammar`
+   with `tokenVocab` and the `lexer grammar` next to it as one unit, so the
+   grammars-v4 files can be used as they are — except that the lexer base
+   still needs the exact-range and hidden-channel changes described under
+   *Setup* (or VMF-Text has to derive trivia from character positions instead
+   of hidden tokens). Switching this trial to the split files is the next
+   step.
 
 ## What was done with this
 
@@ -169,4 +172,5 @@ sh ./gradlew run -PmainClass=py3trial.Edit                      # programmatic e
 6. ✅ `reindent(...)` for moved / inserted parsed subtrees (finding 7).
 7. ⏳ Python-aware policy for fully programmatic blocks (finding 7).
 8. ✅ Naming (#47): keyword tokens, `left`/`right`, camelCase for snake_case.
-9. ⏳ Split grammars (#39).
+9. ✅ Split grammars (#39) in core; ⏳ switch this trial to the grammars-v4
+   files as they are (with the adapted lexer base class).

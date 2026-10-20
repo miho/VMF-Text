@@ -299,8 +299,17 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
         Logger.debug("Enter Grammar '" + ctx.identifier().getText() + "'");
         Logger.debug("------------------------------------------------------");
 
-        model.setGrammarName(ctx.identifier().getText());
-
+        String declared = ctx.identifier().getText();
+        boolean parserGrammar = ctx.grammarType() != null && ctx.grammarType().PARSER() != null;
+        String name = declared;
+        if(parserGrammar && declared.endsWith("Parser") && declared.length() > "Parser".length()) {
+            // split grammar (#39): the model is named after the parser grammar
+            // minus its conventional suffix (Python3Parser -> Python3Model)
+            name = declared.substring(0, declared.length() - "Parser".length());
+        }
+        model.setGrammarName(name);
+        model.setParserClassName(parserGrammar ? declared : StringUtil.firstToUpper(name) + "Parser");
+        model.setLexerClassName(StringUtil.firstToUpper(name) + "Lexer"); // a tokenVocab option overrides this
         super.enterGrammarSpec(ctx);
     }
 
@@ -333,6 +342,11 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
             var superClassName = ctx.optionValue().getText();
             Logger.debug(" -> setting superClass: " + superClassName);
             model.getOptions().setSuperClassName(superClassName);
+        } else if("tokenVocab".equals(optionsName)) {
+            var tokenVocab = ctx.optionValue().getText();
+            Logger.debug(" -> setting tokenVocab: " + tokenVocab);
+            model.setTokenVocab(tokenVocab);
+            model.setLexerClassName(tokenVocab);
         } else {
             Logger.debug(" -> ignoring option: " + optionsName);
         }

@@ -53,7 +53,7 @@ import java.util.List;
 
 // model imports
 import ${modelPackageName}.*;
-import static ${packageName}.${Util.firstToUpper($model.grammarName)}Parser.*;
+import static ${packageName}.${model.parserClassName}.*;
 
 public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
@@ -267,7 +267,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
         CharStream input = CharStreams.fromStream(codeStream);
 
-        ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
+        ${model.lexerClassName} lexer = new ${model.lexerClassName}(input);
 
         for(ANTLRErrorListener l : errorListeners) {
             lexer.addErrorListener(l);
@@ -278,7 +278,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         }
 
         CommonTokenStream tokens = new CommonTokenStream(lexer);
-        ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
+        ${model.parserClassName} parser = new ${model.parserClassName}(tokens);
 
         if(errorHandler!=null) {
             parser.setErrorHandler(errorHandler);
@@ -474,7 +474,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
      */
     private void addHiddenTextToModel(
         CodeElement element,
-        ${Util.firstToUpper($model.grammarName)}Parser parser, TokenStream tokens,
+        ${model.parserClassName} parser, TokenStream tokens,
         ParserRuleContext ctx) {
 
         // collect ignored pieces of text for lexical preservation
@@ -634,7 +634,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     public ${Util.firstToUpper($model.grammarName)}Model parse(${Util.firstToUpper($model.grammarName)}Model model, InputStream codeStream) throws IOException{
         CharStream input = CharStreams.fromStream(codeStream);
 
-        ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
+        ${model.lexerClassName} lexer = new ${model.lexerClassName}(input);
 
         for(ANTLRErrorListener l : errorListeners) {
             lexer.addErrorListener(l);
@@ -645,7 +645,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
         }
 
         CommonTokenStream tokens = new CommonTokenStream(lexer);
-        ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
+        ${model.parserClassName} parser = new ${model.parserClassName}(tokens);
 
         if(errorHandler!=null) {
             parser.setErrorHandler(errorHandler);
@@ -712,7 +712,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     public ${rcls.nameWithUpper()} parse${rcls.nameWithUpper()}(InputStream codeStream) throws IOException {
       CharStream input = CharStreams.fromStream(codeStream);
 
-      ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
+      ${model.lexerClassName} lexer = new ${model.lexerClassName}(input);
 
       for(ANTLRErrorListener l : errorListeners) {
           lexer.addErrorListener(l);
@@ -723,7 +723,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       }
 
       CommonTokenStream tokens = new CommonTokenStream(lexer);
-      ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
+      ${model.parserClassName} parser = new ${model.parserClassName}(tokens);
 
       if(errorHandler!=null) {
           parser.setErrorHandler(errorHandler);
@@ -779,7 +779,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     public ${rcls.nameWithUpper()} parse(${rcls.nameWithUpper()} ${rcls.nameWithLower()}, InputStream codeStream) throws IOException {
       CharStream input = CharStreams.fromStream(codeStream);
 
-      ${Util.firstToUpper($model.grammarName)}Lexer lexer = new ${Util.firstToUpper($model.grammarName)}Lexer(input);
+      ${model.lexerClassName} lexer = new ${model.lexerClassName}(input);
 
       for(ANTLRErrorListener l : errorListeners) {
           lexer.addErrorListener(l);
@@ -790,7 +790,7 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
       }
 
       CommonTokenStream tokens = new CommonTokenStream(lexer);
-      ${Util.firstToUpper($model.grammarName)}Parser parser = new ${Util.firstToUpper($model.grammarName)}Parser(tokens);
+      ${model.parserClassName} parser = new ${model.parserClassName}(tokens);
 
       if(errorHandler!=null) {
           parser.setErrorHandler(errorHandler);

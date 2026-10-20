@@ -31,7 +31,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 // model imports (same set the converter uses; deliberately no runtime.core /
 // vcollections wildcard so grammar rule classes like 'Annotation' don't clash)
 import ${modelPackageName}.*;
-import static ${packageName}.${Util.firstToUpper($model.grammarName)}Parser.*;
+import static ${packageName}.${model.parserClassName}.*;
 
 public final class ${Util.firstToUpper($model.grammarName)}TriviaSupport {
 

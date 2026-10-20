@@ -313,7 +313,20 @@ class CompileVMFTextTask extends DefaultTask {
 
         inputs.getFileChanges(sourceDirectorySet).each { change ->
             if(change.file.isFile() && change.file.name.toLowerCase().endsWith('.g4')) {
-                grammarsOutOfDate.add(change.file)
+                if(eu.mihosoft.vmf.vmftext.SplitGrammarSupport.isLexerGrammar(change.file)) {
+                    // the lexer half of a split grammar (#39): regenerate the parser grammar(s) next to it
+                    File[] siblings = change.file.parentFile.listFiles()
+                    if(siblings != null) {
+                        for(File sibling : siblings) {
+                            if(sibling.isFile() && sibling.name.toLowerCase().endsWith('.g4')
+                                    && !eu.mihosoft.vmf.vmftext.SplitGrammarSupport.isLexerGrammar(sibling) && !grammarsOutOfDate.contains(sibling)) {
+                                grammarsOutOfDate.add(sibling)
+                            }
+                        }
+                    }
+                } else if(!grammarsOutOfDate.contains(change.file)) {
+                    grammarsOutOfDate.add(change.file)
+                }
             }
         }
 
@@ -359,9 +372,12 @@ class CompileVMFTextTask extends DefaultTask {
         Map<String,List<String>> numFilesPerPackageName = new HashMap<>();
 
         for(File f : inputFiles) {
-
+            if(eu.mihosoft.vmf.vmftext.SplitGrammarSupport.isLexerGrammar(f)) {
+                continue // consumed through the tokenVocab of its parser grammar (#39)
+            }
             String filePath = f.absolutePath;
             String key;
+
             
             try {
                 key = getPackageNameFromFile(f); 

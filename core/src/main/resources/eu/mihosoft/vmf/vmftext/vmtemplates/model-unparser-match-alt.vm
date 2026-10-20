@@ -25,10 +25,10 @@
 
     CharStream input = CharStreams.fromString(s);
 
-    ${grammarName}ModelUnparserGrammarLexer lexer = new ${grammarName}ModelUnparserGrammarLexer(input);
+    ${model.unparserLexerClassName} lexer = new ${model.unparserLexerClassName}(input);
     lexer.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
     CommonTokenStream tokens = new CommonTokenStream(lexer);
-    ${grammarName}ModelUnparserGrammarParser parser = new ${grammarName}ModelUnparserGrammarParser(tokens);
+    ${model.unparserParserClassName} parser = new ${model.unparserParserClassName}(tokens);
 
     parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
 
