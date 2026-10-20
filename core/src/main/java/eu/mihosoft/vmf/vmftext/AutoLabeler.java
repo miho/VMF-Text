@@ -275,24 +275,36 @@ final class AutoLabeler {
                 return; // moves verbatim with the enclosing lifted block
             }
             ANTLRv4Parser.BlockContext block = ctx.ebnf().block();
-            if(!isLiftable(block)) {
+            String suffix = ctx.ebnf().blockSuffix() == null ? "" : tokens.getText(ctx.ebnf().blockSuffix());
+            boolean choice = isLiftable(block);
+            boolean perItem = !choice && !literalOnly && isPerItemLiftable(block, suffix);
+            if(!choice && !perItem) {
                 return;
             }
-            String ruleName = uniqueRuleName(currentRuleName + "Choice");
-            String suffix = ctx.ebnf().blockSuffix() == null ? "" : tokens.getText(ctx.ebnf().blockSuffix());
+            String ruleName = uniqueRuleName(currentRuleName + (choice ? "Choice" : "Item"));
             boolean repeated = suffix.startsWith("*") || suffix.startsWith("+") || isInsideRepetition(ctx);
 
-            // the synthetic rule: one labeled alternative per block alternative
             StringBuilder ruleText = new StringBuilder();
             List<ANTLRv4Parser.AlternativeContext> alts = block.altList().alternative();
-            for(int i = 0; i < alts.size(); i++) {
-                String altLabel = uniqueAltLabel(StringUtil.firstToUpper(ruleName) + "Alt" + (i + 1));
-                ruleText.append(i == 0 ? "    : " : "    | ")
-                        .append(tokens.getText(alts.get(i))).append(" # ").append(altLabel).append('\n');
+            if(choice) {
+                // the synthetic rule: one labeled alternative per block alternative
+                for(int i = 0; i < alts.size(); i++) {
+                    String altLabel = uniqueAltLabel(StringUtil.firstToUpper(ruleName) + "Alt" + (i + 1));
+                    ruleText.append(i == 0 ? "    : " : "    | ")
+                            .append(tokens.getText(alts.get(i))).append(" # ").append(altLabel).append('\n');
+                }
+                syntheticRules.append("\n// lifted by VMF-Text from rule '").append(currentRuleName)
+                        .append("' so each alternative becomes its own typed sub class\n")
+                        .append(ruleName).append('\n').append(ruleText).append("    ;\n");
+            } else {
+                // the synthetic rule: the block's single alternative, so every
+                // iteration becomes one element of a typed list and an optional
+                // property inside it stays attached to its iteration
+                ruleText.append("    : ").append(tokens.getText(alts.get(0))).append('\n');
+                syntheticRules.append("\n// lifted by VMF-Text from rule '").append(currentRuleName)
+                        .append("' so each iteration becomes its own typed element\n")
+                        .append(ruleName).append('\n').append(ruleText).append("    ;\n");
             }
-            syntheticRules.append("\n// lifted by VMF-Text from rule '").append(currentRuleName)
-                    .append("' so each alternative becomes its own typed sub class\n")
-                    .append(ruleName).append('\n').append(ruleText).append("    ;\n");
 
             // the reference: a labeled (list) property of the enclosing rule. PascalCase
             // for the singular form because a label equal to a rule name is ANTLR error 69.
@@ -363,6 +375,85 @@ final class AutoLabeler {
                 return false;
             }
             return !containsManualLabelOrAction(block);
+        }
+
+        /**
+         * Per-item liftable: a repeated block ({@code *} or {@code +}) with a
+         * single non-empty alternative that contains a property-bearing element
+         * whose count per iteration is not exactly one — an optional or repeated
+         * rule / token reference, or an optional / repeated sub-block with such a
+         * reference inside. Captured as parallel lists ({@code tfpdefs+=…},
+         * {@code tests+=…}) the optional property loses its iteration:
+         * {@code (',' tfpdef ('=' test)?)*} drifted Python's default arguments to
+         * the first parameters. Literal-only optionals are fine (their presence
+         * is recorded per occurrence) and so are plain nested choices (one choice
+         * object per iteration). Manual labels disable lifting as for choices.
+         */
+        private boolean isPerItemLiftable(ANTLRv4Parser.BlockContext block, String suffix) {
+            if(!(suffix.startsWith("*") || suffix.startsWith("+"))) {
+                return false;
+            }
+            if(block.altList() == null || block.optionsSpec() != null || !block.ruleAction().isEmpty()) {
+                return false;
+            }
+            List<ANTLRv4Parser.AlternativeContext> alts = block.altList().alternative();
+            if(alts.size() != 1 || alts.get(0).elementOptions() != null || alts.get(0).element().isEmpty()) {
+                return false;
+            }
+            if(containsManualLabelOrAction(block)) {
+                return false;
+            }
+            return hasVariableArityProperty(alts.get(0));
+        }
+
+        private boolean hasVariableArityProperty(ANTLRv4Parser.AlternativeContext alt) {
+            for(ANTLRv4Parser.ElementContext el : alt.element()) {
+                boolean suffixed = el.ebnfSuffix() != null;
+                if(el.atom() != null) {
+                    if(suffixed && isPropertyAtom(el.atom())) {
+                        return true;
+                    }
+                } else if(el.ebnf() != null && el.ebnf().block() != null) {
+                    ANTLRv4Parser.BlockContext inner = el.ebnf().block();
+                    boolean innerSuffixed = el.ebnf().blockSuffix() != null;
+                    if(innerSuffixed) {
+                        if(containsPropertyAtom(inner)) {
+                            return true;
+                        }
+                    } else if(inner.altList() != null && inner.altList().alternative().size() == 1) {
+                        if(hasVariableArityProperty(inner.altList().alternative().get(0))) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean containsPropertyAtom(ANTLRv4Parser.BlockContext block) {
+            if(block.altList() == null) {
+                return false;
+            }
+            for(ANTLRv4Parser.AlternativeContext alt : block.altList().alternative()) {
+                for(ANTLRv4Parser.ElementContext el : alt.element()) {
+                    if(el.atom() != null && isPropertyAtom(el.atom())) {
+                        return true;
+                    }
+                    if(el.ebnf() != null && el.ebnf().block() != null && containsPropertyAtom(el.ebnf().block())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /** A rule reference or a token reference (not a string literal) — becomes a model property. */
+        private static boolean isPropertyAtom(ANTLRv4Parser.AtomContext atom) {
+            if(atom.ruleref() != null) {
+                return true;
+            }
+            return atom.terminal() != null && atom.terminal().TOKEN_REF() != null
+                    && !"EOF".equals(atom.terminal().TOKEN_REF().getText());
         }
 
         private boolean containsManualLabelOrAction(ParserRuleContext ctx) {

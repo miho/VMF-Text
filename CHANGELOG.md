@@ -26,6 +26,28 @@ All notable changes to VMF-Text are documented here.
   size, so the first pair of alternatives with different element counts threw.
   The generator now works by identity (the Python 3 grammar was the first to
   hit this).
+- **An optional block whose only named elements are themselves optional is no
+  longer emitted when it was absent** (#52). `classdef: 'class' name ('('
+  arglist? ')')? ':' block` unparsed `class A:` as `class A( ):`, and the
+  trailing-comma block of Python's `typedargslist` turned `def f(a, b):` into
+  `def f(a, b,):`. Only a mandatory named element (no `?`/`*` suffix) can stand
+  in for the presence of its alternative; otherwise the block's terminals stay
+  state-driven like a literal-only block. Regression grammar `optblock`.
+- **Optional literals inside a second or later labeled alternative are no
+  longer dropped** (#53). The parser recorded their presence under the
+  alternative's index in its rule (`/r134/a1/...`), the unparser — for which a
+  labeled alternative is a rule of its own — looked under `/r134/a0/...`, so
+  Python's `(value,)` came back as `(value)` and `[1, 2,]` as `[1, 2]`. Both
+  sides now use index 0 for labeled alternatives. Regression grammar
+  `labeledopt`.
+- **Auto-labeling lifts repeated blocks with an optional property into
+  per-item sub classes** (#54). `(',' tfpdef ('=' test)?)*` captured as the
+  parallel lists `tfpdefs` / `tests` loses which iteration had a default:
+  Python's `def f(self, sock, protocol, waiter=None)` came back as
+  `def f(self, sock=None, protocol, waiter)`. Such a block becomes
+  `<rule>Items+=<rule>Item*` with a synthetic `<rule>Item` rule, so each
+  iteration is one typed element that keeps its own optional parts (and gets
+  a usable API: `item.getTest()`). Regression grammar `itemlift`.
 
 ## [0.2.4] — 2026-10-20
 

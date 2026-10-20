@@ -1,0 +1,26 @@
+t = (value,)
+----
+x = [1, 2,]
+----
+__all__ = ['a',
+           ]
+----
+def f(a, b=1):
+    pass
+----
+def f(a, b=1, c=2):
+    pass
+----
+def f(self, sock, protocol, waiter=None, extra=None):
+    pass
+----
+def f(a=1, b=2, c=3):
+    pass
+----
+f(a, b=1)
+----
+d = {'k': v,
+     }
+----
+for x, in y:
+    pass

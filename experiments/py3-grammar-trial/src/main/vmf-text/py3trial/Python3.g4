@@ -73,7 +73,7 @@ tokens {
             // a NEWLINE without text closes the last statement of an unterminated file
             this.emit(tokenAt(NEWLINE, at, at - 1));
             while (!indents.isEmpty()) {
-                this.emit(tokenAt(DEDENT, at, at - 1));
+                this.emit(tokenAt(Python3Parser.DEDENT, at, at - 1));
                 indents.pop();
             }
             this.emit(tokenAt(EOF, at, at - 1));
@@ -88,6 +88,9 @@ tokens {
     private CommonToken tokenAt(int type, int start, int stop) {
         CommonToken t = new CommonToken(this._tokenFactorySourcePair, type, DEFAULT_TOKEN_CHANNEL, start, stop);
         t.setLine(this.lastToken == null ? 1 : this.lastToken.getLine());
+        if (start > stop) {
+            t.setText(""); // an empty range at the end of the input would otherwise read "<EOF>"
+        }
         return t;
     }
 
@@ -148,10 +151,10 @@ tokens {
             }
         } else if (indent > previous) {
             indents.push(indent);
-            emit(tokenAt(INDENT, start + nlLen, end));
+            emit(tokenAt(Python3Parser.INDENT, start + nlLen, end));
         } else {
             while (!indents.isEmpty() && indents.peek() > indent) {
-                emit(tokenAt(DEDENT, end + 1, end));
+                emit(tokenAt(Python3Parser.DEDENT, end + 1, end));
                 indents.pop();
             }
             if (!spaces.isEmpty()) {

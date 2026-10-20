@@ -385,6 +385,23 @@ ship.
      [#48](https://github.com/miho/VMF-Text/issues/48) (predicates copied
      into the unparser check rules); still the gate to grammars-v4 HEAD:
      [#39](https://github.com/miho/VMF-Text/issues/39).
+  4. **Python 3 — round trip DONE 2026-10-20, programmatic indentation
+     open.** Write-up and reproducible project:
+     [`experiments/py3-grammar-trial`](experiments/py3-grammar-trial/README.md)
+     (grammars-v4 `python/python3`, combined by hand because of #39;
+     synthesized `INDENT`/`DEDENT`/`NEWLINE` tokens with exact ranges,
+     lossless hidden channel). Five core defects found and fixed the same
+     day — `tokens {}` handling in the grammar lexer, identity instead of
+     VMF's structural equals ([miho/VMF#87](https://github.com/miho/VMF/issues/87)),
+     optional blocks with only optional properties
+     ([#52](https://github.com/miho/VMF-Text/issues/52)), labeled-alternative
+     state paths ([#53](https://github.com/miho/VMF-Text/issues/53)),
+     per-item lifting of repeated blocks
+     ([#54](https://github.com/miho/VMF-Text/issues/54)) — regression
+     grammars `optblock`, `labeledopt`, `itemlift`. Result: all 28 asyncio
+     sources (389 KB) and 23 snippets byte-exact. Open: an indentation-aware
+     separator policy for programmatic edits (a moved statement keeps its
+     trivia and lands at column 0), then #47 (naming), #39 (split grammars).
   Background: `LEXICAL_PRESERVATION_ASSESSMENT.md`, `docs/UNPARSING.md` §6–§7.
 
 ## Non-goals

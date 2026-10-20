@@ -123,7 +123,17 @@ public final class UPRuleUtil {
 
         if(a == null) return "";
 
-        return getPath(a.getParentRule()) + "/a"+a.getAltId();
+        // A labeled alternative becomes a rule of its own for the unparser
+        // (computeFinalUnparserRuleList), where it is alternative 0. The
+        // optional-state actions injected into the parser grammar are keyed by
+        // the path of the ORIGINAL model, where the same alternative carries its
+        // index within the parent rule: the keys diverged (/r134/a1/... recorded,
+        // /r134/a0/... queried) and every optional literal inside a second or
+        // later labeled alternative was taken for absent (#53). Use index 0 on
+        // both sides.
+        int altId = a instanceof LabeledAlternative ? 0 : a.getAltId();
+
+        return getPath(a.getParentRule()) + "/a" + altId;
     }
 
     private static String getPath(UPRuleBase r) {
@@ -188,9 +198,19 @@ public final class UPRuleUtil {
         return true;
     }
 
+    /**
+     * A named element without {@code ?} or {@code *} suffix: present whenever
+     * its alternative is taken, so it can stand in for the alternative's
+     * presence. An optional named element cannot (#52).
+     */
+    static boolean isMandatoryNamedElement(UPElement el) {
+        return (el instanceof UPNamedElement || el instanceof UPNamedSubRuleElement)
+                && !el.ebnfOptional() && !el.ebnfZeroMany();
+    }
+
     private static boolean altContainsNamedElement(AlternativeBase a) {
         for(UPElement el : a.getElements()) {
-            if(el instanceof WithName) {
+            if(isMandatoryNamedElement(el)) {
                 return true;
             }
             if(el instanceof SubRule) {
@@ -206,10 +226,14 @@ public final class UPRuleUtil {
 
     public static boolean isEffectivelyOptional(UPElement e) {
 
-        // indicates whether the elements in the specified alt are all unnamed
-        final Predicate<AlternativeBase> onlyUnnamedElementsInAltPred = (a)->a.getElements().stream().filter(
-                ne->ne instanceof UPNamedElement
-                        || ne instanceof UPNamedSubRuleElement).count()==0;
+        // indicates whether the specified alt has no *mandatory* named element.
+        // Only a named element that is present whenever its alternative is
+        // taken (no '?'/'*' suffix) can stand in for the presence of the
+        // alternative. ('(' Arglist=arglist? ')')? — Python's classdef — has a
+        // named element, but an absent arglist does not tell whether the
+        // parentheses were there, so its terminals stay state-driven (#52).
+        final Predicate<AlternativeBase> onlyUnnamedElementsInAltPred = (a)->a.getElements().stream().
+                noneMatch(UPRuleUtil::isMandatoryNamedElement);
 
         // indicates whether at least one sibling alt has only unnamed elements
         final Predicate<AlternativeBase> atLeastOneSiblingAltWithoutNamedElementsPred =
