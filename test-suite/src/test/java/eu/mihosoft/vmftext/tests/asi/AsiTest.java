@@ -46,6 +46,17 @@ public class AsiTest {
         Assert.assertEquals("x = 1", roundTrip("x = 1"));
     }
 
+    /**
+     * #48: the generated check rules validate the shape of a fragment; a copied
+     * predicate such as {@code lineTerminatorAhead()} would be evaluated against
+     * a fragment without surroundings and fail.
+     */
+    @Test
+    public void checkRulesCarryNoPredicates() {
+        Assert.assertTrue(eu.mihosoft.vmftext.tests.asi.unparser.EosLineUnparser.matchEosLineAlt0(""));
+        Assert.assertTrue(eu.mihosoft.vmftext.tests.asi.unparser.StatementUnparser.matchStatementAlt0("x = 1"));
+    }
+
     @Test
     public void programmaticEofRendersNothing() {
         Statement s = Statement.newBuilder().withName("x").withValue("1").withEnd(EosSemi.newInstance()).build();

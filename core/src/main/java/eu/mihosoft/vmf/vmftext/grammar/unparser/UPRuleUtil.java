@@ -10,6 +10,95 @@ import java.util.stream.Collectors;
  * TODO 17.10.2018
  */
 public final class UPRuleUtil {
+
+    /**
+     * Removes embedded actions ({@code {...}}) and semantic predicates
+     * ({@code {...}?}) from a piece of ANTLR grammar text. Braces nest, and
+     * braces inside string or character literals (both in the action's Java
+     * code and in grammar literals such as {@code '{'}) are not block
+     * delimiters. Whitespace around a removed block collapses to one space.
+     *
+     * @param grammarText grammar text (an alternative or a sub-rule)
+     * @return the text without actions and predicates
+     */
+    public static String stripActionsAndPredicates(String grammarText) {
+        if(grammarText == null || grammarText.indexOf('{') < 0) {
+            return grammarText;
+        }
+        StringBuilder out = new StringBuilder(grammarText.length());
+        int i = 0, n = grammarText.length();
+        while(i < n) {
+            char c = grammarText.charAt(i);
+            if(c == '\'' || c == '"') {
+                // grammar literal: copy verbatim up to the closing quote
+                int end = skipLiteral(grammarText, i);
+                out.append(grammarText, i, end);
+                i = end;
+            } else if(c == '{') {
+                int end = skipActionBlock(grammarText, i);
+                if(end < n && grammarText.charAt(end) == '?') {
+                    end++; // semantic predicate
+                }
+                while(end < n && Character.isWhitespace(grammarText.charAt(end))) {
+                    end++;
+                }
+                // one space between the neighbours, none after '(' or before ')'
+                if(out.length() > 0 && end < n) {
+                    char prev = out.charAt(out.length() - 1);
+                    char next = grammarText.charAt(end);
+                    if(!Character.isWhitespace(prev) && prev != '(' && next != ')') {
+                        out.append(' ');
+                    }
+                }
+                i = end;
+            } else {
+                out.append(c);
+                i++;
+            }
+        }
+        return out.toString().trim();
+    }
+
+    /** @return index after the literal that starts at {@code start} (quote char at {@code start}) */
+    private static int skipLiteral(String s, int start) {
+        char quote = s.charAt(start);
+        int i = start + 1;
+        while(i < s.length()) {
+            char c = s.charAt(i);
+            if(c == '\\') {
+                i += 2;
+                continue;
+            }
+            if(c == quote) {
+                return i + 1;
+            }
+            i++;
+        }
+        return s.length();
+    }
+
+    /** @return index after the matching {@code }} of the block that starts at {@code start} */
+    private static int skipActionBlock(String s, int start) {
+        int depth = 0;
+        int i = start;
+        while(i < s.length()) {
+            char c = s.charAt(i);
+            if(c == '\'' || c == '"') {
+                i = skipLiteral(s, i);
+                continue;
+            }
+            if(c == '{') {
+                depth++;
+            } else if(c == '}') {
+                depth--;
+                if(depth == 0) {
+                    return i + 1;
+                }
+            }
+            i++;
+        }
+        return s.length();
+    }
     private UPRuleUtil() {
         throw new AssertionError("Don't instantiate me!");
     }
