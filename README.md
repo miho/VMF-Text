@@ -312,7 +312,10 @@ from the schema or use source bundles for source-preserving persistence.
 
 Programmatically created models (no parse-time lexical info) consult a pluggable
 `ProgrammaticSeparatorPolicy` inside the default formatter. The built-in
-`ConservativeSeparatorPolicy` reproduces today's single-space fallback; custom
+`ConservativeSeparatorPolicy` reproduces today's single-space fallback, and
+`Formatter.newBlockIndentFormatter()` prints programmatic or edited parts with
+line breaks and block indentation while parsed bytes stay exact
+(`programmaticRanges()` tells you which lines those are); custom
 policies are consulted only where exact preservation is undefined by construction
 (fresh programmatic nodes, or rules whose trivia was cleared after a
 **structural** edit such as list add/remove). In-place value rewrites keep

@@ -4,6 +4,32 @@ All notable changes to VMF-Text are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Mixed-mode formatting for programmatic elements** (#40) — the
+  lexical-preserving default formatter now gives its
+  `ProgrammaticSeparatorPolicy` a `FormattingContext` (previous terminal,
+  element depth, line position) via new context-aware default methods, and
+  notifies the policy of every rendered terminal so it can track structure
+  across parsed regions. New built-in `BlockIndentSeparatorPolicy`
+  (`Formatter.newBlockIndentFormatter()`): line breaks after block openers,
+  closers and statement ends, indentation by block depth, no glued tokens —
+  configurable literal sets. Parsed text stays byte-exact; a subtree inserted
+  into parsed text is indented at the depth of the insertion point.
+- **Output ranges for programmatic / edited elements** —
+  `Formatter.programmaticRanges()` reports, after each top-level unparse, the
+  character and line ranges of every element rendered without lexical
+  information (outermost first). Everything outside them reproduces the parsed
+  input byte for byte, so an external formatter can be applied to exactly
+  those lines (google-java-format `--lines`, clang-format `-lines`).
+- `Formatter.begin(element, writer)` callback, the mirror of `done(...)`.
+
+### Removed
+
+- The deprecated, never-finished `JavaStyleFormatter` /
+  `Formatter.newJavaStyleFormatter()`; use `newBlockIndentFormatter()` or a
+  custom `ProgrammaticSeparatorPolicy`.
+
 ## [0.2.3] — 2026-10-20
 
 Grammar-shape fixes driven by the unlabeled grammars-v4 C grammar trial
