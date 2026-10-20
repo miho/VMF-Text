@@ -202,12 +202,19 @@ and attach a signed Maven-repository archive to the GitHub release instead:
 # on the release commit, with the signing properties (no Central/Portal creds needed)
 P=$(sh scripts/central-staging.sh props | grep signing)
 (cd core          && sh ./gradlew clean publishAllPublicationsToBuildDirRepository --no-daemon $P)
+(cd core          && sh ./gradlew publishToMavenLocal --no-daemon)   # the plugin build resolves vmf-text:<version> from mavenLocal
 (cd gradle-plugin && sh ./gradlew clean publishAllPublicationsToBuildDirRepository --no-daemon $P)
 rm -rf build/maven-repo && mkdir -p build/maven-repo
 cp -r core/build/artifacts/. gradle-plugin/build/artifacts/. build/maven-repo/
-(cd build && zip -r vmf-text-<version>-maven-repo.zip maven-repo)
+python -c "import shutil; shutil.make_archive('build/vmf-text-<version>-maven-repo', 'zip', 'build', 'maven-repo')"
 gh release create v<version> --target main --title "…" --notes-file <notes> build/vmf-text-<version>-maven-repo.zip
 ```
+
+Keep the `publishToMavenLocal` call a separate invocation: a task list that
+contains `publishToMavenLocal` disables every `Sign` task of that invocation
+(`gradle/publishing.gradle`), so combining it with the BuildDir publish would
+produce an unsigned archive. The 0.2.3 archive: 81 files, 11 `.asc`
+signatures (jar, pom, module × core and plugin, plus the marker POM).
 
 Consumers unzip it and add `maven { url = uri("file:///…/maven-repo") }` to
 `pluginManagement.repositories` and `repositories`. The same content stays
