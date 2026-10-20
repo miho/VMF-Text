@@ -357,6 +357,23 @@ ship.
      with line breaks and block indentation while parsed bytes stay exact;
      `programmaticRanges()` reports the affected character / line ranges for
      external formatters. `JavaStyleFormatter` deleted. Test: `mixedformat`.
+  3. **Second trial language, unlabeled: JavaScript — DONE 2026-10-20.**
+     Write-up and reproducible project:
+     [`experiments/js-grammar-trial`](experiments/js-grammar-trial/README.md)
+     (grammars-v4 ECMAScript 5.1: combined grammar, 23 predicates,
+     `@parser::members` / `@lexer::members`, `autoLabel`). Two core defects,
+     fixed the same day with the regression grammar `asi`: predicates `{...}?`
+     were wrapped as optional actions (the unparser grammar did not compile;
+     the Java24 test grammar's predicates had been neutered the same way),
+     and the hidden text before `EOF` was lost when a nested rule (`eos`,
+     automatic semicolon insertion) matched `EOF` — now `Formatter.eof(...)`.
+     Result: 15/15 snippets and both valid samples byte-exact, 991 generated
+     files in 108 s. Open, naming only:
+     [#47](https://github.com/miho/VMF-Text/issues/47) (keyword lexer rules
+     captured as `var=Var`, positional `SingleExpression2`); latent:
+     [#48](https://github.com/miho/VMF-Text/issues/48) (predicates copied
+     into the unparser check rules); still the gate to grammars-v4 HEAD:
+     [#39](https://github.com/miho/VMF-Text/issues/39).
   Background: `LEXICAL_PRESERVATION_ASSESSMENT.md`, `docs/UNPARSING.md` §6–§7.
 
 ## Non-goals

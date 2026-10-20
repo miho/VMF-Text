@@ -1332,8 +1332,17 @@ public class UnparserCodeGenerator {
 
     private static void generateUnnamedElementCode(UnparserModel model, Writer w, String indent, UPElement e) throws IOException {
 
-        // ignore EOF element
+        // EOF has no text, but the hidden text in front of the end of the
+        // input is recorded in the trivia slot of the rule that matched EOF.
+        // ANTLR makes EOF the stop token of every enclosing rule once it has
+        // been matched, so a nested `eos: ';' | EOF | ...` (JavaScript's
+        // automatic semicolon insertion) owns that text, not the root rule.
+        // The formatter emits the slot; programmatic elements render nothing.
         if("EOF".equals(e.getText().trim())) {
+            String rulePath = UPRuleUtil.getPath(e);
+            String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.TERMINAL, null, \"\", \"" + rulePath + "\", true, false, \"EOF\")";
+            w.append(indent + "    // handling EOF element: no text, but it owns the hidden text before the end of the input").append('\n');
+            w.append(indent + "    getUnparser().getFormatter().eof( unparser, " + ruleInfoString + ", internalW);").append('\n');
             return;
         }
 

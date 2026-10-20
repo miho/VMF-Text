@@ -129,6 +129,20 @@ public interface Formatter {
   default void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
 
   /**
+   * Called for an {@code EOF} reference. {@code EOF} has no text, but the
+   * hidden text in front of the end of the input (a trailing newline or
+   * comment) belongs to the trivia slot of the rule that matched {@code EOF},
+   * which may be a nested rule such as {@code eos: ';' | EOF | ...}. The
+   * default formatter emits that slot for parsed elements and nothing for
+   * programmatic ones.
+   *
+   * @param unparser the model unparser, i.e., top-level unparser
+   * @param ruleInfo information about the EOF reference ({@code TERMINAL}, empty text, grammar text {@code EOF})
+   * @param w the print writer used to render the current element
+   */
+  default void eof(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ){}
+
+  /**
    * Returns a new instance of the default formatter that supports lexical preservation, i.e., the default
    * formatter tries to reproduce white-spaces as accurately as possible.
    */
@@ -796,6 +810,22 @@ public interface Formatter {
         }
         lastTerminalText = ruleInfo.getRuleText();
         programmaticPolicy.terminal(ruleInfo, lastSeparatorProgrammatic);
+    }
+
+    @Override
+    public void eof(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
+        CodeElement e = ruleInfo.getParentObject();
+        currentElement = e;
+        java.util.List<String> hidden = getHiddenText(e);
+        if(hidden == null) {
+            // programmatic element: EOF has no text and gets no separator either
+            return;
+        }
+        int pos = getHiddenTextCounter(e);
+        if(pos < hidden.size()) {
+            emit(w, hidden.get(pos));
+            incHiddenTextCounter(e);
+        }
     }
   } // end default-formatter
 

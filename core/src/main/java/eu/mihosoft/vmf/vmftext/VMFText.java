@@ -332,6 +332,14 @@ public class VMFText {
                 return;
             }
 
+            // A semantic predicate {...}? (or a plain action {...}) is not an
+            // optional element: wrapping it as ({...} {flag})? would turn the
+            // predicate into an optional action and silently change what the
+            // parser accepts (JavaScript's {!here(LineTerminator)}? rules).
+            if(upElement.isAction()) {
+                return;
+            }
+
             if(upElement.getParentAlt().getParentRule() instanceof SubRule) {
                 if(UPRuleUtil.isBlockSet((UPElement) upElement.getParentAlt().getParentRule())) {
                     parentIsBlockSet = true;
@@ -411,6 +419,11 @@ public class VMFText {
                     rewriter.insertAfter(upElement.getTokenIndexStop(),
                             ctxAddOptionalStateComplexCaseCode(UPRuleUtil.getPath(wrappedElement)));
                 }
+                return;
+            }
+
+            // actions and semantic predicates are not model elements: no state
+            if(upElement.isAction()) {
                 return;
             }
 
