@@ -79,13 +79,21 @@ public class UnparserCodeGenerator {
 
     private static void generateUPGrammarCode(GrammarModel gModel, UnparserModel model,
                                               List<UPRule> rules, Writer w) throws IOException {
-        w.append("grammar ").append(gModel.getGrammarName()+"ModelUnparserGrammar;").append('\n');
-        w.append("import ").append(gModel.getGrammarName()).append(";\n");
+        boolean split = gModel.getTokenVocab() != null;
+        // a split grammar (#39) gets a parser grammar that shares the tokenVocab lexer
+        w.append(split ? "parser grammar " : "grammar ").append(gModel.getGrammarName()+"ModelUnparserGrammar;").append('\n');
+        w.append("import ").append(split ? gModel.getParserClassName() : gModel.getGrammarName()).append(";\n");
         w.append('\n');
 
-        if(gModel.getOptions()!=null && gModel.getOptions().getSuperClassName()!=null) {
+        boolean superClass = gModel.getOptions()!=null && gModel.getOptions().getSuperClassName()!=null;
+        if(split || superClass) {
             w.append("options {").append('\n');
-            w.append("  superClass=").append(gModel.getOptions().getSuperClassName()).append(";\n");
+            if(split) {
+                w.append("  tokenVocab=").append(gModel.getTokenVocab()).append(";\n");
+            }
+            if(superClass) {
+                w.append("  superClass=").append(gModel.getOptions().getSuperClassName()).append(";\n");
+            }
             w.append("}").append('\n');
         }
 
@@ -491,8 +499,10 @@ public class UnparserCodeGenerator {
                 w.append("import org.antlr.v4.runtime.tree.ParseTreeWalker;").append('\n').append('\n');
 
                 w.append("// ANTLR4 generated parser imports").append('\n');
-                w.append("import "+ gModel.getPackageName()+ ".unparser.antlr4."+gModel.getGrammarName()+"ModelUnparserGrammarLexer;").append('\n');
-                w.append("import "+ gModel.getPackageName()+ ".unparser.antlr4."+gModel.getGrammarName()+"ModelUnparserGrammarParser;").append('\n');
+                if(gModel.getTokenVocab() == null) {
+                    w.append("import "+ gModel.getPackageName()+ ".unparser.antlr4."+gModel.getGrammarName()+"ModelUnparserGrammarLexer;").append('\n');
+                }
+                w.append("import "+ gModel.getPackageName()+ ".unparser.antlr4."+gModel.getUnparserParserClassName()+";").append('\n');
                 w.append("import "+ gModel.getPackageName()+ ".unparser.antlr4."+gModel.getGrammarName()+"ModelUnparserGrammarBaseListener;").append('\n').append('\n');
 
                 w.append("// Model API imports").append('\n');
@@ -1342,6 +1352,39 @@ public class UnparserCodeGenerator {
         }
     }
 
+    /**
+     * {@code 'a'} or {@code '-' '>'}: a plain sequence of literals the unparser
+     * can emit verbatim. A body with EBNF operators or alternatives such as
+     * {@code '\r'? '\n'} is not (it used to be emitted as garbage text).
+     */
+    static boolean isLiteralSequence(String lexerRuleBody) {
+        String s = lexerRuleBody == null ? "" : lexerRuleBody.trim();
+        if(!s.startsWith("'")) {
+            return false;
+        }
+        int i = 0;
+        while(i < s.length()) {
+            if(s.charAt(i) != '\'') {
+                return false;
+            }
+            int j = i + 1;
+            while(j < s.length() && s.charAt(j) != '\'') {
+                if(s.charAt(j) == '\\') {
+                    j++;
+                }
+                j++;
+            }
+            if(j >= s.length()) {
+                return false;
+            }
+            i = j + 1;
+            while(i < s.length() && Character.isWhitespace(s.charAt(i))) {
+                i++;
+            }
+        }
+        return true;
+    }
+
     private static void generateUnnamedElementCode(UnparserModel model, Writer w, String indent, UPElement e) throws IOException {
 
         // EOF has no text, but the hidden text in front of the end of the
@@ -1396,7 +1439,7 @@ public class UnparserCodeGenerator {
 
                 String lexerRuleString = removeEBNFModifierFromElementText(lexerRule.getText());
 
-                if(lexerRuleString.startsWith("'")) {
+                if(isLiteralSequence(lexerRuleString)) {
                     // terminal element
                     // remove '
                     // TODO 18.01.2018 improve terminal extraction from lexer rule

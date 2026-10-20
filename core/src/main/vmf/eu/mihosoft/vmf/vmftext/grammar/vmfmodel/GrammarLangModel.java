@@ -41,6 +41,21 @@ interface GrammarModel {
 
     String getPackageName();
 
+    /** ANTLR's parser class: {@code <Grammar>Parser} for a combined grammar, the declared name of a parser grammar. */
+    String getParserClassName();
+
+    /** ANTLR's lexer class: {@code <Grammar>Lexer} for a combined grammar, the {@code tokenVocab} of a parser grammar. */
+    String getLexerClassName();
+
+    /** The lexer the generated unparser checks use: the unparser grammar's own lexer, or the {@code tokenVocab} lexer. */
+    String getUnparserLexerClassName();
+
+    /** ANTLR's class for the unparser check grammar: {@code <Grammar>ModelUnparserGrammarParser} (combined) or {@code <Grammar>ModelUnparserGrammar} (a parser grammar is named after itself). */
+    String getUnparserParserClassName();
+
+    /** {@code tokenVocab} of a split (lexer + parser) grammar; {@code null} for a combined grammar. */
+    String getTokenVocab();
+
     @Contains(opposite = "model")
     Options getOptions();
 

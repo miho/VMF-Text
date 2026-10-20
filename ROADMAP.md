@@ -399,9 +399,19 @@ ship.
      per-item lifting of repeated blocks
      ([#54](https://github.com/miho/VMF-Text/issues/54)) — regression
      grammars `optblock`, `labeledopt`, `itemlift`. Result: all 28 asyncio
-     sources (389 KB) and 23 snippets byte-exact. Open: an indentation-aware
-     separator policy for programmatic edits (a moved statement keeps its
-     trivia and lands at column 0), then #47 (naming), #39 (split grammars).
+     sources (389 KB) and 23 snippets byte-exact. Follow-ups landed the same
+     day: `<Grammar>TriviaSupport.reindent(...)` rebases a moved or inserted
+     parsed subtree (#56), the naming batch (#47, #57). Still open: a policy
+     that synthesizes `NEWLINE`/`INDENT`/`DEDENT` for programmatically built
+     blocks (the caller sets those three properties today).
+  5. **Split grammars — DONE 2026-10-20
+     ([#39](https://github.com/miho/VMF-Text/issues/39)).** A `parser grammar`
+     with `tokenVocab` and the `lexer grammar` next to it are one unit: the
+     model is named after the parser grammar minus `Parser`, the lexer is
+     generated into the same package, the unparser's check grammar shares it,
+     the plugin skips lexer grammars and regenerates on lexer changes.
+     Regression grammar `splitlex` (with a lexer `superClass`). Next: run the
+     Python trial on the grammars-v4 files as they are.
   Background: `LEXICAL_PRESERVATION_ASSESSMENT.md`, `docs/UNPARSING.md` §6–§7.
 
 ## Non-goals

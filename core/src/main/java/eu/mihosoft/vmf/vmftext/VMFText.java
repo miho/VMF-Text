@@ -150,8 +150,10 @@ public class VMFText {
             // inside VMF-Text comments can enable auto-labeling per grammar, while the
             // GenerationOptions flag can enable it globally (e.g. from Gradle).
             List<String> comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
+            // split grammar (#39): a parser grammar with tokenVocab and the lexer grammar next to it
+            final File lexerGrammar = SplitGrammarSupport.lexerGrammarOf(grammarInput);
             if(options.isAutoLabel() || GrammarMetaInformationUtil.isAutoLabelEnabled(comments)) {
-                grammar = AutoLabeler.rewrite(grammar, options.isEmitAutoLabelReport(),
+                grammar = AutoLabeler.rewrite(grammar, lexerGrammar, options.isEmitAutoLabelReport(),
                         options.getAutoLabelReportFile());
             } else {
                 // Hand-labeled grammars: a literal-only nested alternative block such as
@@ -167,23 +169,35 @@ public class VMFText {
             // rewrite grammar (wrap optionals + inject optional-state actions)
             grammar = rewriteGrammar(grammar);
             Logger.debug("Rewritten grammar file: {}", grammar);
-
+            String libFolder = "";
+            if(lexerGrammar != null) {
+                // the tokenVocab lookup needs <Lexer>.tokens next to the rewritten parser grammar
+                libFolder = SplitGrammarSupport.prepareLexer(lexerGrammar, grammar).toString();
+            }
             AntlrTool.setOutput(outputDir);
-
-            AntlrTool.main(
-                    new String[]{
-                            grammar.getAbsolutePath(),
-                            "-listener",
-                            "-package", packageName+".parser",
-                            "-o", ""
-                    }
-            );
-
-            GrammarAndUnparser conversionResult = convertGrammarToModel(grammar);
-
+            List<String> antlrArgs = new ArrayList<>();
+            if(lexerGrammar != null) {
+                antlrArgs.add(lexerGrammar.getAbsolutePath());
+            }
+            antlrArgs.addAll(java.util.Arrays.asList(
+                    grammar.getAbsolutePath(),
+                    "-listener",
+                    "-package", packageName+".parser"));
+            if(lexerGrammar != null) {
+                antlrArgs.addAll(java.util.Arrays.asList("-lib", libFolder)); // where <Lexer>.tokens is
+            }
+            antlrArgs.addAll(java.util.Arrays.asList("-o", ""));
+            AntlrTool.main(antlrArgs.toArray(new String[0]));
+            GrammarAndUnparser conversionResult = convertGrammarToModel(grammar, lexerGrammar);
             GrammarModel model = conversionResult.model;
-
             model.setPackageName(packageName);
+            model.setUnparserLexerClassName(model.getTokenVocab() == null
+                    ? model.getGrammarName() + "ModelUnparserGrammarLexer"
+                    : packageName + ".parser." + model.getLexerClassName());
+            // ANTLR names the class of a parser grammar after the grammar itself
+            model.setUnparserParserClassName(model.getGrammarName() + "ModelUnparserGrammar"
+                    + (model.getTokenVocab() == null ? "Parser" : ""));
+
 
             // generate model classes for src output
             ModelGenerator generator = new ModelGenerator();
@@ -520,7 +534,7 @@ public class VMFText {
         return injectedWrapperContent((SubRule) e.getParentAlt().getParentRule()) == e;
     }
 
-    private static GrammarAndUnparser convertGrammarToModel(File grammar) throws IOException {
+    private static GrammarAndUnparser convertGrammarToModel(File grammar, File lexerGrammar) throws IOException {
 
         InputStream codeStream = new FileInputStream(grammar);
         CharStream input = CharStreams.fromStream(codeStream);
@@ -589,6 +603,16 @@ public class VMFText {
         GrammarToRuleMatcherListener matchListenr = new GrammarToRuleMatcherListener(tokens);
 
         walker.walk(matchListenr, tree);
+
+        if(lexerGrammar != null) {
+            // split grammar: the lexer rules (literal texts of keyword tokens) live in the tokenVocab grammar
+            CharStream lexerInput = CharStreams.fromStream(new FileInputStream(lexerGrammar));
+            CommonTokenStream lexerTokens = new CommonTokenStream(new ANTLRv4Lexer(lexerInput));
+            ParserRuleContext lexerTree = new ANTLRv4Parser(lexerTokens).grammarSpec();
+            GrammarToRuleMatcherListener lexerListener = new GrammarToRuleMatcherListener(lexerTokens);
+            walker.walk(lexerListener, lexerTree);
+            matchListenr.getModel().getLexerRules().addAll(new ArrayList<>(lexerListener.getModel().getLexerRules()));
+        }
 
         GrammarAndUnparser grammarAndUnparser = new GrammarAndUnparser();
         grammarAndUnparser.model = model;

@@ -14,6 +14,16 @@ All notable changes to VMF-Text are documented here.
   the meaning (`experiments/py3-grammar-trial`, `py3trial.Edit`). The
   generated `<Grammar>TriviaSupport` class is public now.
 
+- **Split grammars** (#39): a `parser grammar X` with
+  `options { tokenVocab = L; }` and the `lexer grammar L` next to it are
+  processed as one unit — the way grammars-v4 ships most languages. The
+  model is named after the parser grammar minus its `Parser` suffix
+  (`Python3Parser` + `Python3Lexer` → `Python3Model`, `Python3ModelParser`),
+  the lexer is generated into the same package (its `superClass` base class
+  goes there too), the unparser's check grammar shares the lexer, and the
+  Gradle plugin regenerates the parser grammar when the lexer grammar
+  changes. Regression grammar `splitlex`.
+
 ### Changed
 
 - **Auto-labeling names** (#47, from the JavaScript and Python trials):
@@ -72,6 +82,13 @@ All notable changes to VMF-Text are documented here.
   `<rule>Items+=<rule>Item*` with a synthetic `<rule>Item` rule, so each
   iteration is one typed element that keeps its own optional parts (and gets
   a usable API: `item.getTest()`). Regression grammar `itemlift`.
+- **An unlabeled lexer rule that is not a plain sequence of literals is no
+  longer emitted as garbage.** `NEWLINE: ''? '
+';` referenced without a
+  label unparsed as `'? '
+`; such rules are now left out as documented
+  (label them, `nl=NEWLINE`), while `SEMI: ';';` and `ARROW: '-' '>';` keep
+  being emitted verbatim.
 
 ## [0.2.4] — 2026-10-20
 
