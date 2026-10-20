@@ -110,8 +110,8 @@ public class AutoLabelComplexTest {
                 .getTerm().getFactor()).getIntValue());
         Assert.assertEquals("repeated expressions are collected into a list",
                 1, arrayFactor.getExpressions().size());
-        Assert.assertEquals("the ',' separator is captured",
-                1, arrayFactor.getSymbols().size());
+        Assert.assertEquals("the ',' separator is captured (named after the literal)",
+                1, arrayFactor.getCommas().size());
 
         String unparsed = new AutoLabelComplexModelUnparser().unparse(model);
         Assert.assertEquals(source, unparsed);
@@ -135,9 +135,9 @@ public class AutoLabelComplexTest {
 
         Assert.assertEquals("d", dims.getIdentifier());
         Assert.assertEquals("each '[' is captured in order",
-                2, dims.getSymbols().size());
+                2, dims.getLBrackets().size());
         Assert.assertEquals("each ']' is captured in order",
-                2, dims.getSymbols2().size());
+                2, dims.getRBrackets().size());
 
         String unparsed = new AutoLabelComplexModelUnparser().unparse(model);
         Assert.assertEquals("repeated bracket pairs round-trip", source, unparsed);

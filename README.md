@@ -233,7 +233,9 @@ as `('goto' ID | 'continue' | 'break' | 'return' expr?)` inside rule `stmt`
 becomes a synthetic rule `stmtChoice` with sub classes `StmtChoiceAlt1…4`, so
 the chosen alternative survives in the model and unparses correctly even when
 it consists only of keywords. Token sets like `('+' | '-')` stay a captured
-literal (`operators+=` when repeated, `operator=` otherwise). The auto-label
+literal (`operators+=` when repeated, `operator=` otherwise), and a single
+literal captured inside a repeated block is named after its text (`','` →
+`commas`, `'['` → `lBrackets`, `'static'` → `staticKeywords`). The auto-label
 report lists every lifted block. Hand-labeled grammars get the same treatment
 for *literal-only* blocks such as `('[' ']' | '[]')`, which have no model
 property otherwise: the enclosing rule gains a `<Rule>Choice` property whose

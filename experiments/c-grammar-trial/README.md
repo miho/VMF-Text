@@ -147,8 +147,9 @@ In order of samples unblocked per unit of work (see `CHANGELOG.md`
    `setFailOnSyntaxError(false)` opts out (finding 3).
 4. ✅ `Root(rule=…)` metadata; the root flag is authoritative; a root with
    labeled alternatives generates a compilable unparser (finding 4).
-5. ⏳ Better names for operator literals (finding 5) — still `operators` /
-   `symbols2…`; cosmetic, API-facing.
+5. ✅ Captured literals are named after their text (finding 5, #38):
+   `commas`, `lBrackets`, `plusPluses`, `sizeofKeywords` … instead of
+   `symbols2…`; token-set blocks stay `operators`.
    Collateral from (3): strict parsing exposed three existing tests that had
    been re-parsing lossy output through error recovery. Two of them (Java
    parameter insertion) uncovered real unparse bugs that are now fixed —

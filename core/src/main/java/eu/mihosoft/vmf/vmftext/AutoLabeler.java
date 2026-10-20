@@ -39,7 +39,11 @@ import org.tinylog.Logger;
  *   <li>unnamed operator/separator literals inside a repeated block (e.g. the
  *       {@code ('+' | '-')} in {@code (('+' | '-') term)*} or the {@code ','} in
  *       {@code (',' item)*}) are captured as ordered list properties so the
- *       text round-trips instead of being dropped when unparsing;</li>
+ *       text round-trips instead of being dropped when unparsing. A single
+ *       literal is named after its text ({@code ','} → {@code commas},
+ *       {@code '['} → {@code lBrackets}, {@code 'static'} →
+ *       {@code staticKeywords}); a token-set block is {@code operators}
+ *       ({@code operator} when not repeated);</li>
  *   <li>parser rules with two or more unlabeled top-level alternatives receive
  *       deterministic {@code # AltLabel} alternative labels so every
  *       alternative becomes its own typed sub class;</li>
@@ -659,8 +663,10 @@ final class AutoLabeler {
             } else if(repeated && isStringLiteralAtom(ctx.atom())) {
                 // unnamed string literals inside a repeated block (e.g. the ','
                 // in '(',' item)*') would be dropped when unparsing. Capturing
-                // them as an ordered list keeps the text round-trippable.
-                baseName = LITERAL_ATOM_NAME;
+                // them as an ordered list keeps the text round-trippable; the
+                // property is named after the literal (',' -> commas).
+                baseName = literalBaseName(unquoteStringLiteral(
+                        ctx.atom().terminal().STRING_LITERAL().getText()));
             } else {
                 return;
             }
@@ -700,6 +706,58 @@ final class AutoLabeler {
             String assignment = repeated ? "+=" : "=";
             rewriter.insertBefore(ctx.start, labelName + assignment);
             recordEntry(elementIndex, labelName);
+        }
+
+        private static final Map<String,String> LITERAL_NAMES = new HashMap<>();
+        static {
+            String[][] table = {
+                {",", "comma"}, {";", "semicolon"}, {".", "dot"}, {":", "colon"},
+                {"(", "lParen"}, {")", "rParen"}, {"[", "lBracket"}, {"]", "rBracket"},
+                {"{", "lBrace"}, {"}", "rBrace"}, {"<", "lt"}, {">", "gt"}, {"=", "eq"},
+                {"+", "plus"}, {"-", "minus"}, {"*", "star"}, {"/", "slash"}, {"%", "percent"},
+                {"!", "bang"}, {"?", "question"}, {"&", "amp"}, {"|", "pipe"}, {"^", "caret"},
+                {"~", "tilde"}, {"#", "hash"}, {"@", "at"}, {"$", "dollar"}, {"\\", "backslash"},
+                {"'", "quote"}, {"\"", "doubleQuote"}, {"`", "backtick"},
+                {"->", "arrow"}, {"=>", "fatArrow"}, {"::", "doubleColon"}, {"...", "ellipsis"},
+                {"==", "eqEq"}, {"!=", "notEq"}, {"<=", "le"}, {">=", "ge"}, {"&&", "andAnd"},
+                {"||", "orOr"}, {"++", "plusPlus"}, {"--", "minusMinus"}, {"<<", "shiftLeft"},
+                {">>", "shiftRight"}, {">>>", "unsignedShiftRight"}, {"**", "starStar"},
+                {"+=", "plusEq"}, {"-=", "minusEq"}, {"*=", "starEq"}, {"/=", "slashEq"},
+                {"%=", "percentEq"}, {"&=", "ampEq"}, {"|=", "pipeEq"}, {"^=", "caretEq"},
+                {"<<=", "shiftLeftEq"}, {">>=", "shiftRightEq"}, {">>>=", "unsignedShiftRightEq"},
+            };
+            for(String[] e : table) {
+                LITERAL_NAMES.put(e[0], e[1]);
+            }
+        }
+
+        /**
+         * Property base name for a captured literal: a known punctuation token
+         * by name ({@code ','} → {@code comma}), an unknown punctuation
+         * sequence by its characters ({@code '<-'} → {@code ltMinus}), a
+         * keyword-like literal as {@code <keyword>Keyword}, anything else
+         * {@code symbol}.
+         */
+        private String literalBaseName(String literal) {
+            if(literal == null || literal.isEmpty()) {
+                return LITERAL_ATOM_NAME;
+            }
+            if(literal.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
+                return StringUtil.firstToLower(literal) + "Keyword";
+            }
+            String known = LITERAL_NAMES.get(literal);
+            if(known != null) {
+                return known;
+            }
+            StringBuilder composed = new StringBuilder();
+            for(int i = 0; i < literal.length(); i++) {
+                String part = LITERAL_NAMES.get(String.valueOf(literal.charAt(i)));
+                if(part == null) {
+                    return LITERAL_ATOM_NAME;
+                }
+                composed.append(composed.length() == 0 ? part : StringUtil.firstToUpper(part));
+            }
+            return composed.toString();
         }
 
         /**
