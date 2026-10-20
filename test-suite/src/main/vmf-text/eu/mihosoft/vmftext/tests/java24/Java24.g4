@@ -325,7 +325,7 @@ annotationFieldVals:
 	;
 
 annotationFieldValue:
-	{ this.IsNotIdentifierAssign(); }? value=annotationVal
+	{ this.IsNotIdentifierAssign() }? value=annotationVal
 	| name=identifier '=' value=annotationVal
 	;
 
@@ -410,7 +410,7 @@ recordHeader
     ;
 
 recordComponentList
-    : components+=recordComponent (',' components+=recordComponent)* { this.DoLastRecordComponent(); }?
+    : components+=recordComponent (',' components+=recordComponent)* { this.DoLastRecordComponent() }?
     ;
 
 recordComponent

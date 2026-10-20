@@ -30,6 +30,31 @@ All notable changes to VMF-Text are documented here.
   `Formatter.newJavaStyleFormatter()`; use `newBlockIndentFormatter()` or a
   custom `ProgrammaticSeparatorPolicy`.
 
+### Fixed
+
+Both found by the second unlabeled grammars-v4 trial, the ECMAScript grammar
+([`experiments/js-grammar-trial`](experiments/js-grammar-trial/README.md));
+regression grammar `asi`.
+
+- **Semantic predicates survive the grammar rewrites.** A predicate `{...}?`
+  was taken for an optional element and wrapped as `({...} {flag})?`, which
+  turns it into a plain action: the generated unparser grammar did not
+  compile (`not a statement`), and a predicate-guarded alternative would
+  silently have accepted more input. The optional-wrapping and state-injection
+  passes now leave predicates and actions alone; `@parser::members` reach the
+  unparser grammar through its import. The Java24 test grammar had written
+  its two predicates as `{ this.X(); }?` statements, which only compiled
+  because of the wrapping — corrected to `{ this.X() }?`.
+- **A nested rule that matches `EOF` keeps the hidden text before the end of
+  the input.** Once `EOF` is matched, ANTLR makes it the stop token of every
+  enclosing rule, so with `eos: ';' | EOF | {lineTerminatorAhead()}?`
+  (JavaScript's automatic semicolon insertion) the trailing newline is
+  recorded in the `eos` element — which the unparser skipped: `x = 1\ny = 2\n`
+  came back without its last newline. The generator now hands every `EOF`
+  reference to the new `Formatter.eof(...)` hook; the default formatter emits
+  the recorded hidden text for parsed elements and nothing for programmatic
+  ones (custom formatters: no-op default).
+
 ## [0.2.3] — 2026-10-20
 
 Grammar-shape fixes driven by the unlabeled grammars-v4 C grammar trial

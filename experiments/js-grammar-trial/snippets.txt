@@ -1,0 +1,32 @@
+var x = 1;
+----
+var s = "a\"b";
+----
+function f(a, b) { return a + b; }
+----
+if (x) { y(); } else { z(); }
+----
+for (var i = 0; i < 3; i++) { f(i); }
+----
+var o = { a: 1, 'b': [1, 2, 3], c: function () { return this.a; } };
+----
+var r = /ab+c/g;
+----
+var q = a / b / c;
+----
+x = 1
+y = 2
+----
+return
+x
+----
+while (i--) { if (i % 2) continue; else break; }
+----
+// comment
+var t = x ? y : z; /* trailing */
+----
+label: for (;;) { break label; }
+----
+var u = typeof x === 'undefined' || x instanceof Object;
+----
+try { risky(); } catch (e) { log(e); } finally { done(); }
