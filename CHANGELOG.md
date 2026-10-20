@@ -37,6 +37,14 @@ producing garbage.
 
 ### Changed
 
+- **Auto-labeling names captured literals after their text** (#38) — a
+  literal captured inside a repeated block used to be `symbols`, `symbols2`,
+  …; it is now `commas`, `semicolons`, `lBrackets` / `rBrackets`, `arrows`,
+  `plusPluses`, `staticKeywords` and so on (known punctuation by name, other
+  punctuation by its characters, keyword-like literals as `<keyword>Keyword`,
+  `symbol` only as a last resort). Token-set blocks such as `('+' | '-')` keep
+  the name `operators` (`operator` when not repeated). Generated API names
+  change for auto-labeled grammars that relied on `symbols…`.
 - **`parse(...)` fails on syntax errors by default** — the generated
   `<Grammar>ModelParser` throws `<Grammar>ModelParser.SyntaxErrorException`
   (with `getErrors()`, one `line:column message` per error) instead of
