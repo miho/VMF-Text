@@ -148,8 +148,15 @@ public class UnparserCodeGenerator {
                 flatMap(las->las.stream()).map(la->la.getParentRule()).collect(Collectors.toList());
 
         // and remove them from unparser generation since they are interface-only types and thus
-        // don't need/support direct implementations
-        rules.removeAll(delList);
+        // don't need/support direct implementations. By identity, not equals: VMF's
+        // structural equals walks the whole rule tree and (VMF <= 0.2.11) indexes the
+        // second list with the first list's size, which throws IndexOutOfBounds for
+        // the first pair of alternatives whose element counts differ (grammars-v4
+        // Python 3 was the first grammar to hit that).
+        java.util.Set<UPRuleBase> parentsOfLabeledAlts =
+                java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        parentsOfLabeledAlts.addAll(delList);
+        rules.removeIf(parentsOfLabeledAlts::contains);
 
         // convert labeled alternatives to rules (which are added to rules list)
         labeledAlternatives.values().stream().
@@ -164,9 +171,10 @@ public class UnparserCodeGenerator {
                 map(a->(LabeledAlternative)a).collect(Collectors.groupingBy(LabeledAlternative::getName));
 
 
-        // find parents of labeled alternatives
+        // find parents of labeled alternatives (distinct by identity, see computeFinalUnparserRuleList)
+        java.util.Set<UPRule> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         List<UPRule> parentsOfLabeledAlts = labeledAlternatives.values().stream().
-                flatMap(las->las.stream()).map(la->(UPRule)la.getParentRule()).distinct().
+                flatMap(las->las.stream()).map(la->(UPRule)la.getParentRule()).filter(seen::add).
                 collect(Collectors.toList());
 
         return parentsOfLabeledAlts;

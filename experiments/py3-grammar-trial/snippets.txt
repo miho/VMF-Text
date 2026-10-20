@@ -1,0 +1,50 @@
+x = 1
+----
+x = 1
+y = 2
+----
+if x:
+    y = 1
+----
+if x:
+    y = 1
+else:
+    y = 2
+----
+def f(a, b):
+    return a + b
+----
+class A:
+    def m(self):
+        if self.x:
+            return 1
+        return 2
+----
+for i in range(3):
+    print(i)  # comment
+----
+# leading comment
+
+x = [1,
+     2, 3]
+y = (a +
+     b)
+----
+def g():
+    x = 1
+
+    y = 2
+    return x + y
+----
+if a:
+	b = 1
+----
+while True:
+    if done():
+        break
+    continue
+----
+x = 1
+----
+def h():
+    pass

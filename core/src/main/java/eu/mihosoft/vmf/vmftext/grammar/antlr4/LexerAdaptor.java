@@ -79,9 +79,37 @@ public abstract class LexerAdaptor extends Lexer {
 		}
 	}
 
+	/**
+	 * Sentinel rule types for the prequel constructs ({@code options {}},
+	 * {@code tokens {}}, {@code channels {}} and named actions such as
+	 * {@code @lexer::members {}}): identifiers inside them must not be taken
+	 * for the start of a rule, otherwise a grammar whose {@code tokens {INDENT,
+	 * DEDENT}} block precedes the first parser rule leaves the adaptor in
+	 * "lexer rule" state and the next {@code [...]} (an argument or
+	 * {@code locals} block) is lexed as a character set. Mirrors the upstream
+	 * grammars-v4 adaptor.
+	 */
+	private static final int PREQUEL_CONSTRUCT = -10;
+	private static final int OPTIONS_CONSTRUCT = -11;
+
 	@Override
 	public Token emit() {
-		if (_type == ANTLRv4Lexer.ID) {
+		if ((_type == ANTLRv4Lexer.OPTIONS || _type == ANTLRv4Lexer.TOKENS || _type == ANTLRv4Lexer.CHANNELS)
+				&& _currentRuleType == Token.INVALID_TYPE) { // enter a prequel construct ending with an RBRACE
+			_currentRuleType = PREQUEL_CONSTRUCT;
+		} else if (_type == ANTLRv4Lexer.OPTIONS && _currentRuleType == ANTLRv4Lexer.TOKEN_REF) {
+			_currentRuleType = OPTIONS_CONSTRUCT; // rule-level options inside a lexer rule
+		} else if (_type == ANTLRv4Lexer.RBRACE && _currentRuleType == PREQUEL_CONSTRUCT) { // exit prequel construct
+			_currentRuleType = Token.INVALID_TYPE;
+		} else if (_type == ANTLRv4Lexer.RBRACE && _currentRuleType == OPTIONS_CONSTRUCT) { // exit rule-level options
+			_currentRuleType = ANTLRv4Lexer.TOKEN_REF;
+		} else if (_type == ANTLRv4Lexer.AT && _currentRuleType == Token.INVALID_TYPE) { // enter a named action
+			_currentRuleType = ANTLRv4Lexer.AT;
+		} else if (_type == ANTLRv4Lexer.SEMI && _currentRuleType == OPTIONS_CONSTRUCT) {
+			// ';' inside rule-level options: stay inside the lexer rule
+		} else if (_type == ANTLRv4Lexer.END_ACTION && _currentRuleType == ANTLRv4Lexer.AT) { // exit the named action
+			_currentRuleType = Token.INVALID_TYPE;
+		} else if (_type == ANTLRv4Lexer.ID) {
 			String firstChar = _input.getText(Interval.of(_tokenStartCharIndex, _tokenStartCharIndex));
 			if (Character.isUpperCase(firstChar.charAt(0))) {
 				_type = ANTLRv4Lexer.TOKEN_REF;
