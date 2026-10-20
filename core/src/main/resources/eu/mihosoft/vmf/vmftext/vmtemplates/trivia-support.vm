@@ -33,7 +33,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import ${modelPackageName}.*;
 import static ${packageName}.${Util.firstToUpper($model.grammarName)}Parser.*;
 
-final class ${Util.firstToUpper($model.grammarName)}TriviaSupport {
+public final class ${Util.firstToUpper($model.grammarName)}TriviaSupport {
 
     private ${Util.firstToUpper($model.grammarName)}TriviaSupport() { throw new AssertionError("no instances"); }
 
@@ -570,6 +570,184 @@ final class ${Util.firstToUpper($model.grammarName)}TriviaSupport {
                 withText(text).
                 withKind(classifyTriviaKind(text)).
                 build();
+    }
+
+    /**
+     * Rebases the indentation of a parsed subtree, for instance after moving
+     * a statement into a block at another depth. In indentation-structured
+     * languages (Python) the depth is the meaning, so a moved statement that
+     * keeps its own trivia would land at the wrong depth. Three things change:
+     * the leading whitespace of the subtree's first line becomes
+     * {@code newIndent}; every further line start inside the subtree that
+     * begins with {@code oldIndent} starts with {@code newIndent} instead
+     * (continuation lines keep their relative offset, blank lines stay blank);
+     * and whitespace-only token values inside the subtree (Python's INDENT
+     * tokens) are rebased the same way. Programmatic elements have no trivia
+     * and are not touched; the formatter's separator policy renders those.
+     *
+     * <p>For a statement that becomes the first one of a Python block, pass
+     * an empty first-line indentation via
+     * {@link #reindent(CodeElement, String, String, String)}: the block's
+     * INDENT token already carries it.</p>
+     *
+     * @param element root of the parsed subtree
+     * @param oldIndent the indentation the subtree currently has (its depth)
+     * @param newIndent the indentation it should have
+     */
+    public static void reindent(CodeElement element, String oldIndent, String newIndent) {
+        reindent(element, oldIndent, newIndent, newIndent);
+    }
+
+    /**
+     * Same as {@link #reindent(CodeElement, String, String)}, with the
+     * indentation of the subtree's first line given separately.
+     *
+     * @param element root of the parsed subtree
+     * @param oldIndent the indentation the subtree currently has (its depth)
+     * @param newIndent the indentation its inner lines should have
+     * @param firstLineIndent the leading whitespace of the subtree's first line
+     */
+    public static void reindent(CodeElement element, String oldIndent, String newIndent, String firstLineIndent) {
+        if(element == null || oldIndent == null || newIndent == null || firstLineIndent == null
+                || element.getLexicalInfo() == null || element.getLexicalInfo().getOriginalRange() == null
+                || element.getLexicalInfo().getOriginalRange().getStart() == null
+                || element.getLexicalInfo().getOriginalRange().getStop() == null) {
+            return; // programmatic subtree: nothing parsed to rebase
+        }
+        // the subtree: the root and everything parsed inside its original range
+        // (the content stream must not drag in containers)
+        int rootStart = element.getLexicalInfo().getOriginalRange().getStart().getIndex();
+        int rootStop = element.getLexicalInfo().getOriginalRange().getStop().getIndex();
+        java.util.List<CodeElement> elements = element.vmf().content().stream(CodeElement.class)
+                .filter(e -> e == element || isInsideRange(e, rootStart, rootStop))
+                .collect(Collectors.toList());
+        CodeElement first = firstInDocumentOrder(elements);
+        for(CodeElement e : elements) {
+            LexicalInfo info = e.getLexicalInfo();
+            if(info != null) {
+                java.util.List<TriviaPiece> pieces = info.getTriviaPieces();
+                for(int i = 0; i < pieces.size(); i++) {
+                    TriviaPiece piece = pieces.get(i);
+                    String text = piece.getText();
+                    if(text == null) {
+                        continue;
+                    }
+                    String rebased = rebaseLineStarts(text, oldIndent, newIndent);
+                    if(e == first && i == 0) {
+                        // the subtree's first line: whatever leading whitespace it
+                        // had on that line is replaced by firstLineIndent
+                        int nl = rebased.lastIndexOf('\n');
+                        String head = nl < 0 ? "" : rebased.substring(0, nl + 1);
+                        String tail = nl < 0 ? rebased : rebased.substring(nl + 1);
+                        rebased = head + firstLineIndent + stripLeadingBlanks(tail);
+                    }
+                    if(!rebased.equals(text)) {
+                        piece.setText(rebased);
+                        piece.setKind(classifyTriviaKind(rebased));
+                    }
+                }
+            }
+            rebaseWhitespaceTokenValues(e, oldIndent, newIndent);
+        }
+    }
+
+    private static boolean isInsideRange(CodeElement e, int start, int stop) {
+        LexicalInfo info = e.getLexicalInfo();
+        if(info == null || info.getOriginalRange() == null || info.getOriginalRange().getStart() == null
+                || info.getOriginalRange().getStop() == null) {
+            return false;
+        }
+        return info.getOriginalRange().getStart().getIndex() >= start
+                && info.getOriginalRange().getStop().getIndex() <= stop;
+    }
+
+    /** The element whose first terminal comes first: smallest original start, then smallest range. */
+    private static CodeElement firstInDocumentOrder(java.util.List<CodeElement> elements) {
+        CodeElement best = null;
+        int bestStart = Integer.MAX_VALUE;
+        int bestStop = Integer.MAX_VALUE;
+        for(CodeElement e : elements) {
+            LexicalInfo info = e.getLexicalInfo();
+            if(info == null || info.getOriginalRange() == null || info.getOriginalRange().getStart() == null
+                    || info.getTriviaPieces().isEmpty()) {
+                continue;
+            }
+            int start = info.getOriginalRange().getStart().getIndex();
+            int stop = info.getOriginalRange().getStop() == null ? Integer.MAX_VALUE
+                    : info.getOriginalRange().getStop().getIndex();
+            if(start < bestStart || (start == bestStart && stop < bestStop)) {
+                best = e;
+                bestStart = start;
+                bestStop = stop;
+            }
+        }
+        return best;
+    }
+
+    /** Every line start inside {@code text} that begins with {@code oldIndent} starts with {@code newIndent} instead. */
+    private static String rebaseLineStarts(String text, String oldIndent, String newIndent) {
+        if(text.indexOf('\n') < 0) {
+            return text;
+        }
+        StringBuilder sb = new StringBuilder(text.length() + 16);
+        int i = 0;
+        int n = text.length();
+        while(i < n) {
+            char c = text.charAt(i);
+            sb.append(c);
+            i++;
+            if(c != '\n') {
+                continue;
+            }
+            // a line start: blank lines stay blank; the end of the piece is the
+            // start of the line that carries the terminal this piece precedes
+            if(i < n && (text.charAt(i) == '\n' || text.charAt(i) == '\r')) {
+                continue;
+            }
+            if(text.startsWith(oldIndent, i)) {
+                sb.append(newIndent);
+                i += oldIndent.length();
+            }
+        }
+        return sb.toString();
+    }
+
+    private static String stripLeadingBlanks(String s) {
+        int i = 0;
+        while(i < s.length() && (s.charAt(i) == ' ' || s.charAt(i) == '\t')) {
+            i++;
+        }
+        return s.substring(i);
+    }
+
+    /** Whitespace-only string properties (indentation tokens such as Python's INDENT) are rebased like line starts. */
+    private static void rebaseWhitespaceTokenValues(CodeElement e, String oldIndent, String newIndent) {
+        for(eu.mihosoft.vmf.runtime.core.Property p : e.vmf().reflect().properties()) {
+            Object v;
+            try {
+                v = p.get();
+            } catch(RuntimeException ex) {
+                continue;
+            }
+            if(!(v instanceof String)) {
+                continue;
+            }
+            String s = (String) v;
+            if(s.isEmpty() || !isBlanks(s) || !s.startsWith(oldIndent)) {
+                continue;
+            }
+            p.set(newIndent + s.substring(oldIndent.length()));
+        }
+    }
+
+    private static boolean isBlanks(String s) {
+        for(int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if(c != ' ' && c != '\t') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

@@ -1,6 +1,7 @@
 package eu.mihosoft.vmftext.tests.mixedformat;
 
 import eu.mihosoft.vmftext.tests.mixedformat.parser.MixedFormatModelParser;
+import eu.mihosoft.vmftext.tests.mixedformat.parser.MixedFormatTriviaSupport;
 import eu.mihosoft.vmftext.tests.mixedformat.unparser.Formatter;
 import eu.mihosoft.vmftext.tests.mixedformat.unparser.MixedFormatModelUnparser;
 import org.junit.Assert;
@@ -66,6 +67,19 @@ public class MixedFormatTest {
         Formatter.OutputRange s = ranges.get(1);
         Assert.assertEquals("y();", out.substring(s.getStart(), s.getEnd()));
         Assert.assertEquals(6, s.getStartLine());
+    }
+
+    /** Python trial: a moved parsed subtree keeps its trivia, so its indentation must be rebased explicitly. */
+    @Test
+    public void reindentRebasesAParsedSubtree() {
+        MixedFormatModel model = new MixedFormatModelParser().parse(SRC);
+        Method a = model.getRoot().getClasses().get(0).getMethods().get(0);
+        MixedFormatTriviaSupport.reindent(a, "  ", "      ");
+        Assert.assertEquals("class A {\n      void a() {\n        x();\n      }\n}\n", new MixedFormatModelUnparser().unparse(model));
+        MixedFormatTriviaSupport.reindent(a, "      ", "");
+        Assert.assertEquals("class A {\nvoid a() {\n  x();\n}\n}\n", new MixedFormatModelUnparser().unparse(model));
+        MixedFormatTriviaSupport.reindent(a, "", "  ", "");
+        Assert.assertEquals("class A {\nvoid a() {\n    x();\n  }\n}\n", new MixedFormatModelUnparser().unparse(model));
     }
 
     @Test
