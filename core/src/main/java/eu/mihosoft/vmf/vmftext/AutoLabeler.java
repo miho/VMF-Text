@@ -87,14 +87,7 @@ final class AutoLabeler {
         // blocks nested inside lifted blocks are lifted too), then pass B labels
         // the result like any other grammar.
         List<String> liftedEntries = new ArrayList<>();
-        for(int round = 0; round < 8; round++) {
-            BlockLiftResult lifted = liftAlternativeBlocks(grammar);
-            if(lifted.entries.isEmpty()) {
-                break;
-            }
-            liftedEntries.addAll(lifted.entries);
-            grammar = lifted.grammar;
-        }
+        grammar = liftBlocks(grammar, false, liftedEntries);
         try(FileInputStream codeStream = new FileInputStream(grammar)) {
             CharStream input = CharStreams.fromStream(codeStream);
 
@@ -145,11 +138,44 @@ final class AutoLabeler {
     }
 
     /**
+     * For grammars that are <em>not</em> auto-labeled: lifts only the nested
+     * alternative blocks whose alternatives consist of literals / token
+     * references and are not a plain token set, e.g. {@code ('[' ']' | '[]')}
+     * or {@code ('<' '<' | '>' '>' '>' | '>' '>')}. Such a block has no model
+     * property, so without lifting its text is dropped on unparse (issue #37).
+     * Manual labels inside a block disable lifting for that block.
+     */
+    static File liftLiteralOnlyBlocks(File grammar) throws IOException {
+        List<String> entries = new ArrayList<>();
+        File result = liftBlocks(grammar, true, entries);
+        if(!entries.isEmpty()) {
+            StringBuilder report = new StringBuilder("Lifted literal-only alternative blocks in ")
+                    .append(grammar.getName()).append(" (each alternative is a typed sub class):\n");
+            entries.forEach(e -> report.append("  ").append(e).append('\n'));
+            Logger.info(report.toString());
+        }
+        return result;
+    }
+
+    private static File liftBlocks(File grammar, boolean literalOnly, List<String> entriesOut) throws IOException {
+        // repeat so blocks nested inside lifted blocks are lifted too
+        for(int round = 0; round < 8; round++) {
+            BlockLiftResult lifted = liftAlternativeBlocks(grammar, literalOnly);
+            if(lifted.entries.isEmpty()) {
+                break;
+            }
+            entriesOut.addAll(lifted.entries);
+            grammar = lifted.grammar;
+        }
+        return grammar;
+    }
+
+    /**
      * Pass A of auto-labeling: rewrites every liftable nested alternative block
      * into a reference to a new synthetic parser rule appended to the grammar.
      * Returns the input file unchanged when nothing was lifted.
      */
-    private static BlockLiftResult liftAlternativeBlocks(File grammar) throws IOException {
+    private static BlockLiftResult liftAlternativeBlocks(File grammar, boolean literalOnly) throws IOException {
         try(FileInputStream codeStream = new FileInputStream(grammar)) {
             CharStream input = CharStreams.fromStream(codeStream);
             ANTLRv4Lexer lexer = new ANTLRv4Lexer(input);
@@ -159,7 +185,7 @@ final class AutoLabeler {
             TokenStreamRewriter rewriter = new TokenStreamRewriter(tokens);
             ReservedNameCollector reserved = new ReservedNameCollector();
             ParseTreeWalker.DEFAULT.walk(reserved, tree);
-            BlockLifter lifter = new BlockLifter(tokens, rewriter, reserved.reservedNamesLower());
+            BlockLifter lifter = new BlockLifter(tokens, rewriter, reserved.reservedNamesLower(), literalOnly);
             ParseTreeWalker.DEFAULT.walk(lifter, tree);
             if(lifter.entries.isEmpty()) {
                 return new BlockLiftResult(grammar, lifter.entries);
@@ -193,27 +219,36 @@ final class AutoLabeler {
 
     /**
      * Finds nested alternative blocks whose choice would be lost in the model
-     * and replaces each with a reference to a synthetic rule
+     * and replaces each with a labeled reference to a synthetic rule
      * {@code <rule>Choice[N]} that carries the block's alternatives as
-     * top-level alternatives (which pass B then labels into typed sub
-     * classes). The block's EBNF suffix moves to the reference, so
-     * {@code (a | b)*} becomes a single ordered list of the synthetic type
-     * instead of two lists that lose their interleaving.
+     * labeled top-level alternatives ({@code # <Rule>ChoiceAltN}), i.e. typed
+     * sub classes. The labels are emitted here so the result is the same with
+     * and without the auto-label pass. The block's EBNF suffix moves to the
+     * reference, so {@code (a | b)*} becomes a single ordered list of the
+     * synthetic type instead of two lists that lose their interleaving.
+     *
+     * <p>In {@code literalOnly} mode (grammars that are not auto-labeled) only
+     * blocks whose alternatives consist purely of literals / token references
+     * and that are not a plain token set are lifted; everything else is left
+     * exactly as the author wrote it.</p>
      */
     private static final class BlockLifter extends ANTLRv4ParserBaseListener {
         private final CommonTokenStream tokens;
         private final TokenStreamRewriter rewriter;
         private final Set<String> reservedNamesLower;
+        private final boolean literalOnly;
         final StringBuilder syntheticRules = new StringBuilder();
         final List<String> entries = new ArrayList<>();
         private final Set<ParserRuleContext> liftedBlocks = new HashSet<>();
         private String currentRuleName;
         private int currentRuleIndex = -1;
 
-        BlockLifter(CommonTokenStream tokens, TokenStreamRewriter rewriter, Set<String> reservedNamesLower) {
+        BlockLifter(CommonTokenStream tokens, TokenStreamRewriter rewriter, Set<String> reservedNamesLower,
+                    boolean literalOnly) {
             this.tokens = tokens;
             this.rewriter = rewriter;
             this.reservedNamesLower = reservedNamesLower;
+            this.literalOnly = literalOnly;
         }
 
         @Override
@@ -241,20 +276,64 @@ final class AutoLabeler {
             }
             String ruleName = uniqueRuleName(currentRuleName + "Choice");
             String suffix = ctx.ebnf().blockSuffix() == null ? "" : tokens.getText(ctx.ebnf().blockSuffix());
-            String alternatives = tokens.getText(block.altList());
-            syntheticRules.append("\n// lifted by VMF-Text auto-labeling from rule '").append(currentRuleName)
+            boolean repeated = suffix.startsWith("*") || suffix.startsWith("+") || isInsideRepetition(ctx);
+
+            // the synthetic rule: one labeled alternative per block alternative
+            StringBuilder ruleText = new StringBuilder();
+            List<ANTLRv4Parser.AlternativeContext> alts = block.altList().alternative();
+            for(int i = 0; i < alts.size(); i++) {
+                String altLabel = uniqueAltLabel(StringUtil.firstToUpper(ruleName) + "Alt" + (i + 1));
+                ruleText.append(i == 0 ? "    : " : "    | ")
+                        .append(tokens.getText(alts.get(i))).append(" # ").append(altLabel).append('\n');
+            }
+            syntheticRules.append("\n// lifted by VMF-Text from rule '").append(currentRuleName)
                     .append("' so each alternative becomes its own typed sub class\n")
-                    .append(ruleName).append("\n    : ").append(alternatives).append("\n    ;\n");
-            rewriter.replace(ctx.ebnf().start, ctx.ebnf().stop, ruleName + suffix);
+                    .append(ruleName).append('\n').append(ruleText).append("    ;\n");
+
+            // the reference: a labeled (list) property of the enclosing rule. PascalCase
+            // for the singular form because a label equal to a rule name is ANTLR error 69.
+            String label = repeated ? ruleName + "s" : StringUtil.firstToUpper(ruleName);
+            String assignment = repeated ? "+=" : "=";
+            rewriter.replace(ctx.ebnf().start, ctx.ebnf().stop, label + assignment + ruleName + suffix);
             liftedBlocks.add(ctx.ebnf());
             entries.add("/r" + currentRuleIndex + " " + currentRuleName + ": block "
-                    + abbreviate(tokens.getText(block)) + suffix + " -> rule " + ruleName);
+                    + abbreviate(tokens.getText(block)) + suffix + " -> " + label + assignment + ruleName);
+        }
+
+        private String uniqueAltLabel(String base) {
+            String candidate = base;
+            int n = 1;
+            while(reservedNamesLower.contains(candidate.toLowerCase())) {
+                n++;
+                candidate = base + "_" + n;
+            }
+            reservedNamesLower.add(candidate.toLowerCase());
+            return candidate;
+        }
+
+        /** true when the element sits inside a block that repeats via '*' / '+' */
+        private boolean isInsideRepetition(ANTLRv4Parser.ElementContext ctx) {
+            for(ParserRuleContext p = ctx.getParent(); p != null && !(p instanceof ANTLRv4Parser.ParserRuleSpecContext); p = p.getParent()) {
+                if(p instanceof ANTLRv4Parser.EbnfContext) {
+                    ANTLRv4Parser.EbnfContext ebnf = (ANTLRv4Parser.EbnfContext) p;
+                    if(ebnf.blockSuffix() != null) {
+                        String t = tokens.getText(ebnf.blockSuffix());
+                        if(t.startsWith("*") || t.startsWith("+")) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
         }
 
         /**
          * Liftable: two or more alternatives, none empty, not a token set
-         * (those keep their literal capture), no options/actions, and no
-         * manual labels, actions or predicates anywhere inside.
+         * (those keep their literal capture / round-trip via recorded states),
+         * no options/actions, and no manual labels, actions or predicates
+         * anywhere inside. In literal-only mode every element of every
+         * alternative must additionally be an unsuffixed literal or token
+         * reference.
          */
         private boolean isLiftable(ANTLRv4Parser.BlockContext block) {
             if(block.altList() == null || block.optionsSpec() != null || !block.ruleAction().isEmpty()) {
@@ -267,6 +346,13 @@ final class AutoLabeler {
             for(ANTLRv4Parser.AlternativeContext alt : alts) {
                 if(alt.elementOptions() != null || alt.element().isEmpty()) {
                     return false;
+                }
+                if(literalOnly) {
+                    for(ANTLRv4Parser.ElementContext el : alt.element()) {
+                        if(el.atom() == null || el.atom().terminal() == null || el.ebnfSuffix() != null) {
+                            return false;
+                        }
+                    }
                 }
             }
             if(isTokenSetBlock(block)) {

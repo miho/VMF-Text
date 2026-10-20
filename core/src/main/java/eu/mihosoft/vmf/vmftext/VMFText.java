@@ -153,6 +153,11 @@ public class VMFText {
             if(options.isAutoLabel() || GrammarMetaInformationUtil.isAutoLabelEnabled(comments)) {
                 grammar = AutoLabeler.rewrite(grammar, options.isEmitAutoLabelReport(),
                         options.getAutoLabelReportFile());
+            } else {
+                // Hand-labeled grammars: a literal-only nested alternative block such as
+                // ('[' ']' | '[]') has no model property, so its text was dropped on
+                // unparse. Lift it into typed sub classes like auto-labeling does (#37).
+                grammar = AutoLabeler.liftLiteralOnlyBlocks(grammar);
             }
 
             // Rewrite list-labeled wildcards (label+=.) before optional wrapping / AntlrTool

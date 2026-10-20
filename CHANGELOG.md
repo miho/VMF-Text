@@ -81,10 +81,18 @@ producing garbage.
 - **Strict parsing exposed three silently broken existing tests** (`java8`,
   `java24` parameter insertion, `minijava` round trip): they re-parsed lossy
   unparse output through ANTLR's error recovery and compared the recovered
-  model. The parameter-insertion cases are fixed by the two items above; the
-  MiniJava case is the hand-labeled literal-only block `('[' ']'|'[]')`, which
-  has no model property and is dropped — documented in the test and queued
-  (lifting for hand-labeled grammars).
+  model. The parameter-insertion cases are fixed by the two items above, the
+  MiniJava case by the next item.
+- **Literal-only nested alternative blocks in hand-labeled grammars are no
+  longer dropped on unparse** (#37) — `'String' ('[' ']'|'[]') args=Identifier`
+  in MiniJava unparsed `String[] arguments` as `Stringarguments`; Java 8's
+  shift operators `('<' '<' | '>' '>' '>' | '>' '>')` had the same shape. Such
+  blocks (two or more alternatives made only of literals / token references,
+  not a plain token set, no manual labels inside) are lifted into a synthetic
+  `<rule>Choice` rule with one typed sub class per alternative, exactly like
+  auto-labeling does; the enclosing rule gains a `<Rule>Choice` property
+  (`<rule>Choices` list when repeated). Regression: `test-suite`
+  `blockliftmanual`; MiniJava's round-trip test is strict again.
 
 ## [0.2.2] — 2026-10-20
 
