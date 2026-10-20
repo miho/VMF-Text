@@ -13,6 +13,59 @@ VMF-Text ships three artifacts from one version
 - `eu.mihosoft.vmf:vmf-text-gradle-plugin` — Gradle plugin
 - Gradle Plugin Portal listing `eu.mihosoft.vmftext` (+ its Central plugin marker)
 
+## Maven Central publishing limits (enforced since 2026-10-01)
+
+Maven Central limits publishing **per organization and per calendar month**
+(the `eu.mihosoft` organization is shared by VMF-Text, VMF and every other
+`eu.mihosoft.*` namespace). The published thresholds are roughly **7 release
+events, ~1,167 files and ~78 MB per month**; the
+[Usage Center](https://central.sonatype.com/publishing/usage) is the source of
+truth and shows the current month, warnings at 75 % / 90 %, and trends. A
+release event is one publish operation (one Portal deployment); every file
+counts, including POMs, `.asc` signatures, checksums, sources and javadoc jars.
+Exceeding a threshold starts a 30-day grace period; afterwards only releases
+that would keep the organization over the limit are rejected. Published
+artifacts are never removed. Details:
+<https://central.sonatype.org/publish/maven-central-publishing-limits/>.
+
+Consequences for this project:
+
+- One VMF-Text release as published in 0.2.2 costs **2 release events** (core
+  and gradle-plugin were handed off as separate deployments) and about 76
+  files, well under 2 MB. Uploading both modules into the staging repository
+  *before* the single `releaseToCentralPortal` hand-off makes it **one** event
+  (see §3).
+- Release only what is worth sharing; do not release for documentation or
+  metadata changes. Pre-release builds go through the snapshot channel below.
+- Downloads are not counted.
+
+### Pre-release channel: Central SNAPSHOTs
+
+The Central Portal hosts `-SNAPSHOT` versions at
+<https://central.sonatype.com/repository/maven-snapshots/> (enable "SNAPSHOTs"
+on the namespace at <https://central.sonatype.com/publishing/namespaces>
+first). Snapshots are not validated or signed, are available immediately, are
+meant to be overwritten, and are **deleted after 90 days**. Whether they count
+toward the monthly limits is not documented; check the Usage Center after the
+first push. The build already targets that URL for `-SNAPSHOT` versions
+(`gradle/publishing.gradle`, repository `MavenCentral`):
+
+```bash
+# config/common.properties → publication.version = 0.2.3-SNAPSHOT
+cd core          && sh ./gradlew publishMavenJavaPublicationToMavenCentralRepository --no-daemon <creds>
+cd ../gradle-plugin && sh ./gradlew publishAllPublicationsToMavenCentralRepository --no-daemon <creds>
+```
+
+Consumers add the snapshot repository (Gradle: a `maven { url = "…/maven-snapshots/" }`
+entry in `pluginManagement.repositories` and `repositories`, ideally with a
+`content { includeGroup "eu.mihosoft.vmf"; includeGroup "eu.mihosoft.vmftext" }`
+filter) and use the `-SNAPSHOT` version.
+
+Fallback if snapshots turn out to count: a static Maven repository on GitHub
+Pages (publish with `publishAllPublicationsToBuildDirRepository`, commit
+`build/artifacts/` to a `maven-repo` branch) — free, unlimited, anonymous
+reads, works for the plugin marker — at the cost of discoverability.
+
 ## Prerequisites
 
 Release credentials are **not** stored in this repository or on the build
@@ -66,6 +119,13 @@ pom, depending on `vmf-text-gradle-plugin`), every file with an `.asc`. No
 
 Mirrors
 [ROADMAP → Publish commands (reference)](../ROADMAP.md#publish-commands-reference).
+
+To spend **one** release event instead of two, upload *both* modules into the
+open staging repository first and hand off once: run the two `publish…ToMavenCentralRepository`
+tasks (core, then gradle-plugin), look up the staging key, then a single
+`releaseToCentralPortal`. The deployment then carries all three purls
+(`vmf-text`, `vmf-text-gradle-plugin`, the plugin marker). The commands below
+show the per-module form used for 0.2.2.
 
 ```bash
 # 1) core → Maven Central

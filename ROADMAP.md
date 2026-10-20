@@ -299,7 +299,20 @@ ship.
   deprecation warning in the `core` build stays until a later VMF release; the
   VMF 0.2.11 plugin *marker* is also missing from Maven Central (same defect
   VMF-Text had in 0.2.1) — fix that on the VMF side.
-- **Next phase (decided 2026-10-20), in this order:**
+- **Release budget (2026-10-20):** Maven Central limits publishing per
+  organization and calendar month (~7 release events, ~1,167 files, ~78 MB;
+  Usage Center is the source of truth) — not a lifetime budget. One VMF-Text
+  release costs 2 events today, 1 once core + plugin share a deployment.
+  Pre-release sharing goes through Central `-SNAPSHOT`s (90-day retention) or,
+  if those turn out to count, a GitHub Pages Maven repository. Details and the
+  0.2.3 plan: [#41](https://github.com/miho/VMF-Text/issues/41),
+  [`docs/RELEASING.md`](docs/RELEASING.md).
+- **Next phase (decided 2026-10-20), in this order — tracked in
+  [#37](https://github.com/miho/VMF-Text/issues/37) (literal-only blocks in
+  hand-labeled grammars), [#38](https://github.com/miho/VMF-Text/issues/38)
+  (operator-literal names), [#40](https://github.com/miho/VMF-Text/issues/40)
+  (mixed-mode formatting), then [#39](https://github.com/miho/VMF-Text/issues/39)
+  (`tokenVocab`):**
   1. **Second big language, unlabeled (evidence first) — DONE 2026-10-20,
      C.** Write-up and reproducible project:
      [`experiments/c-grammar-trial`](experiments/c-grammar-trial/README.md).
@@ -317,7 +330,10 @@ ship.
      operator literals (`operators`, `symbols2…`) — still open, cosmetic;
      (6) `tokenVocab` / split grammars, since grammars-v4 HEAD is split and
      predicate-driven — still open. Unparse performance was a non-issue; the
-     per-gap separator model is *not* needed for this grammar.
+     per-gap separator model is *not* needed for this grammar. Issues:
+     [#37](https://github.com/miho/VMF-Text/issues/37) (lifting for
+     hand-labeled grammars, found via MiniJava), [#38](https://github.com/miho/VMF-Text/issues/38),
+     [#39](https://github.com/miho/VMF-Text/issues/39).
   2. **Mixed-mode formatting for programmatic elements.** Today a custom
      `Formatter` replaces the lexical-preserving default (all-or-nothing), and
      the `ProgrammaticSeparatorPolicy` hook sees neither the previous terminal
