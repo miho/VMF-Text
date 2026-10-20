@@ -71,7 +71,7 @@ interface VMFTextSourceVirtualDirectory {
 }
 
 class VMFTextPluginExtension {
-    String vmfVersion     = "0.2.10"
+    String vmfVersion     = "0.2.11"
     String antlrVersion   = "4.13.2"
     boolean autoLabel     = false
     boolean emitAutoLabelReport = true

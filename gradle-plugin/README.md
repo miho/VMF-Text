@@ -14,7 +14,7 @@ and (optionally) configure VMF-Text:
 
 ```gradle
 vmfText {
-    vmfVersion   = '0.2.10'  // runtime version
+    vmfVersion   = '0.2.11'  // runtime version
     antlrVersion = '4.13.2'  // runtime version
     autoLabel    = false     // opt-in inferred labels for unlabeled grammar refs
     // emitAutoLabelReport = true  // write/log inferred-name report (default on)

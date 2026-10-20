@@ -32,7 +32,7 @@ working tree on `main`, and CI green on the release commit.
 1. Bump `publication.version` in `config/common.properties`.
 2. Align version references: `README.md`, `gradle-plugin/README.md`, and the
    `examples/**` plugin ids. Confirm the pinned VMF and ANTLR versions
-   (currently VMF `0.2.10`, ANTLR `4.13.2`).
+   (currently VMF `0.2.11`, ANTLR `4.13.2`).
 3. Finalize the `CHANGELOG.md` entry — date it and list Added / Changed / Fixed.
 4. Add the ROADMAP "Ship &lt;version&gt;" section and the per-release checklist at
    `docs/releases/<version>.md`.
