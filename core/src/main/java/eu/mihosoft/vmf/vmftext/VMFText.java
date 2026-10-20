@@ -537,9 +537,19 @@ public class VMFText {
         GrammarToModelListener grammarToModelListener =
                 new GrammarToModelListener(typeMappings);
 
+        // explicit model root via Root(rule=...) metadata; default is the first parser rule
+        GrammarMetaInformationUtil.getRootRuleName(comments)
+                .ifPresent(grammarToModelListener::setExplicitRootRule);
+
         walker.walk(grammarToModelListener, tree);
 
         GrammarModel model = grammarToModelListener.getModel();
+
+        if(grammarToModelListener.getExplicitRootRule() != null
+                && model.getRuleClasses().stream().noneMatch(RuleClass::isRoot)) {
+            throw new VMFTextGenerationException("Root(rule=" + grammarToModelListener.getExplicitRootRule()
+                    + ") does not name a parser rule of grammar '" + grammar.getName() + "'");
+        }
 
         model.setRuleMappings(ruleMappings);
 

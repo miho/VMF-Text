@@ -129,6 +129,22 @@ vmfText {
 }
 ```
 
+The first parser rule of a grammar becomes the model root (and the start rule
+of the generated parser). Grammars that list their start rule last, as the
+grammars-v4 C grammar does, declare it instead:
+
+```antlr
+/*<!vmf-text!>
+Root(rule=compilationUnit)
+*/
+```
+
+Parsing is strict by default: `parse(...)` throws
+`<Grammar>ModelParser.SyntaxErrorException` (with one `line:column message` per
+error in `getErrors()`) instead of returning a model built from ANTLR's
+error-recovered tree. Call `setFailOnSyntaxError(false)` on the parser to get
+that model anyway.
+
 Now just add the labeled [ANTLR4](https://github.com/antlr/antlr4) grammar file to the VMF-Text source folder, e.g.: 
 
 ```
@@ -211,6 +227,14 @@ or per grammar via VMF-Text metadata:
 AutoLabel(enabled=true)
 */
 ```
+
+Nested alternative blocks are **lifted** into typed sub classes: a block such
+as `('goto' ID | 'continue' | 'break' | 'return' expr?)` inside rule `stmt`
+becomes a synthetic rule `stmtChoice` with sub classes `StmtChoiceAlt1…4`, so
+the chosen alternative survives in the model and unparses correctly even when
+it consists only of keywords. Token sets like `('+' | '-')` stay a captured
+literal (`operators+=` when repeated, `operator=` otherwise). The auto-label
+report lists every lifted block.
 
 Explicit labels always win and mix consistently with auto-labeling. Unlabeled
 parser-rule and token references receive deterministic lower-camel names based

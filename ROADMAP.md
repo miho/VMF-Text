@@ -308,12 +308,15 @@ ship.
      32 sample programs round-trip byte-exact, 10 cannot be unparsed, 8 come
      back wrong — all traced to a short list of grammar shapes, none to the
      lexical layer. Follow-ups, in order of samples unblocked per unit of
-     work: (1) `X+`/`X*` single-element lists must unparse; (2) keyword-only
-     alternatives inside blocks need a discriminator; (3) syntax errors must
-     fail loudly by default; (4) explicit root-rule selection + compile-clean
-     alt-labeled root; (5) names for operator literals (`operators`,
-     `symbols2…`); (6) `tokenVocab` / split grammars, since grammars-v4 HEAD
-     is split and predicate-driven. Unparse performance was a non-issue; the
+     work — **(1)–(4) landed the same day** (CHANGELOG "Unreleased"; the
+     grammar is now 27/32 exact with 0 wrong outputs, the rest are real
+     syntax errors): (1) ✅ `X+`/`X*` single-element lists unparse;
+     (2) ✅ nested alternative blocks are lifted to typed sub classes and every
+     literal choice is captured; (3) ✅ syntax errors fail loudly by default;
+     (4) ✅ `Root(rule=…)` + compile-clean alt-labeled root; (5) names for
+     operator literals (`operators`, `symbols2…`) — still open, cosmetic;
+     (6) `tokenVocab` / split grammars, since grammars-v4 HEAD is split and
+     predicate-driven — still open. Unparse performance was a non-issue; the
      per-gap separator model is *not* needed for this grammar.
   2. **Mixed-mode formatting for programmatic elements.** Today a custom
      `Formatter` replaces the lexical-preserving default (all-or-nothing), and
