@@ -299,8 +299,25 @@ ship.
   deprecation warning in the `core` build stays until a later VMF release; the
   VMF 0.2.11 plugin *marker* is also missing from Maven Central (same defect
   VMF-Text had in 0.2.1) — fix that on the VMF side.
-- Lexical preservation and grammar features — next focus (see "Explicitly
-  deferred" above and `LEXICAL_PRESERVATION_ASSESSMENT.md`).
+- **Next phase (decided 2026-10-20), in this order:**
+  1. **Second big language, unlabeled (evidence first).** Take a real
+     grammars-v4 grammar (C, JavaScript or Python), enable `autoLabel`, and
+     record what breaks: inferred names, generation time, unparse speed
+     (slow full-check mode triggers: `~` and properties shared across
+     alternatives with different lexer rules), round-trip fidelity. Timeboxed;
+     its findings decide how much auto-naming polish (plurals, path-derived
+     names, operator-literal discriminators), multi-alt `RuleMap`, non-greedy
+     EBNF and unparser-performance work follows, and whether the per-gap
+     separator model ("Explicitly deferred" above) is worth building.
+  2. **Mixed-mode formatting for programmatic elements.** Today a custom
+     `Formatter` replaces the lexical-preserving default (all-or-nothing), and
+     the `ProgrammaticSeparatorPolicy` hook sees neither the previous terminal
+     nor nesting depth, so programmatic subtrees print flat. Scope: give the
+     policy that context so it can emit newlines/indentation while parsed
+     bytes stay exact, and report the output ranges of trivia-less elements so
+     an external formatter (google-java-format, clang-format) can be applied to
+     exactly those lines. Delete the deprecated `JavaStyleFormatter`.
+  Background: `LEXICAL_PRESERVATION_ASSESSMENT.md`, `docs/UNPARSING.md` §6–§7.
 
 ## Non-goals
 
