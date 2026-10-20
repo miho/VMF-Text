@@ -78,6 +78,66 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
 
     private final List<ANTLRErrorListener> errorListeners = new ArrayList<>();
     private ANTLRErrorStrategy errorHandler;
+    private boolean failOnSyntaxError = true;
+
+    /**
+     * Thrown by the {@code parse(...)} methods when the input contains syntax
+     * errors and {@link #isFailOnSyntaxError()} is {@code true} (the default).
+     * A model built from ANTLR's error-recovered parse tree is incomplete and
+     * unparses to garbage, so by default parsing fails instead of silently
+     * returning such a model.
+     */
+    public static final class SyntaxErrorException extends RuntimeException {
+        private final java.util.List<String> errors;
+        SyntaxErrorException(java.util.List<String> errors) {
+            super(errors.size() + " syntax error(s) in input; first: " + errors.get(0)
+                  + " (use setFailOnSyntaxError(false) to get the error-recovered model anyway)");
+            this.errors = java.util.Collections.unmodifiableList(new java.util.ArrayList<>(errors));
+        }
+        /** @return every reported error as {@code line:column message}, in order */
+        public java.util.List<String> getErrors() { return errors; }
+    }
+
+    private static final class SyntaxErrorCollector extends org.antlr.v4.runtime.BaseErrorListener {
+        final java.util.List<String> errors = new java.util.ArrayList<>();
+        @Override
+        public void syntaxError(org.antlr.v4.runtime.Recognizer<?, ?> recognizer, Object offendingSymbol,
+                                int line, int charPositionInLine, String msg,
+                                org.antlr.v4.runtime.RecognitionException e) {
+            errors.add("line " + line + ":" + charPositionInLine + " " + msg);
+        }
+    }
+
+    /**
+     * Whether {@code parse(...)} throws a {@link SyntaxErrorException} when the
+     * input has syntax errors ({@code true}, the default) or returns the model
+     * built from ANTLR's error-recovered parse tree ({@code false}; errors are
+     * still reported to the registered error listeners / the console).
+     */
+    public boolean isFailOnSyntaxError() {
+        return failOnSyntaxError;
+    }
+
+    public void setFailOnSyntaxError(boolean failOnSyntaxError) {
+        this.failOnSyntaxError = failOnSyntaxError;
+    }
+
+    private SyntaxErrorCollector installSyntaxErrorCollector(org.antlr.v4.runtime.Lexer lexer,
+                                                             org.antlr.v4.runtime.Parser parser) {
+        if(!failOnSyntaxError) {
+            return null;
+        }
+        SyntaxErrorCollector collector = new SyntaxErrorCollector();
+        lexer.addErrorListener(collector);
+        parser.addErrorListener(collector);
+        return collector;
+    }
+
+    private void failOnSyntaxErrors(SyntaxErrorCollector collector) {
+        if(collector != null && !collector.errors.isEmpty()) {
+            throw new SyntaxErrorException(collector.errors);
+        }
+    }
     private boolean consoleOutputDisabled;
 
     public void setConsoleOutputDisabled(boolean state) {
@@ -232,7 +292,10 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
         }
 
+        SyntaxErrorCollector syntaxErrors = installSyntaxErrorCollector(lexer, parser);
+
         ${model.rootClass().nameWithUpper()}Context rootCtx = parser.${model.rootClass().name}();
+        failOnSyntaxErrors(syntaxErrors);
         ${Util.firstToUpper($model.grammarName)}Model result = parse(rootCtx);
         addHiddenTextToModel(result.getRoot(), parser, tokens, rootCtx);
 
@@ -548,6 +611,8 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     public ${Util.firstToUpper($model.grammarName)}Model parse(String code) {
         try(InputStream codeStream = new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8.name()))) {
             return parse(codeStream);
+        } catch(RuntimeException ex) {
+            throw ex; // e.g. SyntaxErrorException: keep the type, don't wrap
         } catch(Exception ex) {
             throw new RuntimeException(ex);
         }
@@ -594,7 +659,10 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             parser.removeErrorListener(org.antlr.v4.runtime.ConsoleErrorListener.INSTANCE);
         }
 
+        SyntaxErrorCollector syntaxErrors = installSyntaxErrorCollector(lexer, parser);
+
         ${model.rootClass().nameWithUpper()}Context rootCtx = parser.${model.rootClass().name}();
+        failOnSyntaxErrors(syntaxErrors);
         ${Util.firstToUpper($model.grammarName)}Model result = parse(model, rootCtx);
         addHiddenTextToModel(result.getRoot(), parser, tokens, rootCtx);
 

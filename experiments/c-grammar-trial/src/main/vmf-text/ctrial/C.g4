@@ -33,10 +33,6 @@
 
 grammar C;
 
-// VMF-Text trial: moved to the top because VMF-Text takes the FIRST parser rule as the model root.
-compilationUnit
-    : translationUnit? EOF
-    ;
 
 primaryExpression
     : Identifier
@@ -500,6 +496,10 @@ jumpStatement
     ) ';'
     ;
 
+
+compilationUnit
+    : translationUnit? EOF
+    ;
 
 translationUnit
     : externalDeclaration+
@@ -1114,6 +1114,7 @@ LineComment
     ;
 /*<!vmf-text!>
 AutoLabel(enabled=true)
+Root(rule=compilationUnit)
 */
 
 // Source: https://github.com/antlr/grammars-v4/blob/e25e2973/c/C.g4 (last single-file version, BSD licence above).

@@ -130,7 +130,12 @@ at parse time. On unparse, if `String.valueOf(currentValue)` still equals
 
 For each terminal / lexer-rule step in the unparser:
 
-1. **Optional?**  
+1. **Optional?** — only for terminals that are optional *for the formatter*:
+   under a `?`, or inside a literal-only repetition. A terminal inside a
+   property-driven repetition such as the `','` of `(',' item)*` is present by
+   construction (the unparser only enters the iteration when there is an item),
+   so recorded states are not consulted for it — this is what lets a list grow
+   beyond the iterations that existed at parse time.  
    - Resolve `OptionalState` by `(rulePath, occurrenceCounter)` (see §2.2).  
    - If absent → mark consumed, emit nothing, do **not** advance trivia.  
    - If present (including wildcard force-all) → continue.
@@ -202,11 +207,14 @@ Trailing openers (`(` after `;`) belong to the **next** list’s prefix.
 unrecognized, wrap items as model types (`value: n=INT`) so add/remove only
 touches a leaf and parent trivia is not cleared.
 
-**Prefer for separator-less lists:**
+**Separator-less lists:** both spellings unparse. `items+=ID (items+=ID)*`
+additionally gets a `ListShapeHint` (`K=0`) so add/remove splice trivia;
+`items+=ID+` round-trips unedited input and in-place edits exactly, and falls
+back to conservative separators after a structural add/remove.
 
 ```antlr
-items+=ID (items+=ID)*   // good — two labeled occurrences, K=0
-// items+=ID+            // avoid — single EBNF element; unparse is unreliable
+items+=ID (items+=ID)*   // two labeled occurrences, K=0: splice-aware
+items+=ID+               // single EBNF element: exact round trip, conservative splice
 ```
 
 ---

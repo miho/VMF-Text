@@ -173,6 +173,27 @@ public final class GrammarMetaInformationUtil {
         return mappings;
     }
 
+    /**
+     * Returns the parser rule named by a {@code Root(rule=<name>)} (or
+     * {@code Root(<name>)}) entry in the VMF-Text metadata comments, if any.
+     * Without it the first parser rule of the grammar is the model root.
+     */
+    public static java.util.Optional<String> getRootRuleName(List<String> comments) {
+        if(comments == null) {
+            return java.util.Optional.empty();
+        }
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+                "Root\\((?:rule=)?([A-Za-z_][A-Za-z0-9_]*)\\)");
+        for(String c : comments) {
+            if(c == null) continue;
+            java.util.regex.Matcher m = p.matcher(c.replaceAll("\\s+", ""));
+            if(m.find()) {
+                return java.util.Optional.of(m.group(1));
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
     public static boolean isAutoLabelEnabled(List<String> comments) {
         if(comments == null) {
             return false;

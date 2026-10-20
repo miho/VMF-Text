@@ -57,6 +57,64 @@ public final class UPRuleUtil {
      * @param e element to check
      * @return {@code true} if the specified element is effectively optional; {@code false} otherwise
      */
+    /**
+     * Optionality as the generated formatter should see it. Same as
+     * {@link #isEffectivelyOptional(UPElement)} except that an unnamed
+     * terminal / lexer element whose optionality comes only from a
+     * <em>property-driven repetition</em> is reported as NOT optional: the
+     * unparser enters each iteration of e.g. {@code (',' item)*} exactly when
+     * there is an item to render, so the separator is present by construction.
+     * Recorded optional-presence states cannot cover iterations that did not
+     * exist when the input was parsed (appending to a one-element list used to
+     * drop the new comma). Elements under a {@code ?} and literal-only
+     * repetitions (no property to drive the iteration count) stay state-driven.
+     */
+    public static boolean isOptionalForFormatter(UPElement e) {
+        if(!isEffectivelyOptional(e)) {
+            return false;
+        }
+        if(e instanceof SubRule || e.ebnfOptional() || e.ebnfZeroMany()) {
+            return true; // a block, or an element with its own ?/* suffix: state-driven
+        }
+        AlternativeBase alt = e.getParentAlt();
+        while(alt != null && alt.getParentRule() instanceof UPElement) {
+            if(!altContainsNamedElement(alt)) {
+                // the terminal sits in a literal-only alternative: the unparser
+                // cannot choose it by a property (it emits the literals of every
+                // alternative and the recorded states filter), so stay
+                // state-driven
+                return true;
+            }
+            UPElement block = (UPElement) alt.getParentRule();
+            if(block.ebnfOptional()) {
+                return true; // nearest suffix is '?': a real optional
+            }
+            if(block.ebnfZeroMany() || block.ebnfOneMany()) {
+                // nearest suffix is a repetition whose iterations and alternative
+                // choice are driven by a property: present by construction
+                return false;
+            }
+            alt = block.getParentAlt(); // plain grouping block: keep walking up
+        }
+        return true;
+    }
+
+    private static boolean altContainsNamedElement(AlternativeBase a) {
+        for(UPElement el : a.getElements()) {
+            if(el instanceof WithName) {
+                return true;
+            }
+            if(el instanceof SubRule) {
+                for(AlternativeBase inner : ((UPRuleBase) el).getAlternatives()) {
+                    if(altContainsNamedElement(inner)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public static boolean isEffectivelyOptional(UPElement e) {
 
         // indicates whether the elements in the specified alt are all unnamed

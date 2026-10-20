@@ -536,7 +536,9 @@ public interface Formatter {
             }
         }
         // Indexed states exist for this path but this occurrence was never
-        // recorded → absent.
+        // recorded → absent. (Repetitions grown by model edits do not reach
+        // this code: terminals inside a property-driven repetition are not
+        // optional for the formatter, see UPRuleUtil.isOptionalForFormatter.)
         return sawIndexed ? Boolean.FALSE : null;
     }
 
@@ -663,7 +665,15 @@ final class ConservativeSeparatorPolicy implements Formatter.ProgrammaticSeparat
 
   @Override
   public String separatorBeforeEdited(CodeElement parent, Formatter.RuleInfo ruleInfo) {
-    return ruleInfo.getRuleType() == Formatter.RuleType.LEXER_RULE ? " " : "";
+    // lexer-rule tokens (identifiers, numbers, ...) and word-like keywords such
+    // as 'int' get a space so they never glue to the preceding token
+    // ("int b" + "int insP" must not become "int bint insP"); punctuation
+    // like ',' or ')' does not.
+    if(ruleInfo.getRuleType() == Formatter.RuleType.LEXER_RULE) {
+      return " ";
+    }
+    String text = ruleInfo.getRuleText();
+    return text != null && !text.isEmpty() && Character.isJavaIdentifierPart(text.charAt(0)) ? " " : "";
   }
 
   @Override

@@ -240,7 +240,11 @@ Recommended naming policy (largely implemented by `AutoLabeler`):
 - literals are usually syntax, not semantic properties, except operator-like
   literals in repeated blocks that are captured so unparsing round-trips;
 - unlabeled alternatives get deterministic generated class names unless ANTLR
-  alt labels are present;
+  alt labels are present; nested alternative blocks are lifted into synthetic
+  `<rule>Choice` rules so their alternatives get classes too (otherwise a
+  keyword-only alternative leaves nothing in the model);
+- every literal choice (token-set block) is captured as a property, repeated
+  or not;
 - the generator emits a report of inferred names (log and optional report file
   under `build/reports/vmf-text/`) so users can decide where to add explicit
   labels.

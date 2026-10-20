@@ -49,6 +49,10 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
     private final TypeMappings typeMappings;
 
+    // parser rule explicitly declared as the model root via Root(rule=...)
+    // metadata; null means "the first parser rule" (the historical default)
+    private String explicitRootRule;
+
     public GrammarToModelListener(TypeMappings typeMappings) {
 
         this.typeMappings = typeMappings;
@@ -61,6 +65,19 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
                 ruleClassesByName.put(rc.getName(), rc);
             });
         });
+    }
+
+    /**
+     * Declares the parser rule that becomes the model root (see
+     * {@code Root(rule=...)} in VMF-Text metadata comments). {@code null}
+     * keeps the default: the first parser rule of the grammar.
+     */
+    public void setExplicitRootRule(String ruleName) {
+        this.explicitRootRule = ruleName;
+    }
+
+    public String getExplicitRootRule() {
+        return explicitRootRule;
     }
 
     static Property elementToProperty(Map<String, RuleClass> rules, String ruleName, TypeMappings mappings, ANTLRv4Parser.ElementContext e) {
@@ -219,8 +236,10 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
             currentRule = RuleClass.newBuilder().withName(ruleName).build();
         }
 
-        // first rule is root
-        currentRule.setRoot(model.getRuleClasses().isEmpty());
+        // the root is the rule named by Root(rule=...) metadata, otherwise the first rule
+        currentRule.setRoot(explicitRootRule != null
+                ? explicitRootRule.equals(ruleName)
+                : model.getRuleClasses().isEmpty());
         currentRule.setCodeRange(ParseTreeUtil.ctxToCodeRange(ctx));
         model.getRuleClasses().add(currentRule);
         superClassRule = currentRule;

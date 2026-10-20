@@ -1,3 +1,5 @@
 build/
 .gradle/
 samples/
+build.log
+run.log

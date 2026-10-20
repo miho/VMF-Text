@@ -4,12 +4,87 @@ All notable changes to VMF-Text are documented here.
 
 ## [Unreleased]
 
+Grammar-shape fixes driven by the unlabeled grammars-v4 C grammar trial
+([`experiments/c-grammar-trial`](experiments/c-grammar-trial/README.md)): the
+same grammar went from 14 to 27 of 32 sample programs byte-exact; the remaining
+five use GNU extensions the grammar rejects and now fail loudly instead of
+producing garbage.
+
+### Added
+
+- **`Root(rule=<name>)` metadata** — declares the parser rule that becomes the
+  model root (and the start rule of the generated parser). Default stays "the
+  first parser rule", which silently picked `primaryExpression` for a C grammar
+  that lists `compilationUnit` last. Example:
+  `/*<!vmf-text!> Root(rule=compilationUnit) */`. Naming a rule that does not
+  exist fails generation with a clear message.
+- **Auto-labeling lifts nested alternative blocks into typed sub classes** —
+  a nested block with two or more alternatives (e.g. C's
+  `jumpStatement: ('goto' Identifier | 'continue' | 'break' | 'return'
+  expression? | …) ';'`) is rewritten into a synthetic rule `<rule>Choice`
+  whose alternatives become `<Rule>ChoiceAlt1…N` sub classes, exactly like
+  top-level alternatives. Before, alternatives consisting only of literals left
+  nothing in the model and `return 1;` / `break;` unparsed as `;`. A
+  block's EBNF suffix moves to the reference, so `(a | b)*` becomes one ordered
+  list instead of two lists that lose their interleaving. Token sets such as
+  `('+' | '-')` keep their literal capture; blocks with an empty alternative or
+  with manual labels, actions or predicates are left untouched. The auto-label
+  report lists every lifted block.
+- **Auto-labeling captures every literal choice** — a non-repeated token-set
+  block such as `('.' | '->') Identifier` is now labeled `operator=…` (a String
+  property); only repeated ones were captured before, so `one->size` came back
+  as `onesize`.
+
 ### Changed
 
+- **`parse(...)` fails on syntax errors by default** — the generated
+  `<Grammar>ModelParser` throws `<Grammar>ModelParser.SyntaxErrorException`
+  (with `getErrors()`, one `line:column message` per error) instead of
+  returning a model built from ANTLR's error-recovered parse tree, which
+  unparsed to garbage without any indication. `setFailOnSyntaxError(false)`
+  restores the old behaviour; registered error listeners still see every
+  error.
 - **VMF `0.2.10` → `0.2.11`** — core's own model generation and its `vmf` /
   `vmf-runtime` dependencies, the Gradle plugin's default `vmfVersion`, and
   the README / example pins. Upstream changes: corrected immutable-containment
   error message, vmf-jackson (de)serialization + JSON-schema fixes.
+
+### Fixed
+
+- **One-or-more lists written as a single element (`items+=ID+`,
+  `StringLiteral+`) can be unparsed** — the generated matcher only counted
+  parser-rule elements as consumed, so any lexer-rule or terminal `X+` list
+  rendered its elements and then reported the alternative as not matched
+  (`Cannot unparse rule … Language model is invalid!`). Every C file with a
+  string literal failed on this. The `ID (ID)*` workaround in
+  `docs/UNPARSING.md` is no longer required.
+- **A root rule with labeled alternatives generates a compilable unparser** —
+  the top-level dispatch referenced a `<root>Unparser` field that does not
+  exist when the root's alternatives are their own types; it now goes through
+  the alternative-aware overload.
+- **The `root` flag of a rule class is authoritative** — `rootClass()` used to
+  return the first rule class regardless of the flag.
+- **Appending to a comma-separated list no longer drops the new separator** —
+  for list shapes the splice does not recognize (e.g. Java's
+  `'(' (params (',' params)* (',' last)?)? ')'`), the formatter treated the
+  `','` inside `(',' item)*` as a state-driven optional and found no recorded
+  state for the new iteration, so `(int a)` + a parameter became
+  `(int aint b)`. Terminals whose optionality comes only from a
+  property-driven repetition are now present by construction; recorded
+  presence states keep governing `?` optionals and literal-only repetitions
+  (`UPRuleUtil.isOptionalForFormatter`). Regression: `test-suite`
+  `listgrow`.
+- **Conservative separators never glue a keyword to the previous token** —
+  after an edit the fallback policy only spaced lexer-rule tokens, so an
+  inserted `int insP` parameter rendered as `bint insP`; word-like terminals
+  now get a space too, punctuation still does not.
+- **Strict parsing exposed three silently broken existing tests** (`java8`,
+  `java24` parameter insertion, `minijava` round trip): they re-parsed lossy
+  unparse output through ANTLR's error recovery and compared the recovered
+  model. The parameter-insertion cases are fixed by the two items above; the
+  MiniJava case is the hand-labeled literal-only block `('[' ']'|'[]')`, which
+  has no model property and is dropped — documented in the test and queued
+  (lifting for hand-labeled grammars).
 
 ## [0.2.2] — 2026-10-20
 

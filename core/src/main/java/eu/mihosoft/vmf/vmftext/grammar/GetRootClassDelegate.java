@@ -34,14 +34,20 @@ public class GetRootClassDelegate implements DelegatedBehavior<GrammarModel> {
     }
 
     public boolean hasRootClass() {
-        return !caller.getRuleClasses().isEmpty();
+        return rootClass() != null;
     }
 
+    /**
+     * The model root: the rule class flagged as root (set from
+     * {@code Root(rule=...)} metadata, or the first parser rule by default);
+     * falls back to the first rule class for models built without the flag.
+     */
     public RuleClass rootClass() {
-        if(hasRootClass()) {
-            return caller.getRuleClasses().get(0);
-        } else {
-            return null;
+        for(RuleClass rc : caller.getRuleClasses()) {
+            if(rc.isRoot()) {
+                return rc;
+            }
         }
+        return caller.getRuleClasses().isEmpty() ? null : caller.getRuleClasses().get(0);
     }
 }

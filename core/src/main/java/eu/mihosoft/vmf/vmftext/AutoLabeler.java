@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -41,7 +42,17 @@ import org.tinylog.Logger;
  *       text round-trips instead of being dropped when unparsing;</li>
  *   <li>parser rules with two or more unlabeled top-level alternatives receive
  *       deterministic {@code # AltLabel} alternative labels so every
- *       alternative becomes its own typed sub class.</li>
+ *       alternative becomes its own typed sub class;</li>
+ *   <li>a <em>nested</em> block with two or more alternatives (e.g. the
+ *       {@code ('continue' | 'break' | 'return' expression?)} in a C
+ *       {@code jumpStatement}) is lifted into a synthetic parser rule
+ *       {@code <rule>Choice} whose alternatives then become typed sub classes
+ *       like top-level alternatives do. Without this, alternatives that
+ *       consist only of literals leave nothing in the model and the choice is
+ *       lost when unparsing ({@code return 1;} came back as {@code ;}). Token
+ *       sets such as {@code ('+' | '-')} keep their ordered literal capture,
+ *       blocks with an empty alternative (an optional in disguise) and blocks
+ *       containing manual labels, actions or predicates are left untouched.</li>
  * </ul>
  *
  * <p>Manual labeling always wins and mixes consistently with auto-labeling:
@@ -72,6 +83,18 @@ final class AutoLabeler {
     }
 
     static File rewrite(File grammar, boolean emitReport, File reportFile) throws IOException {
+        // pass A: lift nested alternative blocks into synthetic rules (repeat so
+        // blocks nested inside lifted blocks are lifted too), then pass B labels
+        // the result like any other grammar.
+        List<String> liftedEntries = new ArrayList<>();
+        for(int round = 0; round < 8; round++) {
+            BlockLiftResult lifted = liftAlternativeBlocks(grammar);
+            if(lifted.entries.isEmpty()) {
+                break;
+            }
+            liftedEntries.addAll(lifted.entries);
+            grammar = lifted.grammar;
+        }
         try(FileInputStream codeStream = new FileInputStream(grammar)) {
             CharStream input = CharStreams.fromStream(codeStream);
 
@@ -92,8 +115,8 @@ final class AutoLabeler {
 
             ParseTreeWalker.DEFAULT.walk(listener, tree);
 
-            if(emitReport && listener.hasEntries()) {
-                String report = listener.report(grammar.getName());
+            if(emitReport && (listener.hasEntries() || !liftedEntries.isEmpty())) {
+                String report = listener.report(grammar.getName(), liftedEntries);
                 Logger.info(report);
                 if(reportFile != null) {
                     File parent = reportFile.getParentFile();
@@ -110,6 +133,210 @@ final class AutoLabeler {
 
             return grammarOut;
         }
+    }
+
+    private static final class BlockLiftResult {
+        final File grammar;
+        final List<String> entries;
+        BlockLiftResult(File grammar, List<String> entries) {
+            this.grammar = grammar;
+            this.entries = entries;
+        }
+    }
+
+    /**
+     * Pass A of auto-labeling: rewrites every liftable nested alternative block
+     * into a reference to a new synthetic parser rule appended to the grammar.
+     * Returns the input file unchanged when nothing was lifted.
+     */
+    private static BlockLiftResult liftAlternativeBlocks(File grammar) throws IOException {
+        try(FileInputStream codeStream = new FileInputStream(grammar)) {
+            CharStream input = CharStreams.fromStream(codeStream);
+            ANTLRv4Lexer lexer = new ANTLRv4Lexer(input);
+            CommonTokenStream tokens = new CommonTokenStream(lexer);
+            ANTLRv4Parser parser = new ANTLRv4Parser(tokens);
+            ParserRuleContext tree = parser.grammarSpec();
+            TokenStreamRewriter rewriter = new TokenStreamRewriter(tokens);
+            ReservedNameCollector reserved = new ReservedNameCollector();
+            ParseTreeWalker.DEFAULT.walk(reserved, tree);
+            BlockLifter lifter = new BlockLifter(tokens, rewriter, reserved.reservedNamesLower());
+            ParseTreeWalker.DEFAULT.walk(lifter, tree);
+            if(lifter.entries.isEmpty()) {
+                return new BlockLiftResult(grammar, lifter.entries);
+            }
+            // Place the synthetic rules right after the last parser rule. A parser
+            // rule that follows the lexer rules would confuse the grammar lexer's
+            // '[' handling (ARG_ACTION vs LEXER_CHAR_SET) for the locals [...]
+            // that a later rewrite pass injects into every parser rule.
+            org.antlr.v4.runtime.Token lastParserRuleEnd = null;
+            if(tree instanceof ANTLRv4Parser.GrammarSpecContext) {
+                ANTLRv4Parser.GrammarSpecContext spec = (ANTLRv4Parser.GrammarSpecContext) tree;
+                if(spec.rules() != null) {
+                    for(ANTLRv4Parser.RuleSpecContext rs : spec.rules().ruleSpec()) {
+                        if(rs.parserRuleSpec() != null) {
+                            lastParserRuleEnd = rs.parserRuleSpec().stop;
+                        }
+                    }
+                }
+            }
+            if(lastParserRuleEnd != null) {
+                rewriter.insertAfter(lastParserRuleEnd, "\n" + lifter.syntheticRules.toString());
+            } else {
+                rewriter.insertBefore(tree.stop, lifter.syntheticRules.toString());
+            }
+            Path dir = Files.createTempDirectory("vmf-text-autolabel-lift");
+            File grammarOut = new File(dir.toFile(), grammar.getName());
+            Files.write(grammarOut.toPath(), rewriter.getText().getBytes(StandardCharsets.UTF_8));
+            return new BlockLiftResult(grammarOut, lifter.entries);
+        }
+    }
+
+    /**
+     * Finds nested alternative blocks whose choice would be lost in the model
+     * and replaces each with a reference to a synthetic rule
+     * {@code <rule>Choice[N]} that carries the block's alternatives as
+     * top-level alternatives (which pass B then labels into typed sub
+     * classes). The block's EBNF suffix moves to the reference, so
+     * {@code (a | b)*} becomes a single ordered list of the synthetic type
+     * instead of two lists that lose their interleaving.
+     */
+    private static final class BlockLifter extends ANTLRv4ParserBaseListener {
+        private final CommonTokenStream tokens;
+        private final TokenStreamRewriter rewriter;
+        private final Set<String> reservedNamesLower;
+        final StringBuilder syntheticRules = new StringBuilder();
+        final List<String> entries = new ArrayList<>();
+        private final Set<ParserRuleContext> liftedBlocks = new HashSet<>();
+        private String currentRuleName;
+        private int currentRuleIndex = -1;
+
+        BlockLifter(CommonTokenStream tokens, TokenStreamRewriter rewriter, Set<String> reservedNamesLower) {
+            this.tokens = tokens;
+            this.rewriter = rewriter;
+            this.reservedNamesLower = reservedNamesLower;
+        }
+
+        @Override
+        public void enterParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
+            currentRuleName = ctx.RULE_REF().getText();
+            currentRuleIndex++;
+        }
+
+        @Override
+        public void exitParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
+            currentRuleName = null;
+        }
+
+        @Override
+        public void enterElement(ANTLRv4Parser.ElementContext ctx) {
+            if(currentRuleName == null || ctx.ebnf() == null || ctx.ebnf().block() == null) {
+                return;
+            }
+            if(isInside(ctx, liftedBlocks)) {
+                return; // moves verbatim with the enclosing lifted block
+            }
+            ANTLRv4Parser.BlockContext block = ctx.ebnf().block();
+            if(!isLiftable(block)) {
+                return;
+            }
+            String ruleName = uniqueRuleName(currentRuleName + "Choice");
+            String suffix = ctx.ebnf().blockSuffix() == null ? "" : tokens.getText(ctx.ebnf().blockSuffix());
+            String alternatives = tokens.getText(block.altList());
+            syntheticRules.append("\n// lifted by VMF-Text auto-labeling from rule '").append(currentRuleName)
+                    .append("' so each alternative becomes its own typed sub class\n")
+                    .append(ruleName).append("\n    : ").append(alternatives).append("\n    ;\n");
+            rewriter.replace(ctx.ebnf().start, ctx.ebnf().stop, ruleName + suffix);
+            liftedBlocks.add(ctx.ebnf());
+            entries.add("/r" + currentRuleIndex + " " + currentRuleName + ": block "
+                    + abbreviate(tokens.getText(block)) + suffix + " -> rule " + ruleName);
+        }
+
+        /**
+         * Liftable: two or more alternatives, none empty, not a token set
+         * (those keep their literal capture), no options/actions, and no
+         * manual labels, actions or predicates anywhere inside.
+         */
+        private boolean isLiftable(ANTLRv4Parser.BlockContext block) {
+            if(block.altList() == null || block.optionsSpec() != null || !block.ruleAction().isEmpty()) {
+                return false;
+            }
+            List<ANTLRv4Parser.AlternativeContext> alts = block.altList().alternative();
+            if(alts.size() < 2) {
+                return false;
+            }
+            for(ANTLRv4Parser.AlternativeContext alt : alts) {
+                if(alt.elementOptions() != null || alt.element().isEmpty()) {
+                    return false;
+                }
+            }
+            if(isTokenSetBlock(block)) {
+                return false;
+            }
+            return !containsManualLabelOrAction(block);
+        }
+
+        private boolean containsManualLabelOrAction(ParserRuleContext ctx) {
+            if(ctx instanceof ANTLRv4Parser.LabeledElementContext
+                    || ctx instanceof ANTLRv4Parser.ActionBlockContext) {
+                return true;
+            }
+            for(int i = 0; i < ctx.getChildCount(); i++) {
+                if(ctx.getChild(i) instanceof ParserRuleContext
+                        && containsManualLabelOrAction((ParserRuleContext) ctx.getChild(i))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private String uniqueRuleName(String base) {
+            String candidate = base;
+            int n = 1;
+            while(reservedNamesLower.contains(candidate.toLowerCase())) {
+                n++;
+                candidate = base + n;
+            }
+            reservedNamesLower.add(candidate.toLowerCase());
+            return candidate;
+        }
+
+        private static boolean isInside(ParserRuleContext ctx, Set<ParserRuleContext> ancestors) {
+            for(ParserRuleContext p = ctx.getParent(); p != null; p = p.getParent()) {
+                if(ancestors.contains(p)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static String abbreviate(String text) {
+            String oneLine = text.replaceAll("\\s+", " ");
+            return oneLine.length() > 60 ? oneLine.substring(0, 57) + "..." : oneLine;
+        }
+    }
+
+    /**
+     * A block can carry a label only if ANTLR considers it a token set:
+     * every alternative consists of exactly one unsuffixed terminal
+     * (token reference or string literal). Anything else labeled as a unit
+     * is rejected by ANTLR with "label assigned to a block which is not a
+     * set" (error 130).
+     */
+    private static boolean isTokenSetBlock(ANTLRv4Parser.BlockContext block) {
+        if(block.altList() == null || block.optionsSpec() != null || !block.ruleAction().isEmpty()) {
+            return false;
+        }
+        for(ANTLRv4Parser.AlternativeContext alt : block.altList().alternative()) {
+            if(alt.elementOptions() != null || alt.element().size() != 1) {
+                return false;
+            }
+            ANTLRv4Parser.ElementContext element = alt.element().get(0);
+            if(element.ebnfSuffix() != null || element.atom() == null
+                    || element.atom().terminal() == null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -437,23 +664,34 @@ final class AutoLabeler {
 
         /**
          * Labels an unlabeled block that forms a token set (e.g. an operator
-         * group like {@code ('+' | '-')}) as a single {@code +=} list element
-         * when it can occur more than once. ANTLR only permits labels on
-         * blocks whose alternatives are single tokens, so all other blocks
-         * (multi-token alternatives like {@code ('[' ']')} or blocks with rule
-         * references) are left untouched and their elements are labeled
-         * individually instead.
+         * group like {@code ('+' | '-')}) as a single element: a {@code +=}
+         * list when it can occur more than once, a plain {@code =} property
+         * otherwise. A choice between literals must always be captured or the
+         * text cannot be reproduced ({@code ('.' | '->') Identifier} unparsed
+         * as {@code onesize} instead of {@code one->size} before). ANTLR only
+         * permits labels on blocks whose alternatives are single tokens, so all
+         * other blocks are left to alternative lifting / per-element labeling.
+         * A parenthesized single literal that is not repeated has no choice to
+         * capture and stays untouched.
          */
         private void labelLiteralBlockElement(ANTLRv4Parser.ElementContext ctx, int elementIndex) {
             ANTLRv4Parser.EbnfContext ebnf = ctx.ebnf();
 
             boolean repeated = isStarOrPlus(blockSuffix(ebnf)) || isRepeated(ctx);
-            if(!repeated || !isTokenSetBlock(ebnf.block())) {
+            if(!isTokenSetBlock(ebnf.block())) {
+                return;
+            }
+            boolean isChoice = ebnf.block().altList().alternative().size() > 1;
+            if(!repeated && !isChoice) {
                 return;
             }
 
-            String labelName = uniqueName(pluralize(LITERAL_BLOCK_NAME));
-            rewriter.insertBefore(ctx.start, labelName + "+=");
+            String base = repeated ? pluralize(LITERAL_BLOCK_NAME) : LITERAL_BLOCK_NAME;
+            if(reservedNamesLower.contains(base.toLowerCase())) {
+                base = StringUtil.firstToUpper(base); // ANTLR error 69: label == rule name
+            }
+            String labelName = uniqueName(base);
+            rewriter.insertBefore(ctx.start, labelName + (repeated ? "+=" : "="));
             suppressedSubTrees.add(ebnf);
             recordEntry(elementIndex, labelName);
         }
@@ -485,29 +723,6 @@ final class AutoLabeler {
             return ebnf.blockSuffix() == null ? null : ebnf.blockSuffix().ebnfSuffix();
         }
 
-        /**
-         * A block can carry a label only if ANTLR considers it a token set:
-         * every alternative consists of exactly one unsuffixed terminal
-         * (token reference or string literal). Anything else labeled as a unit
-         * is rejected by ANTLR with "label assigned to a block which is not a
-         * set" (error 130).
-         */
-        private boolean isTokenSetBlock(ANTLRv4Parser.BlockContext block) {
-            if(block.altList() == null || block.optionsSpec() != null || !block.ruleAction().isEmpty()) {
-                return false;
-            }
-            for(ANTLRv4Parser.AlternativeContext alt : block.altList().alternative()) {
-                if(alt.elementOptions() != null || alt.element().size() != 1) {
-                    return false;
-                }
-                ANTLRv4Parser.ElementContext element = alt.element().get(0);
-                if(element.ebnfSuffix() != null || element.atom() == null
-                        || element.atom().terminal() == null) {
-                    return false;
-                }
-            }
-            return true;
-        }
 
         private String referencedRuleName(ANTLRv4Parser.AtomContext atom) {
             if(atom.ruleref() != null) {
@@ -631,6 +846,10 @@ final class AutoLabeler {
         }
 
         String report(String grammarFileName) {
+            return report(grammarFileName, java.util.Collections.emptyList());
+        }
+
+        String report(String grammarFileName, List<String> liftedBlocks) {
             StringBuilder result = new StringBuilder();
             result.append("AutoLabel report");
             if(grammarFileName != null && !grammarFileName.isEmpty()) {
@@ -642,6 +861,10 @@ final class AutoLabeler {
                 entries.forEach((path, name) ->
                         result.append("    element ").append(path).append(" -> ").append(name).append('\n'));
             });
+            if(liftedBlocks != null && !liftedBlocks.isEmpty()) {
+                result.append("  lifted alternative blocks (each alternative is a typed sub class):\n");
+                liftedBlocks.forEach(e -> result.append("    ").append(e).append('\n'));
+            }
             result.append("Note: explicit ANTLR labels always win over inferred names.\n");
             return result.toString();
         }
