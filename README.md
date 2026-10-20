@@ -234,7 +234,10 @@ becomes a synthetic rule `stmtChoice` with sub classes `StmtChoiceAlt1…4`, so
 the chosen alternative survives in the model and unparses correctly even when
 it consists only of keywords. Token sets like `('+' | '-')` stay a captured
 literal (`operators+=` when repeated, `operator=` otherwise). The auto-label
-report lists every lifted block.
+report lists every lifted block. Hand-labeled grammars get the same treatment
+for *literal-only* blocks such as `('[' ']' | '[]')`, which have no model
+property otherwise: the enclosing rule gains a `<Rule>Choice` property whose
+value is one of the generated sub classes.
 
 Explicit labels always win and mix consistently with auto-labeling. Unlabeled
 parser-rule and token references receive deterministic lower-camel names based

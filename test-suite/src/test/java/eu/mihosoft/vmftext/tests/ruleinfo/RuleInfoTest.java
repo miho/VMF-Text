@@ -52,13 +52,16 @@ public class RuleInfoTest {
 
     @Test
     public void testEffectivelyOptional(){
-        String code = "[  ]";
+        String code = "[  ]!";
         RuleInfoModel model = new RuleInfoModelParser().parse(code);
 
         RuleInfoModelUnparser unparser = new RuleInfoModelUnparser();
 
         String[] expectedInfoStrings = {
-                "<NONE> -> true",
+                // '[' ']' live in a lifted alternative class (#37): mandatory there, so
+                // not optional; '!' carries its own '?' and is the optional terminal.
+                "<NONE> -> false",
+                "<NONE> -> false",
                 "<NONE> -> true"
         };
 
