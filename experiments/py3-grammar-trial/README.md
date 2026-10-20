@@ -140,10 +140,13 @@ sh ./gradlew run -PmainClass=py3trial.Edit                      # programmatic e
    corrected output. Still open: a Python-aware `ProgrammaticSeparatorPolicy`
    that synthesizes `NEWLINE`/`INDENT`/`DEDENT` text for blocks built
    programmatically (today the caller sets those three properties).
-8. **Naming.** Rule names keep their underscores (`File_input`,
-   `Simple_stmts`, `getFile_inputChoices()`), nested lifting yields
-   `dictorsetmakerChoiceChoice4`, and 20 positional suffixes appear — all
-   cosmetic, filed under [#47](https://github.com/miho/VMF-Text/issues/47).
+8. **Naming (improved under [#47](https://github.com/miho/VMF-Text/issues/47)).**
+   Property and synthetic rule names derived from snake_case rules are
+   camelCase now (`getFileInputChoices()`, `FileInputChoiceAlt2`); the model
+   class of a snake_case rule itself keeps ANTLR's spelling (`File_input`,
+   `Simple_stmts`). The 20 operand pairs of `expr op expr` shapes are `left` /
+   `right`, keyword tokens such as `async` are no longer properties. Still
+   cosmetic: nested lifting yields names like `dictorsetmakerChoiceChoice4`.
 9. **The split grammar is the real entry point.** Everything above was done
    on a hand-combined grammar; `tokenVocab` plus lexer / parser
    `superClass` support ([#39](https://github.com/miho/VMF-Text/issues/39))
@@ -165,4 +168,5 @@ sh ./gradlew run -PmainClass=py3trial.Edit                      # programmatic e
    (finding 5, #54).
 6. ✅ `reindent(...)` for moved / inserted parsed subtrees (finding 7).
 7. ⏳ Python-aware policy for fully programmatic blocks (finding 7).
-8. ⏳ Naming (#47), split grammars (#39).
+8. ✅ Naming (#47): keyword tokens, `left`/`right`, camelCase for snake_case.
+9. ⏳ Split grammars (#39).

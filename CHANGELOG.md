@@ -14,6 +14,20 @@ All notable changes to VMF-Text are documented here.
   the meaning (`experiments/py3-grammar-trial`, `py3trial.Edit`). The
   generated `<Grammar>TriviaSupport` class is public now.
 
+### Changed
+
+- **Auto-labeling names** (#47, from the JavaScript and Python trials):
+  a lexer rule that is a single literal (`Var: 'var';`) is a keyword, not a
+  value — it gets no property any more (`var=Var`, `ifValue=If`,
+  `returnValue=Return` are gone; inside a repetition it is captured as a list
+  named after the literal, like a string literal) and it provides keyword
+  context (`Else statement` → `elseStatement`); the two operands of an
+  `expr op expr` alternative are `left` and `right` instead of `expr` /
+  `expr2`; property names and synthetic rule names derived from snake_case
+  rules drop the underscores (`simpleStmts`, `fileInputChoice` — the model
+  class of a snake_case rule itself keeps ANTLR's spelling, `File_input`).
+  Regression grammar `naming`.
+
 ### Fixed
 
 - **The unparser check rules no longer copy actions and semantic predicates**
