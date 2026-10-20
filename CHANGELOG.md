@@ -4,6 +4,13 @@ All notable changes to VMF-Text are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **VMF `0.2.10` → `0.2.11`** — core's own model generation and its `vmf` /
+  `vmf-runtime` dependencies, the Gradle plugin's default `vmfVersion`, and
+  the README / example pins. Upstream changes: corrected immutable-containment
+  error message, vmf-jackson (de)serialization + JSON-schema fixes.
+
 ## [0.2.2] — 2026-10-20
 
 Parser rule maps (model rewriting), fail-fast code generation and quieter

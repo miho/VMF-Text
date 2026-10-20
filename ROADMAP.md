@@ -293,10 +293,12 @@ ship.
 
 ## After 0.2.2 (queue)
 
-- Bump VMF to `0.2.11`+ (released 2026-07-26: error-message and vmf-jackson /
-  JSON-schema fixes). VMF's own Gradle 10 fixes (VMF #79) are merged upstream
-  but not yet released; picking them up removes the last deprecation warning in
-  the `core` build.
+- [x] Bump VMF to `0.2.11` (released 2026-07-26: error-message and vmf-jackson /
+  JSON-schema fixes) — done on `main` after 0.2.2. VMF's own Gradle 10 fixes
+  (VMF #79, merged 2026-08-03) are **not** in 0.2.11, so the one remaining
+  deprecation warning in the `core` build stays until a later VMF release; the
+  VMF 0.2.11 plugin *marker* is also missing from Maven Central (same defect
+  VMF-Text had in 0.2.1) — fix that on the VMF side.
 - Lexical preservation and grammar features — next focus (see "Explicitly
   deferred" above and `LEXICAL_PRESERVATION_ASSESSMENT.md`).
 

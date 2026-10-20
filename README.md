@@ -122,7 +122,7 @@ plugins {
 
 ```gradle
 vmfText {
-    vmfVersion   = '0.2.10'  // (runtime version)
+    vmfVersion   = '0.2.11'  // (runtime version)
     antlrVersion = '4.13.2'  // (runtime version)
     // autoLabel = true      // opt-in: derive labels for unlabeled grammars,
                              // see "Automatic Labels" below

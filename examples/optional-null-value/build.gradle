@@ -16,7 +16,7 @@ repositories {
 }
 
 vmfText {
-    vmfVersion   = '0.2.10'
+    vmfVersion   = '0.2.11'
     antlrVersion = '4.13.2'
 }
 
