@@ -235,11 +235,41 @@ See assessment § *Remaining gaps* for the CST leap boundary.
 
 ---
 
-## 7. Programmatic models
+## 7. Programmatic models and mixed-mode formatting
 
 Elements created without parsing have empty `triviaPieces` and usually empty
-`optionalStates`. Unparse uses `ProgrammaticSeparatorPolicy`. After a
-structural clear, the same policy applies until the model is re-parsed.
+`optionalStates`. For every terminal of such an element — and for every
+terminal of an element whose trivia a structural edit cleared — the default
+formatter asks its `ProgrammaticSeparatorPolicy` what to emit *before* the
+terminal. Parsed terminals never consult the policy, so a policy can only
+change text that has no original to preserve.
+
+The policy sees a `FormattingContext`: the previously rendered terminal, the
+element depth, whether the output is at a line start, and the position / line.
+It is also told about **every** rendered terminal (`terminal(ruleInfo,
+programmatic)`), parsed or not, so it can track structure such as brace depth
+through regions it is never asked about. Two built-ins:
+
+| Policy | Output for programmatic parts |
+|---|---|
+| `ConservativeSeparatorPolicy` (default) | single spaces, never glues word-like tokens; flat |
+| `BlockIndentSeparatorPolicy` (`Formatter.newBlockIndentFormatter()`) | line break after `{` `}` `;`, indentation by block depth, no space before `; , ) ] . (` or after `( [ .` — all sets configurable |
+
+```java
+unparser.setFormatter(Formatter.newBlockIndentFormatter());
+String out = unparser.unparse(model);               // parsed bytes exact, inserted subtree indented
+for (Formatter.OutputRange r : unparser.getFormatter().programmaticRanges()) {
+    r.getElement(); r.getStart(); r.getEnd();         // char offsets, end exclusive
+    r.getStartLine(); r.getEndLine();                 // 1-based, inclusive → external formatter --lines
+}
+```
+
+`programmaticRanges()` lists the elements rendered without lexical
+information after the last top-level unparse, outermost first. Everything
+outside those ranges reproduces the parsed input byte for byte, which is what
+makes them safe input for google-java-format `--lines` or clang-format
+`-lines`. The pre-0.2.4 route — a custom `Formatter` passed to
+`setFormatter(...)` — still exists but replaces lexical preservation entirely.
 
 ---
 

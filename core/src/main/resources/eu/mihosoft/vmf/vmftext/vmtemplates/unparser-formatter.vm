@@ -58,12 +58,45 @@ public interface Formatter {
   default void rejectState() {}
 
   /**
+   * Called before the unparser starts rendering the specified code element
+   * (mirror of {@link #done(CodeElement, boolean, PrintWriter)}).
+   * @param e code element
+   * @param w print writer used to render the element
+   */
+  default void begin(CodeElement e, PrintWriter w) {}
+
+  /**
    * This method is called to indicate that the rendering of the specified code element is done.
    * @param e code element
-   * @param success indicates whether unparsing was successful 
+   * @param success indicates whether unparsing was successful
    * @param w print writer that can be used to insert additional strings to the currently unparsed text
    */
   default void done(CodeElement e, boolean success, PrintWriter w) {}
+
+  /**
+   * Output ranges of the elements that were rendered without lexical
+   * information during the last top-level unparse (programmatically created
+   * elements and elements whose trivia was cleared by an edit), outermost
+   * first. Everything outside these ranges reproduces the parsed input byte
+   * for byte. Use them to run an external formatter on exactly these lines.
+   * Formatters without lexical preservation return an empty list.
+   */
+  default java.util.List<OutputRange> programmaticRanges() { return java.util.Collections.emptyList(); }
+
+  /** An output range: character offsets (end exclusive) and 1-based inclusive lines. */
+  final class OutputRange {
+    private final CodeElement element;
+    private final int start, end, startLine, endLine;
+    OutputRange(CodeElement element, int start, int end, int startLine, int endLine) {
+      this.element = element; this.start = start; this.end = end; this.startLine = startLine; this.endLine = endLine;
+    }
+    public CodeElement getElement() { return element; }
+    public int getStart() { return start; }
+    public int getEnd() { return end; }
+    public int getStartLine() { return startLine; }
+    public int getEndLine() { return endLine; }
+    @Override public String toString() { return element.getClass().getSimpleName() + "[" + start + "," + end + ") lines " + startLine + "-" + endLine; }
+  }
 
   /**
    * Called prior to rendering an element. Can be used to insert additional text before rendering the
@@ -111,10 +144,51 @@ public interface Formatter {
   }
 
   /**
+   * What a {@link ProgrammaticSeparatorPolicy} may know about the output so
+   * far when it is asked for a separator.
+   */
+  interface FormattingContext {
+    /** text of the previously rendered terminal, or {@code null} at the start of the document */
+    String previousTerminalText();
+    /** number of model elements currently being rendered (the root counts as 1) */
+    int elementDepth();
+    /** true when nothing has been written yet or the last written character is a line break */
+    boolean atLineStart();
+    /** characters written so far */
+    int position();
+    /** 1-based line of the next character */
+    int line();
+  }
+
+  /**
    * Policy consulted by {@link DefaultFormatter} only where exact lexical
-   * preservation is undefined by construction.
+   * preservation is undefined by construction. Implement the context-aware
+   * variants to emit line breaks and indentation; the two-argument variants
+   * remain for policies that only need the terminal.
    */
   interface ProgrammaticSeparatorPolicy {
+    /**
+     * Separator to emit before a terminal/lexer element when the parent carries
+     * no lexical metadata at all (e.g. programmatically created models),
+     * with context. Delegates to {@link #separatorBefore(CodeElement, RuleInfo)}.
+     */
+    default String separatorBefore(CodeElement parent, RuleInfo ruleInfo, FormattingContext ctx) {
+      return separatorBefore(parent, ruleInfo);
+    }
+    /**
+     * Separator to emit when lexical metadata was deliberately invalidated by
+     * model edits, with context. Delegates to {@link #separatorBeforeEdited(CodeElement, RuleInfo)}.
+     */
+    default String separatorBeforeEdited(CodeElement parent, RuleInfo ruleInfo, FormattingContext ctx) {
+      return separatorBeforeEdited(parent, ruleInfo);
+    }
+    /**
+     * Notified for <em>every</em> rendered terminal, parsed or not, so a policy
+     * can track structure (e.g. brace depth) across parsed regions it is never
+     * asked about.
+     * @param programmatic true when this terminal's separator came from this policy
+     */
+    default void terminal(RuleInfo ruleInfo, boolean programmatic) {}
 
     /**
      * Separator to emit before a terminal/lexer element when the parent carries
@@ -145,10 +219,12 @@ public interface Formatter {
   }
 
   /**
-   * TODO
+   * Returns a lexical-preserving formatter whose programmatic / edited parts
+   * are printed with line breaks and block indentation
+   * ({@link BlockIndentSeparatorPolicy} with its defaults: {@code {} ; } and
+   * two spaces). Parsed bytes stay exact.
    */
-  @Deprecated 
-  static Formatter newJavaStyleFormatter() { return new JavaStyleFormatter();}
+  static Formatter newBlockIndentFormatter() { return new DefaultFormatter(new BlockIndentSeparatorPolicy()); }
 
   static enum RuleType {
     LEXER_RULE,
@@ -352,6 +428,63 @@ public interface Formatter {
     private CodeElement currentElement;
 
     private boolean consumeElement = false;
+    // --- output tracking for the formatting context and programmatic ranges
+    private int position = 0;
+    private int line = 1;
+    private char lastChar = 0;
+    private String lastTerminalText = null;
+    private int elementDepth = 0;
+    private boolean lastSeparatorProgrammatic = false;
+    private final java.util.Deque<CodeElement> openElements = new java.util.ArrayDeque<>();
+    // elements rendered without lexical info: start position/line once the first terminal renders
+    private final java.util.IdentityHashMap<CodeElement, int[]> pendingRanges = new java.util.IdentityHashMap<>();
+    private final java.util.List<OutputRange> ranges = new java.util.ArrayList<>();
+    private final Formatter.FormattingContext context = new Formatter.FormattingContext() {
+        @Override public String previousTerminalText() { return lastTerminalText; }
+        @Override public int elementDepth() { return elementDepth; }
+        @Override public boolean atLineStart() { return position == 0 || lastChar == '\n'; }
+        @Override public int position() { return position; }
+        @Override public int line() { return line; }
+    };
+
+    /** every character this formatter writes goes through here */
+    private void emit(PrintWriter w, String s) {
+        if(s == null || s.isEmpty()) {
+            return;
+        }
+        w.print(s);
+        for(int i = 0; i < s.length(); i++) {
+            if(s.charAt(i) == '\n') {
+                line++;
+            }
+        }
+        position += s.length();
+        lastChar = s.charAt(s.length() - 1);
+    }
+
+    @Override
+    public java.util.List<OutputRange> programmaticRanges() {
+        return java.util.Collections.unmodifiableList(new java.util.ArrayList<>(ranges));
+    }
+
+    @Override
+    public void begin(CodeElement e, PrintWriter w) {
+        if(openElements.isEmpty()) {
+            // a new document
+            position = 0;
+            line = 1;
+            lastChar = 0;
+            lastTerminalText = null;
+            ranges.clear();
+            pendingRanges.clear();
+        }
+        openElements.push(e);
+        elementDepth = openElements.size();
+        java.util.List<String> hidden = getHiddenText(e);
+        if(hidden == null || hidden.isEmpty()) {
+            pendingRanges.put(e, null); // start is set by the first rendered terminal
+        }
+    }
 
     private final java.util.IdentityHashMap<CodeElement, Integer> hiddenTextCounters =
             new java.util.IdentityHashMap<>();
@@ -369,19 +502,35 @@ public interface Formatter {
     @Override
     public void done(CodeElement e, boolean success, PrintWriter w) {
 
+      int[] started = pendingRanges.remove(e);
+      if(started != null) {
+        ranges.add(new OutputRange(e, started[0], position, started[1], line));
+      }
+
       // Emit trailing hidden text only for the root element to avoid
       // introducing extra whitespace between nested elements and following tokens.
       if (e.getParent()==null) {
         int pos = getHiddenTextCounter(e);
         if(getHiddenText(e)!=null && pos < getHiddenText(e).size()) {
           String ws = getHiddenText(e).get(pos);
-          w.append(ws);
+          emit(w, ws);
         }
       }
 
       // now reset the counter information for reconstructing WS info
       reset(e);
       currentElement = null;
+      if(!openElements.isEmpty() && openElements.peek() == e) {
+        openElements.pop();
+      } else {
+        openElements.remove(e);
+      }
+      elementDepth = openElements.size();
+      if(openElements.isEmpty()) {
+        // outermost first, and nested ranges after their parents
+        ranges.sort((a, b) -> a.getStart() != b.getStart() ? Integer.compare(a.getStart(), b.getStart())
+                                                             : Integer.compare(b.getEnd(), a.getEnd()));
+      }
     }
 
     @Override
@@ -600,54 +749,53 @@ public interface Formatter {
                 // If the optional element is present, fall through to the regular hidden-text handling below
             }
 
+            lastSeparatorProgrammatic = false;
             if(getHiddenText(e)!=null && !getHiddenText(e).isEmpty()) {
                 int pos = getHiddenTextCounter(e);
                 if(pos < getHiddenText(e).size()) {
                   String ws = getHiddenText(e).get(pos);
-                  w.append(ws);
+                  emit(w, ws);
                   incHiddenTextCounter(e);
                 } else {
                   // Fallback for edited models: if a list mutation exhausts the
                   // original hidden-text entries, keep a neutral separator before
                   // closing delimiters. Exact parsed models should not reach this
                   // branch.
-                  String sep = programmaticPolicy.separatorBeforeClosingDelimiter(e, ruleInfo);
-                  if(!sep.isEmpty()) {
-                    w.append(sep);
-                  }
+                  lastSeparatorProgrammatic = true;
+                  emit(w, programmaticPolicy.separatorBeforeClosingDelimiter(e, ruleInfo));
                   // Do not throw here; keep rendering to preserve best-effort output
                 }
             } else if(getHiddenText(e)==null) {
-                String sep = programmaticPolicy.separatorBefore(e, ruleInfo);
-                if(!sep.isEmpty()) {
-                  w.append(sep);
-                }
+                lastSeparatorProgrammatic = true;
+                emit(w, programmaticPolicy.separatorBefore(e, ruleInfo, context));
             } else {
-                String sep = programmaticPolicy.separatorBeforeEdited(e, ruleInfo);
-                if(!sep.isEmpty()) {
-                  w.append(sep);
-                }
+                lastSeparatorProgrammatic = true;
+                emit(w, programmaticPolicy.separatorBeforeEdited(e, ruleInfo, context));
             }
-        
     }
 
     public void render(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w, String s) {
       if(!consumeElement) {
-        w.print(s);
+        // the first rendered terminal fixes the start of every pending range
+        for(java.util.Map.Entry<CodeElement, int[]> entry : pendingRanges.entrySet()) {
+          if(entry.getValue() == null) {
+            entry.setValue(new int[]{position, line});
+          }
+        }
+        emit(w, s);
       }
     }
 
     @Override
     public void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w) {
-        // Minimal stabilization for closing boundaries when lexical pieces are missing
-        String t = ruleInfo.getRuleText();
-        if (t != null) {
-            // ensure a space before ')' or ']' if previous token wasn't a space and we didn't emit any during pre
-            if (")".equals(t) || "]".equals(t)) {
-                // rely on writer to have last char; we can't read it, so emit nothing here.
-                // This block is left intentionally conservative to avoid over-spacing.
-            }
+        if(!(ruleInfo.getRuleType()==RuleType.TERMINAL || ruleInfo.getRuleType()==RuleType.LEXER_RULE)) {
+            return;
         }
+        if(consumeElement) {
+            return; // absent optional: nothing was rendered
+        }
+        lastTerminalText = ruleInfo.getRuleText();
+        programmaticPolicy.terminal(ruleInfo, lastSeparatorProgrammatic);
     }
   } // end default-formatter
 
@@ -687,44 +835,79 @@ final class ConservativeSeparatorPolicy implements Formatter.ProgrammaticSeparat
 }
 
 
-class JavaStyleFormatter implements Formatter {
+/**
+ * A {@link Formatter.ProgrammaticSeparatorPolicy} for C-like syntax: breaks
+ * the line after block openers, block closers and statement ends, indents by
+ * block depth, and never glues tokens. It is only ever consulted for
+ * programmatic or edited elements; parsed text keeps its own whitespace, and
+ * because it is told about every terminal it knows the block depth at the
+ * point where a programmatic subtree is inserted into parsed text.
+ */
+class BlockIndentSeparatorPolicy implements Formatter.ProgrammaticSeparatorPolicy {
+  private String indentUnit = "  ";
+  private final java.util.Set<String> openers = new java.util.HashSet<>(java.util.Arrays.asList("{"));
+  private final java.util.Set<String> closers = new java.util.HashSet<>(java.util.Arrays.asList("}"));
+  private final java.util.Set<String> statementEnds = new java.util.HashSet<>(java.util.Arrays.asList(";"));
+  private final java.util.Set<String> noSpaceBefore = new java.util.HashSet<>(java.util.Arrays.asList(";", ",", ")", "]", ".", "("));
+  private final java.util.Set<String> noSpaceAfter = new java.util.HashSet<>(java.util.Arrays.asList("(", "[", "."));
+  private int depth = 0;
 
-  private String last = "";
-  private String indent = "";
+  public BlockIndentSeparatorPolicy withIndent(String unit) { this.indentUnit = unit; return this; }
+  public BlockIndentSeparatorPolicy withOpeners(String... t) { openers.clear(); openers.addAll(java.util.Arrays.asList(t)); return this; }
+  public BlockIndentSeparatorPolicy withClosers(String... t) { closers.clear(); closers.addAll(java.util.Arrays.asList(t)); return this; }
+  public BlockIndentSeparatorPolicy withStatementEnds(String... t) { statementEnds.clear(); statementEnds.addAll(java.util.Arrays.asList(t)); return this; }
+  public BlockIndentSeparatorPolicy withNoSpaceBefore(String... t) { noSpaceBefore.clear(); noSpaceBefore.addAll(java.util.Arrays.asList(t)); return this; }
+  public BlockIndentSeparatorPolicy withNoSpaceAfter(String... t) { noSpaceAfter.clear(); noSpaceAfter.addAll(java.util.Arrays.asList(t)); return this; }
 
-  String getIndent() {
-    return indent;
+  private String indent(int d) {
+    StringBuilder sb = new StringBuilder();
+    for(int i = 0; i < d; i++) sb.append(indentUnit);
+    return sb.toString();
   }
 
-  void incHiddenTextCounter() {
-    indent+="  ";
+  @Override
+  public void terminal(Formatter.RuleInfo ruleInfo, boolean programmatic) {
+    String t = ruleInfo.getRuleText();
+    if(openers.contains(t)) depth++;
+    if(closers.contains(t)) depth = Math.max(0, depth - 1);
   }
 
-  void decHiddenTextCounter() {
-    if(indent.length() > 1) {
-      indent=indent.substring(2);
+  @Override
+  public String separatorBefore(CodeElement parent, Formatter.RuleInfo ruleInfo, Formatter.FormattingContext ctx) {
+    String t = ruleInfo.getRuleText();
+    String prev = ctx.previousTerminalText();
+    if(prev == null) {
+      return "";
     }
+    if(closers.contains(t)) {
+      return (ctx.atLineStart() ? "" : "\n") + indent(Math.max(0, depth - 1));
+    }
+    if(noSpaceBefore.contains(t) || noSpaceAfter.contains(prev)) {
+      return "";
+    }
+    if(openers.contains(prev) || closers.contains(prev) || statementEnds.contains(prev)) {
+      return (ctx.atLineStart() ? "" : "\n") + indent(depth);
+    }
+    return " ";
   }
 
-  public void pre( ${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
-
-
-
-    if(Objects.equals(ruleInfo.getRuleText(), "}")) {
-      decHiddenTextCounter();
-      w.append('\n').append(getIndent());
-    }
+  @Override
+  public String separatorBeforeEdited(CodeElement parent, Formatter.RuleInfo ruleInfo, Formatter.FormattingContext ctx) {
+    return separatorBefore(parent, ruleInfo, ctx);
   }
-  public void post(${model.grammarName}ModelUnparser unparser, RuleInfo ruleInfo, PrintWriter w ) {
-    if(Objects.equals(ruleInfo.getRuleText(), "{")) {
-      incHiddenTextCounter();
-      w.append('\n').append(getIndent());
-    } else if(Objects.equals(ruleInfo.getRuleText(), ";")) {
-      w.append('\n').append(getIndent());
-    } else{
-      w.append(" ");
-    }
 
-    last = ruleInfo.getRuleText();
+  @Override
+  public String separatorBefore(CodeElement parent, Formatter.RuleInfo ruleInfo) {
+    return " ";
+  }
+
+  @Override
+  public String separatorBeforeEdited(CodeElement parent, Formatter.RuleInfo ruleInfo) {
+    return ruleInfo.getRuleType() == Formatter.RuleType.LEXER_RULE ? " " : "";
+  }
+
+  @Override
+  public String separatorBeforeClosingDelimiter(CodeElement parent, Formatter.RuleInfo ruleInfo) {
+    return "";
   }
 }

@@ -606,6 +606,7 @@ public class UnparserCodeGenerator {
                 w.append("    if(obj==null) return;").append('\n');
                 w.append('\n');
                 w.append("    pushState();").append('\n');
+                w.append("    getUnparser().getFormatter().begin(obj, w);").append('\n');
                 w.append('\n');
                 w.append("    // begin reset list property indices/iterators").append('\n');
 

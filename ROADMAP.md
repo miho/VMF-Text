@@ -349,14 +349,14 @@ ship.
      [#37](https://github.com/miho/VMF-Text/issues/37) (lifting for
      hand-labeled grammars, found via MiniJava), [#38](https://github.com/miho/VMF-Text/issues/38),
      [#39](https://github.com/miho/VMF-Text/issues/39).
-  2. **Mixed-mode formatting for programmatic elements.** Today a custom
-     `Formatter` replaces the lexical-preserving default (all-or-nothing), and
-     the `ProgrammaticSeparatorPolicy` hook sees neither the previous terminal
-     nor nesting depth, so programmatic subtrees print flat. Scope: give the
-     policy that context so it can emit newlines/indentation while parsed
-     bytes stay exact, and report the output ranges of trivia-less elements so
-     an external formatter (google-java-format, clang-format) can be applied to
-     exactly those lines. Delete the deprecated `JavaStyleFormatter`.
+  2. **Mixed-mode formatting for programmatic elements — DONE 2026-10-20
+     ([#40](https://github.com/miho/VMF-Text/issues/40)).** The
+     `ProgrammaticSeparatorPolicy` gets a `FormattingContext` and is told about
+     every terminal; `BlockIndentSeparatorPolicy` /
+     `Formatter.newBlockIndentFormatter()` prints programmatic or edited parts
+     with line breaks and block indentation while parsed bytes stay exact;
+     `programmaticRanges()` reports the affected character / line ranges for
+     external formatters. `JavaStyleFormatter` deleted. Test: `mixedformat`.
   Background: `LEXICAL_PRESERVATION_ASSESSMENT.md`, `docs/UNPARSING.md` §6–§7.
 
 ## Non-goals
