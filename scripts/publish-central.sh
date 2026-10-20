@@ -17,6 +17,8 @@ echo "==> publishing VMF-Text $VERSION"
 
 echo "==> core: upload"
 (cd core && sh ./gradlew publishMavenJavaPublicationToMavenCentralRepository --no-daemon $PROPS)
+echo "==> core: publish to mavenLocal (the plugin build resolves vmf-text:$VERSION from there)"
+(cd core && sh ./gradlew publishToMavenLocal --no-daemon -q)
 echo "==> gradle-plugin: upload plugin + marker"
 (cd gradle-plugin && sh ./gradlew publishAllPublicationsToMavenCentralRepository --no-daemon $PROPS)
 

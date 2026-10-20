@@ -51,10 +51,14 @@ first push. The build already targets that URL for `-SNAPSHOT` versions
 (`gradle/publishing.gradle`, repository `MavenCentral`):
 
 ```bash
-# config/common.properties → publication.version = 0.2.3-SNAPSHOT
-cd core          && sh ./gradlew publishMavenJavaPublicationToMavenCentralRepository --no-daemon <creds>
-cd ../gradle-plugin && sh ./gradlew publishAllPublicationsToMavenCentralRepository --no-daemon <creds>
+# config/common.properties → publication.version = 0.2.3-SNAPSHOT (main carries
+# the next version as -SNAPSHOT between releases)
+sh scripts/publish-central.sh      # uploads core (+ mavenLocal for the plugin build), plugin, marker; no hand-off
 ```
+
+First run 2026-10-20: `0.2.3-SNAPSHOT` (core, plugin, marker) appeared on
+the snapshot repository within a minute and resolved from a consumer whose
+only plugin repositories were the snapshot repository and `mavenCentral()`.
 
 Consumers add the snapshot repository (Gradle: a `maven { url = "…/maven-snapshots/" }`
 entry in `pluginManagement.repositories` and `repositories`, ideally with a
