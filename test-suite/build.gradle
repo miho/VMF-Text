@@ -1,10 +1,15 @@
 buildscript {
+    // the plugin under test: the version published to mavenLocal by this
+    // repository's build chain (config/common.properties)
+    ext.commonProps = new Properties()
+    file(new File(projectDir.parentFile, "config/common.properties")).withInputStream { commonProps.load(it) }
+
     repositories {
         mavenLocal()
     }
 
     dependencies {
-        classpath 'eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.2'
+        classpath "eu.mihosoft.vmf:vmf-text-gradle-plugin:${commonProps.get('publication.version')}"
         //classpath fileTree(dir: '../gradle-plugin/build/libs/', include: '*.jar')
     }
 }
