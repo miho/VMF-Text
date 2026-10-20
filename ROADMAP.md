@@ -141,6 +141,18 @@ key: `sh ./gradlew publishAllPublicationsToBuildDirRepository -Psigning.keyId=�
 be uploaded (jar, sources, javadoc, pom, module, marker pom — each with `.asc`)
 to `build/artifacts/` for inspection.
 
+## Ship 0.2.3 (GitHub release 2026-10-20, not on Maven Central)
+
+The C-trial batch: `X+` lists, lifted block alternatives (auto-labeled and
+hand-labeled grammars), literal naming, strict parsing, `Root(rule=…)`,
+list-growth separators, VMF `0.2.11`. Released as
+[v0.2.3](https://github.com/miho/VMF-Text/releases/tag/v0.2.3) with a signed
+Maven-repository archive attached; deliberately **not** published to Maven
+Central to keep the shared monthly release budget for other projects. The same
+content is on the Central snapshot repository as `0.2.3-SNAPSHOT`; `main`
+continues as `0.2.4-SNAPSHOT`. Checklist:
+[`docs/releases/0.2.3.md`](docs/releases/0.2.3.md).
+
 ## Ship 0.2.2 (shipped 2026-10-20)
 
 Model rewriting + option/robustness fixes, **plus** auto-naming polish and
@@ -301,11 +313,14 @@ ship.
   VMF-Text had in 0.2.1) — fix that on the VMF side.
 - **Release budget (2026-10-20):** Maven Central limits publishing per
   organization and calendar month (~7 release events, ~1,167 files, ~78 MB;
-  Usage Center is the source of truth) — not a lifetime budget. One VMF-Text
-  release costs 2 events today, 1 once core + plugin share a deployment.
-  Pre-release sharing goes through Central `-SNAPSHOT`s (90-day retention) or,
-  if those turn out to count, a GitHub Pages Maven repository. Details and the
-  0.2.3 plan: [#41](https://github.com/miho/VMF-Text/issues/41),
+  Usage Center is the source of truth) — not a lifetime budget, but shared by
+  every `eu.mihosoft` project. One VMF-Text release costs 1 event with the
+  one-deployment script. **Verified the same day: snapshot uploads do not
+  count** — two `0.2.3-SNAPSHOT` pushes left the organization's numbers
+  unchanged. Pre-release sharing therefore goes through Central `-SNAPSHOT`s
+  (90-day retention, `main` always carries the next `-SNAPSHOT`); Maven Central
+  releases are batched and spent deliberately. Details:
+  [#41](https://github.com/miho/VMF-Text/issues/41),
   [`docs/RELEASING.md`](docs/RELEASING.md).
 - **Next phase (decided 2026-10-20), in this order — tracked in
   [#37](https://github.com/miho/VMF-Text/issues/37) (literal-only blocks in

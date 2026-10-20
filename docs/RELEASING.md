@@ -45,10 +45,15 @@ The Central Portal hosts `-SNAPSHOT` versions at
 <https://central.sonatype.com/repository/maven-snapshots/> (enable "SNAPSHOTs"
 on the namespace at <https://central.sonatype.com/publishing/namespaces>
 first). Snapshots are not validated or signed, are available immediately, are
-meant to be overwritten, and are **deleted after 90 days**. Whether they count
-toward the monthly limits is not documented; check the Usage Center after the
-first push. The build already targets that URL for `-SNAPSHOT` versions
-(`gradle/publishing.gradle`, repository `MavenCentral`):
+meant to be overwritten, and are **deleted after 90 days**. **They do not
+count toward the monthly limits** — verified 2026-10-20: two `0.2.3-SNAPSHOT`
+pushes (a new version and an overwrite, ~40 files each) left the Usage Center's
+organization numbers unchanged; the Usage Center lists snapshot traffic under
+a separate `eu.mihosoft.snapshots` row. `main` always carries the next
+version as `-SNAPSHOT`, so a snapshot push is simply
+`sh scripts/publish-central.sh` on `main`. The build targets the snapshot URL
+for `-SNAPSHOT` versions (`gradle/publishing.gradle`, repository
+`MavenCentral`):
 
 ```bash
 # config/common.properties → publication.version = 0.2.3-SNAPSHOT (main carries
@@ -186,6 +191,29 @@ POST https://central.sonatype.com/api/v1/publisher/status?id=<portal_deployment_
 
 `PUBLISHING` can last a while; `repo1.maven.org` serves the files some minutes
 after `PUBLISHED`.
+
+## 3b. GitHub-only release (no Maven Central budget)
+
+When a release is worth tagging but not worth one of the organization's
+monthly Maven Central release events (0.2.3 was released this way), skip §3
+and attach a signed Maven-repository archive to the GitHub release instead:
+
+```bash
+# on the release commit, with the signing properties (no Central/Portal creds needed)
+P=$(sh scripts/central-staging.sh props | grep signing)
+(cd core          && sh ./gradlew clean publishAllPublicationsToBuildDirRepository --no-daemon $P)
+(cd gradle-plugin && sh ./gradlew clean publishAllPublicationsToBuildDirRepository --no-daemon $P)
+rm -rf build/maven-repo && mkdir -p build/maven-repo
+cp -r core/build/artifacts/. gradle-plugin/build/artifacts/. build/maven-repo/
+(cd build && zip -r vmf-text-<version>-maven-repo.zip maven-repo)
+gh release create v<version> --target main --title "…" --notes-file <notes> build/vmf-text-<version>-maven-repo.zip
+```
+
+Consumers unzip it and add `maven { url = uri("file:///…/maven-repo") }` to
+`pluginManagement.repositories` and `repositories`. The same content stays
+available as `<version>-SNAPSHOT` on the Central snapshot repository for 90
+days. Record "GitHub release only" in the CHANGELOG `Publish` note; the README
+quickstart keeps pointing at the latest version on Maven Central.
 
 ## 4. Tag + GitHub release
 
