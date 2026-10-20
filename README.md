@@ -235,11 +235,23 @@ the chosen alternative survives in the model and unparses correctly even when
 it consists only of keywords. Token sets like `('+' | '-')` stay a captured
 literal (`operators+=` when repeated, `operator=` otherwise), and a single
 literal captured inside a repeated block is named after its text (`','` →
-`commas`, `'['` → `lBrackets`, `'static'` → `staticKeywords`). The auto-label
-report lists every lifted block. Hand-labeled grammars get the same treatment
+`commas`, `'['` → `lBrackets`, `'static'` → `staticKeywords`). A repeated
+block with an optional property inside, such as Python's
+`(',' tfpdef ('=' test)?)*`, is lifted into a per-item sub class
+(`<rule>Items+=<rule>Item*`) so every iteration keeps its own optional parts.
+The auto-label report lists every lifted block. Hand-labeled grammars get the
+same treatment
 for *literal-only* blocks such as `('[' ']' | '[]')`, which have no model
 property otherwise: the enclosing rule gains a `<Rule>Choice` property whose
 value is one of the generated sub classes.
+
+A lexer rule that is a single literal (`Var: 'var';`, `Else: 'else';`) is a
+keyword, not a value: it gets no property, and it provides keyword context
+for the element after it (`Else statement` → `elseStatement`, like a literal
+`'else'`). The two operands of an `expr op expr` alternative are `left` and
+`right`. Property names and synthetic rule names derived from snake_case
+rules drop the underscores (`simple_stmt*` → `simpleStmts`); the model class
+of such a rule itself keeps ANTLR's spelling (`Simple_stmt`).
 
 Explicit labels always win and mix consistently with auto-labeling. Unlabeled
 parser-rule and token references receive deterministic lower-camel names based

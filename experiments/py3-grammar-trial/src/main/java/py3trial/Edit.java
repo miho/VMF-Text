@@ -18,7 +18,7 @@ public class Edit {
 
         Funcdef fd = target.getRoot().vmf().content().stream(Funcdef.class).findFirst().get();
         BlockAlt2 block = (BlockAlt2) fd.getBlock();
-        Stmt moved = ((File_inputChoiceAlt2) donor.getRoot().getFile_inputChoices().get(0)).getStmt();
+        Stmt moved = ((FileInputChoiceAlt2) donor.getRoot().getFileInputChoices().get(0)).getStmt();
         block.getStmts().add(moved);
 
         System.out.println("moved as is (default formatter):");

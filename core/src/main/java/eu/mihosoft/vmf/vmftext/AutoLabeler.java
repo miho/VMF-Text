@@ -108,7 +108,8 @@ final class AutoLabeler {
             ReservedNameCollector reserved = new ReservedNameCollector();
             ParseTreeWalker.DEFAULT.walk(reserved, tree);
 
-            AutoLabelListener listener = new AutoLabelListener(tokens, rewriter, reserved.reservedNamesLower());
+            AutoLabelListener listener = new AutoLabelListener(tokens, rewriter, reserved.reservedNamesLower(),
+                    reserved.keywordTokens());
 
             ParseTreeWalker.DEFAULT.walk(listener, tree);
 
@@ -281,7 +282,7 @@ final class AutoLabeler {
             if(!choice && !perItem) {
                 return;
             }
-            String ruleName = uniqueRuleName(currentRuleName + (choice ? "Choice" : "Item"));
+            String ruleName = uniqueRuleName(camelCase(currentRuleName) + (choice ? "Choice" : "Item"));
             boolean repeated = suffix.startsWith("*") || suffix.startsWith("+") || isInsideRepetition(ctx);
 
             StringBuilder ruleText = new StringBuilder();
@@ -503,6 +504,25 @@ final class AutoLabeler {
      * is rejected by ANTLR with "label assigned to a block which is not a
      * set" (error 130).
      */
+    /**
+     * {@code simple_stmt} → {@code simpleStmt}: property names and synthetic
+     * rule names derived from snake_case rule names drop the underscores
+     * (#47). The model class of the rule itself keeps ANTLR's spelling.
+     */
+    static String camelCase(String name) {
+        if(name == null || name.indexOf('_') < 0) {
+            return name;
+        }
+        StringBuilder sb = new StringBuilder();
+        for(String part : name.split("_+")) {
+            if(part.isEmpty()) {
+                continue;
+            }
+            sb.append(sb.length() == 0 ? part : StringUtil.firstToUpper(part));
+        }
+        return sb.length() == 0 ? name : sb.toString();
+    }
+
     private static boolean isTokenSetBlock(ANTLRv4Parser.BlockContext block) {
         if(block.altList() == null || block.optionsSpec() != null || !block.ruleAction().isEmpty()) {
             return false;
@@ -526,6 +546,32 @@ final class AutoLabeler {
      */
     private static final class ReservedNameCollector extends ANTLRv4ParserBaseListener {
         private final Set<String> reservedLower = new HashSet<>();
+        // lexer rules that are a single literal (Var: 'var';): keywords, see #47
+        private final Map<String,String> keywordTokens = new LinkedHashMap<>();
+
+        @Override
+        public void enterLexerRuleSpec(ANTLRv4Parser.LexerRuleSpecContext ctx) {
+            if(ctx.FRAGMENT() != null || ctx.TOKEN_REF() == null || ctx.lexerRuleBlock() == null
+                    || ctx.lexerRuleBlock().lexerAltList() == null) {
+                return;
+            }
+            List<ANTLRv4Parser.LexerAltContext> alts = ctx.lexerRuleBlock().lexerAltList().lexerAlt();
+            if(alts.size() != 1 || alts.get(0).lexerCommands() != null || alts.get(0).lexerElements() == null) {
+                return;
+            }
+            List<ANTLRv4Parser.LexerElementContext> elements = alts.get(0).lexerElements().lexerElement();
+            if(elements.size() != 1 || elements.get(0).ebnfSuffix() != null || elements.get(0).lexerAtom() == null
+                    || elements.get(0).lexerAtom().terminal() == null
+                    || elements.get(0).lexerAtom().terminal().STRING_LITERAL() == null) {
+                return;
+            }
+            String literal = elements.get(0).lexerAtom().terminal().STRING_LITERAL().getText();
+            keywordTokens.put(ctx.TOKEN_REF().getText(), literal.substring(1, literal.length() - 1));
+        }
+
+        Map<String,String> keywordTokens() {
+            return keywordTokens;
+        }
 
         @Override
         public void enterParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
@@ -553,8 +599,11 @@ final class AutoLabeler {
         private final CommonTokenStream tokens;
         private final TokenStreamRewriter rewriter;
         private final Set<String> reservedNamesLower;
+        private final Map<String,String> keywordTokens;
         private final Map<String,Integer> nameCountsInRule = new HashMap<>();
         private final Map<String,Map<String,String>> entriesByRule = new LinkedHashMap<>();
+        // operand names planned per alternative (expr op expr -> left / right, #47)
+        private final Map<ParserRuleContext,String> plannedNames = new HashMap<>();
         // blocks that were labeled as a single unit: their interior must not be
         // labeled again (avoids double labeling of operator/separator literals).
         private final Set<ParserRuleContext> suppressedSubTrees = new HashSet<>();
@@ -567,10 +616,12 @@ final class AutoLabeler {
         // alternative instead of per rule.
         private boolean altTypedRule;
 
-        AutoLabelListener(CommonTokenStream tokens, TokenStreamRewriter rewriter, Set<String> reservedNamesLower) {
+        AutoLabelListener(CommonTokenStream tokens, TokenStreamRewriter rewriter, Set<String> reservedNamesLower,
+                          Map<String,String> keywordTokens) {
             this.tokens = tokens;
             this.rewriter = rewriter;
             this.reservedNamesLower = reservedNamesLower;
+            this.keywordTokens = keywordTokens;
         }
 
         @Override
@@ -720,6 +771,57 @@ final class AutoLabeler {
                 nameCountsInRule.clear();
                 seedManualElementLabels(ctx);
             }
+            planBinaryOperands(ctx);
+        }
+
+        /**
+         * {@code expr op expr}: the operands become {@code left} and
+         * {@code right} instead of {@code expr} / {@code expr2} (#47). Only the
+         * exact three-element shape qualifies: the same rule on both sides,
+         * unlabeled and unsuffixed, and an operator in the middle (a literal, a
+         * keyword token, a token reference, a token set or a different rule).
+         */
+        private void planBinaryOperands(ANTLRv4Parser.AlternativeContext ctx) {
+            List<ANTLRv4Parser.ElementContext> els = ctx.element();
+            if(els.size() != 3) {
+                return;
+            }
+            String left = unlabeledRuleRef(els.get(0));
+            String right = unlabeledRuleRef(els.get(2));
+            if(left == null || !left.equals(right) || !isOperatorElement(els.get(1), left)) {
+                return;
+            }
+            if(nameCountsInRule.containsKey("left") || nameCountsInRule.containsKey("right")
+                    || reservedNamesLower.contains("left") || reservedNamesLower.contains("right")) {
+                return;
+            }
+            plannedNames.put(els.get(0), "left");
+            plannedNames.put(els.get(2), "right");
+        }
+
+        private String unlabeledRuleRef(ANTLRv4Parser.ElementContext el) {
+            if(el.labeledElement() != null || el.ebnfSuffix() != null || el.atom() == null
+                    || el.atom().ruleref() == null) {
+                return null;
+            }
+            return el.atom().ruleref().RULE_REF().getText();
+        }
+
+        private boolean isOperatorElement(ANTLRv4Parser.ElementContext el, String operandRule) {
+            if(el.labeledElement() != null || el.ebnfSuffix() != null) {
+                return false;
+            }
+            if(el.atom() != null) {
+                if(isStringLiteralAtom(el.atom())) {
+                    return true;
+                }
+                if(el.atom().terminal() != null && el.atom().terminal().TOKEN_REF() != null) {
+                    return !"EOF".equals(el.atom().terminal().TOKEN_REF().getText());
+                }
+                return el.atom().ruleref() != null && !operandRule.equals(el.atom().ruleref().RULE_REF().getText());
+            }
+            return el.ebnf() != null && el.ebnf().block() != null && el.ebnf().blockSuffix() == null
+                    && isTokenSetBlock(el.ebnf().block());
         }
 
         @Override
@@ -750,7 +852,19 @@ final class AutoLabeler {
                 if("EOF".equals(referencedName)) {
                     return;
                 }
-                baseName = toPropertyBaseName(referencedName);
+                String keyword = keywordTokens.get(referencedName);
+                if(keyword != null) {
+                    // a lexer rule that is a single literal (Var: 'var';) is a
+                    // keyword, not a value: no property unless it repeats, then a
+                    // list named after the literal, like a string literal (#47)
+                    if(!repeated) {
+                        return;
+                    }
+                    baseName = literalBaseName(keyword);
+                } else {
+                    String planned = plannedNames.get(ctx);
+                    baseName = planned != null ? planned : toPropertyBaseName(referencedName);
+                }
             } else if(repeated && isStringLiteralAtom(ctx.atom())) {
                 // unnamed string literals inside a repeated block (e.g. the ','
                 // in '(',' item)*') would be dropped when unparsing. Capturing
@@ -872,6 +986,14 @@ final class AutoLabeler {
 
             for(int i = index - 1; i >= 0; i--) {
                 ANTLRv4Parser.ElementContext sibling = siblings.get(i);
+                if(sibling.atom() != null && sibling.atom().terminal() != null
+                        && sibling.atom().terminal().TOKEN_REF() != null) {
+                    String keyword = keywordTokens.get(sibling.atom().terminal().TOKEN_REF().getText());
+                    if(keyword != null && keyword.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
+                        return keyword;
+                    }
+                    return null;
+                }
                 if(sibling.atom() == null || !isStringLiteralAtom(sibling.atom())) {
                     continue;
                 }
@@ -1042,7 +1164,7 @@ final class AutoLabeler {
                 }
                 result = builder.length() == 0 ? StringUtil.firstToLower(referencedName) : builder.toString();
             } else {
-                result = StringUtil.firstToLower(referencedName);
+                result = camelCase(StringUtil.firstToLower(referencedName));
             }
 
             if(isJavaKeyword(result)) {
