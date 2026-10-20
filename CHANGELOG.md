@@ -4,6 +4,8 @@ All notable changes to VMF-Text are documented here.
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-10-20
+
 Grammar-shape fixes driven by the unlabeled grammars-v4 C grammar trial
 ([`experiments/c-grammar-trial`](experiments/c-grammar-trial/README.md)): the
 same grammar went from 14 to 27 of 32 sample programs byte-exact; the remaining
@@ -101,6 +103,18 @@ producing garbage.
   auto-labeling does; the enclosing rule gains a `<Rule>Choice` property
   (`<rule>Choices` list when repeated). Regression: `test-suite`
   `blockliftmanual`; MiniJava's round-trip test is strict again.
+
+### Publish
+
+**GitHub release only** — tag [v0.2.3](https://github.com/miho/VMF-Text/releases/tag/v0.2.3)
+with a signed Maven-repository archive (`vmf-text-0.2.3-maven-repo.zip`:
+`eu.mihosoft.vmf:vmf-text:0.2.3`, `eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.3`
+and the plugin marker) attached. Not published to Maven Central or the Plugin
+Portal: Maven Central's monthly release budget is shared across all
+`eu.mihosoft` projects (see `docs/RELEASING.md`), and this batch is better
+spent there with a later release. The same content is available as
+`0.2.3-SNAPSHOT` on the Central snapshot repository (90-day retention). The
+latest version on Maven Central remains 0.2.2. VMF `0.2.11`, ANTLR `4.13.2`.
 
 ## [0.2.2] — 2026-10-20
 
