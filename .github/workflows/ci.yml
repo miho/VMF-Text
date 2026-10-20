@@ -17,10 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-    # The Windows leg is provisional (cross-OS line-ending / path shakedown):
-    # keep it non-blocking until it is proven green, so it adds signal without
-    # gating the required build.
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     defaults:
       run:
         shell: bash

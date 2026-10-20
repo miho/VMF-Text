@@ -147,9 +147,11 @@ public class VMFTextPlugin implements Plugin<Project> {
 //                }
 //        )
 
+        // single-string notation: the map form (group:/name:/version:) is deprecated
+        // in Gradle 9 and removed in Gradle 10, and would warn in every consumer build
         project.dependencies {
-            implementation    group: 'eu.mihosoft.vmf', name: 'vmf-runtime',       version: extension.vmfVersion
-            implementation    group: 'org.antlr',       name: 'antlr4-runtime',    version: extension.antlrVersion
+            implementation "eu.mihosoft.vmf:vmf-runtime:${extension.vmfVersion}"
+            implementation "org.antlr:antlr4-runtime:${extension.antlrVersion}"
         }
 
         // load VMF class (depending on version)
