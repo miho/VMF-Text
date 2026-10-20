@@ -1,0 +1,21 @@
+// Experiment: grammars-v4 Python 3 grammar (combined by hand), unlabeled,
+// through VMF-Text with auto-labeling. See README.md for the findings.
+plugins {
+    id 'java'
+    id 'application'
+    id 'eu.mihosoft.vmftext' version '0.2.5-SNAPSHOT'
+}
+
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+
+repositories { mavenLocal(); mavenCentral() }
+
+vmfText {
+    vmfVersion   = '0.2.11'
+    antlrVersion = '4.13.2'
+    autoLabel    = true      // the point of the experiment: no manual labels
+}
+
+application { mainClass = project.findProperty('mainClass') ?: 'py3trial.Main' }
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }

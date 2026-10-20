@@ -13,6 +13,19 @@ All notable changes to VMF-Text are documented here.
   a fragment without surroundings. Actions and predicates are now stripped
   from the check rules (brace-aware, string-literal-safe); the model parser
   keeps them.
+- **A `tokens {}` / `channels {}` block or a named action before the first
+  parser rule no longer breaks grammar reading.** The bundled ANTLR grammar
+  lexer took the identifiers inside such a block for the start of a lexer rule,
+  so the first parser rule's injected `locals [...]` block was lexed as a
+  character set (`mismatched input '[...]' expecting BEGIN_ARGUMENT`; the
+  grammars-v4 Python 3 grammar declares `tokens { INDENT, DEDENT }`).
+- **Generation no longer dies with `Index 1 out of bounds for length 1` while
+  collecting the unparser rules.** The generator removed the parents of
+  labeled alternatives from the rule list by structural equality; VMF's
+  generated `equals` (≤ 0.2.11) indexes the second list with the first list's
+  size, so the first pair of alternatives with different element counts threw.
+  The generator now works by identity (the Python 3 grammar was the first to
+  hit this).
 
 ## [0.2.4] — 2026-10-20
 
