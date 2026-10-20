@@ -1,5 +1,4 @@
 import org.antlr.v4.tool.ErrorType
-import java.text.SimpleDateFormat
 
 buildscript {
 
@@ -14,7 +13,7 @@ buildscript {
     }
 
     dependencies {
-        classpath (group: 'org.antlr', name: 'antlr4', version: '4.13.2')
+        classpath 'org.antlr:antlr4:4.13.2'
 //        classpath group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
     }
 }
@@ -22,7 +21,6 @@ buildscript {
 
 plugins {
     id 'eu.mihosoft.vmf' version '0.2.10'
-    id 'com.github.hierynomus.license' version '0.14.0'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.4.0'
     id 'com.github.ben-manes.versions' version '0.13.0'
@@ -34,10 +32,8 @@ apply plugin: 'idea'
 ext.commonProps = new Properties()
 file(new File(projectDir.parentFile,"config/common.properties")).withInputStream { commonProps.load(it) }
 
+// also sets project group/version from config/common.properties
 apply from: 'gradle/publishing.gradle'
-
-group = publishingInfo.groupId
-version = publishingInfo.versionId
 
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
@@ -68,7 +64,7 @@ repositories {
 }
 
 wrapper {
-    gradleVersion = '9.0.0'
+    gradleVersion = '9.8.2'
 }
 
 
@@ -99,21 +95,21 @@ repositories {
 
 dependencies {
    
-    implementation (group: 'org.antlr', name: 'antlr4', version: '4.13.2')
+    implementation 'org.antlr:antlr4:4.13.2'
 
-    implementation group: 'eu.mihosoft.ext.velocity.legacy', name: 'velocity-legacy', version: '1.7.4'
+    implementation 'eu.mihosoft.ext.velocity.legacy:velocity-legacy:1.7.4'
 
-    implementation group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.2.10'
-    implementation group: 'eu.mihosoft.vmf', name: 'vmf-runtime', version: '0.2.10'
+    implementation 'eu.mihosoft.vmf:vmf:0.2.10'
+    implementation 'eu.mihosoft.vmf:vmf-runtime:0.2.10'
 
-    implementation group: 'org.mdkt.compiler', name: 'InMemoryJavaCompiler', version: '1.3.0'
-    implementation group: 'org.apache.groovy', name: 'groovy', version: '4.0.21'
+    implementation 'org.mdkt.compiler:InMemoryJavaCompiler:1.3.0'
+    implementation 'org.apache.groovy:groovy:4.0.21'
 
     // logging (build-time code generator; quiet by default, see tinylog.properties)
-    implementation group: 'org.tinylog', name: 'tinylog-api',  version: '2.7.0'
-    implementation group: 'org.tinylog', name: 'tinylog-impl', version: '2.7.0'
+    implementation 'org.tinylog:tinylog-api:2.7.0'
+    implementation 'org.tinylog:tinylog-impl:2.7.0'
 
-    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
+    testImplementation 'junit:junit:4.13.2'
 }
 
 class AntlrTool extends org.antlr.v4.Tool {
@@ -148,11 +144,15 @@ class AntlrTool extends org.antlr.v4.Tool {
     }
 }
 
+// ANTLR tool runs for the bundled grammars. Paths are resolved once, at
+// configuration time, so the doLast blocks never touch Task.project (deprecated
+// at execution time, removed in Gradle 10).
+def antlrSrcPath = file('src/main/resources/eu/mihosoft/vmf/vmftext/antlr').absolutePath
+def antlrGenDir  = layout.buildDirectory.dir('antlr4-src-gen').get().asFile
+
 task cleanAntlr {
     doLast {
-        new File("$buildDir/antlr4-src-gen/").listFiles().each {
-            f -> f.delete()
-        }
+        antlrGenDir.deleteDir()
     }
 }
 
@@ -160,10 +160,9 @@ clean.dependsOn('cleanAntlr')
 
 task antlr4 {
     doLast() {
-        def baseDir = projectDir.absolutePath
-        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def srcPath = antlrSrcPath
         def libPath = srcPath
-        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/antlr4"
+        def outPath = "${antlrGenDir}/eu/mihosoft/vmf/vmftext/grammar/antlr4"
         def grammarFile = srcPath + "/ANTLRv4Parser.g4"
         def grammarFileDep1 = srcPath + "/ANTLRv4Lexer.g4"
         def grammarFileDep2 = srcPath + "/LexBasic.g4"
@@ -179,10 +178,9 @@ task antlr4 {
     }
 
     doLast() {
-        def baseDir = projectDir.absolutePath
-        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def srcPath = antlrSrcPath
         def libPath = srcPath
-        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/java9"
+        def outPath = "${antlrGenDir}/eu/mihosoft/vmf/vmftext/grammar/java9"
         def grammarFile = srcPath + "/Java9.g4"
 
         AntlrTool.main(
@@ -195,10 +193,9 @@ task antlr4 {
     }
 
     doLast() {
-        def baseDir = projectDir.absolutePath
-        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def srcPath = antlrSrcPath
         def libPath = srcPath
-        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/typemapping"
+        def outPath = "${antlrGenDir}/eu/mihosoft/vmf/vmftext/grammar/typemapping"
         def grammarFile = srcPath + "/TypeMapping.g4"
 
         AntlrTool.main(
@@ -211,10 +208,9 @@ task antlr4 {
     }
 
     doLast() {
-        def baseDir = projectDir.absolutePath
-        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def srcPath = antlrSrcPath
         def libPath = srcPath
-        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/vmftextcomments"
+        def outPath = "${antlrGenDir}/eu/mihosoft/vmf/vmftext/grammar/vmftextcomments"
         def grammarFile = srcPath + "/VMFTextComments.g4"
 
         AntlrTool.main(
@@ -227,10 +223,9 @@ task antlr4 {
     }
 
     doLast() {
-        def baseDir = projectDir.absolutePath
-        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def srcPath = antlrSrcPath
         def libPath = srcPath
-        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/custommodeldef"
+        def outPath = "${antlrGenDir}/eu/mihosoft/vmf/vmftext/grammar/custommodeldef"
         def grammarFile = srcPath + "/CustomModelDefinitions.g4"
         def grammarFile2 = srcPath + "/Java9.g4"
 
@@ -246,10 +241,9 @@ task antlr4 {
 
 task antlr4test() {
     doLast() {
-        def baseDir = projectDir.absolutePath
-        def srcPath = baseDir + "/src/main/resources/eu/mihosoft/vmf/vmftext/antlr"
+        def srcPath = antlrSrcPath
         def libPath = srcPath
-        def outPath = "$buildDir/antlr4-src-gen/eu/mihosoft/vmf/vmftext/grammar/antlr4test"
+        def outPath = "${antlrGenDir}/eu/mihosoft/vmf/vmftext/grammar/antlr4test"
         def grammarFile = srcPath + "/GrammarVMF2.g4"
 
         AntlrTool.main(
@@ -280,37 +274,10 @@ jar {
 }
 
 
-// -------------------------------
-
-license {
-
-    header = rootProject.file('config/HEADER')
-    strictCheck = true
-    ignoreFailures = true
-
-    mapping {
-        java   = 'SLASHSTAR_STYLE'
-        groovy = 'SLASHSTAR_STYLE'
-        fxml   = 'XML_STYLE'
-    }
-
-    ext.yearCurrent  = new SimpleDateFormat("yyyy").format(new Date())
-    ext.yearSince1   = '2017'
-    ext.author1 = 'Michael Hoffer <info@michaelhoffer.de>'
-    ext.yearSince2   = '2017'
-    ext.author2 = 'Goethe Center for Scientific Computing, University Frankfurt'
-
-
-    include 'src/vmf/'
-
-    exclude '**/*.svg'
-
-}
-
 ext.vmfPluginIntelliJIntegration = true
 idea.module {
         dependencies {
-            implementation group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.2.10'
+            implementation 'eu.mihosoft.vmf:vmf:0.2.10'
         }
 }
 

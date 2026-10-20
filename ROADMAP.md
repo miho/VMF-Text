@@ -1,6 +1,6 @@
 # VMF-Text Roadmap
 
-*Last updated: 2026-09-17*
+*Last updated: 2026-10-20*
 
 VMF-Text occupies a niche no other framework covers: **a plain (labeled or
 auto-labeled) ANTLR4 grammar in → a rich, typed VMF model plus an exact
@@ -90,11 +90,18 @@ Small papercuts found during the 0.2.0 release, tracked in
   resolved for 0.2.1: fixing the `pluginMaven` GAV collision let
   `publishPlugins` sign and publish the plugin + marker directly from this
   build.
-- Verify the Plugin Portal listings once Gradle approves the group
-  migration (notification arrives by email) — still pending on Gradle's
-  side.
-- `publishPlugins` from a release tag still needs
-  `-Pgroup=eu.mihosoft.vmf -Pversion=<version>` — residual papercut.
+- ~~Verify the Plugin Portal listings once Gradle approves the group
+  migration~~ — both listings are live (`eu.mihosoft.vmftext` 0.2.1,
+  `eu.mihosoft.vmf` 0.2.11; checked 2026-10-20).
+- `publishPlugins` from a release tag needed
+  `-Pgroup=eu.mihosoft.vmf -Pversion=<version>` in 0.2.1. Since 0.2.2
+  `gradle/publishing.gradle` sets `group`/`version` before any plugin reads
+  them, so the flags should be unnecessary (they stay harmless) — confirm
+  during the 0.2.2 publish and drop them from the docs.
+- 0.2.1 shipped **without a plugin marker on Maven Central** (the Portal
+  marker also pointed at a `-portal` artifact that only the Portal hosts), so
+  Central-only resolution of the plugin only ever worked for 0.2.0. Fixed in
+  0.2.2 (see CHANGELOG); Central-only resolution is now a CI smoke test.
 
 ### Publishing prerequisites
 
@@ -117,24 +124,33 @@ sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft --no-daemon
 
 # 2) gradle-plugin → Maven Central + Plugin Portal
 cd ../gradle-plugin
-sh ./gradlew publishMavenJavaPublicationToMavenCentralRepository --no-daemon
+# publishes BOTH publications java-gradle-plugin creates: the plugin jar
+# (eu.mihosoft.vmf:vmf-text-gradle-plugin) and the plugin marker
+# (eu.mihosoft.vmftext:eu.mihosoft.vmftext.gradle.plugin) — 0.2.1 published
+# only the jar, which is why Central-only resolution broke
+sh ./gradlew publishAllPublicationsToMavenCentralRepository --no-daemon
 sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft --no-daemon
 sh ./gradlew publishPlugins --no-daemon
-# publishPlugins from a release tag currently needs
-#   -Pgroup=eu.mihosoft.vmf -Pversion=<version>
-# (residual papercut); the Central plugin marker is published by the
-# plugin build itself since 0.2.1
+# (-Pgroup=eu.mihosoft.vmf -Pversion=<version> was needed in 0.2.1 and should
+# no longer be; pass it only if publishPlugins reports 'unspecified')
 ```
+
+Rehearse first, without credentials for Central/Portal but with the signing
+key: `sh ./gradlew publishAllPublicationsToBuildDirRepository -Psigning.keyId=…
+-Psigning.password=… -Psigning.secretKeyRingFile=…` writes exactly what would
+be uploaded (jar, sources, javadoc, pom, module, marker pom — each with `.asc`)
+to `build/artifacts/` for inspection.
 
 ## Ship 0.2.2 (prep done — publish pending, [#29](https://github.com/miho/VMF-Text/issues/29))
 
 Model rewriting + option/robustness fixes, **plus** auto-naming polish and
 RuleMap token-bearing wrappers from [#33](https://github.com/miho/VMF-Text/pull/33)
-folded into this release (one Maven Central publish; no separate 0.2.3). Details:
+folded into this release (one Maven Central publish; no separate 0.2.3), **plus**
+the Maven Central plugin-marker fix and the Gradle 10 build cleanup. Details:
 [`CHANGELOG.md`](CHANGELOG.md), [`docs/releases/0.2.2.md`](docs/releases/0.2.2.md).
-Code is on `main`; draft GitHub release exists. The annotated tag `v0.2.2` still
-points at pre-#33 and must be moved to `main` tip before publish. Artifact
-publish needs the offline release credentials.
+Code is on `main`; draft GitHub release exists; the annotated tag `v0.2.2` is
+retargeted to the release commit on `main`. Only the artifact publish remains and
+it needs the offline release credentials.
 
 - [x] **Parser rule maps / model rewriting**
       ([#1](https://github.com/miho/VMF-Text/issues/1)) — `RuleMap()` flattens
@@ -169,15 +185,22 @@ publish needs the offline release credentials.
       to a Central-published version so `./gradlew run` works out of the box.)
 - [x] Release prep + #33 merged to `main`; CI green; GitHub release drafted
       ([#29](https://github.com/miho/VMF-Text/issues/29))
-- [ ] Retarget annotated tag `v0.2.2` to `main` tip (includes #33); refresh
-      draft release notes; close #30–#32
-- [ ] Full-chain validation green (`sh ./build-and-test-all.sh`; PR CI runs the
-      same chain on ubuntu + windows, plus the ArrayLang example from `mavenLocal`).
-- [ ] Publish `eu.mihosoft.vmf:vmf-text:0.2.2` +
-      `vmf-text-gradle-plugin:0.2.2` to Maven Central and the Gradle Plugin Portal
-      (plugin id `eu.mihosoft.vmftext` 0.2.2 + Central marker); publish the drafted
-      GitHub release. **Pending** — release credentials are offline (see
-      "Publishing prerequisites" / "Publish commands (reference)").
+- [x] **Maven Central plugin marker fix + Gradle 10 build cleanup** (2026-10-20)
+      — `pluginMaven` + marker published under the standard coordinates with
+      Central POM metadata (0.2.1 had no Central marker, see cleanup queue
+      above); Gradle 9.8.2 wrapper, deprecation-free build scripts, license
+      plugin removed, Windows CI leg required, Central-only CI smoke test.
+- [x] Retarget annotated tag `v0.2.2` to the release commit on `main`; refresh
+      draft release notes; close #30–#32 (closed 2026-09-17)
+- [x] Full-chain validation green (`sh ./build-and-test-all.sh` locally on
+      2026-10-20; PR CI runs the same chain on ubuntu + windows, plus the
+      ArrayLang example from `mavenLocal`).
+- [ ] Publish `eu.mihosoft.vmf:vmf-text:0.2.2`, `vmf-text-gradle-plugin:0.2.2`
+      **and** the marker `eu.mihosoft.vmftext:eu.mihosoft.vmftext.gradle.plugin:0.2.2`
+      to Maven Central, the plugin to the Gradle Plugin Portal (plugin id
+      `eu.mihosoft.vmftext` 0.2.2); smoke-test Central-only resolution; publish
+      the drafted GitHub release. **Pending** — release credentials are offline
+      (see "Publishing prerequisites" / "Publish commands (reference)").
 
 ## Phase 1 — Prove the differentiator (delivered)
 
@@ -268,6 +291,15 @@ reconstruction. Round-trip is byte-exact for transparent wrapper rules; see
 [#33](https://github.com/miho/VMF-Text/pull/33)) is part of this same 0.2.2
 ship.
 
+## After 0.2.2 (queue)
+
+- Bump VMF to `0.2.11`+ (released 2026-07-26: error-message and vmf-jackson /
+  JSON-schema fixes). VMF's own Gradle 10 fixes (VMF #79) are merged upstream
+  but not yet released; picking them up removes the last deprecation warning in
+  the `core` build.
+- Lexical preservation and grammar features — next focus (see "Explicitly
+  deferred" above and `LEXICAL_PRESERVATION_ASSESSMENT.md`).
+
 ## Non-goals
 
 - Competing with Xtext/Langium on bundled IDE/editor tooling.
@@ -278,8 +310,9 @@ ship.
 
 Shipped 2026-07-12: https://github.com/miho/VMF-Text/releases/tag/v0.2.0
 
-Consumption (works from Maven Central alone; the Portal listing is pending
-approval and optional):
+Consumption (works from Maven Central alone for 0.2.0 and 0.2.2+ — 0.2.1
+needs `gradlePluginPortal()`, see the cleanup queue; the Portal listing is live
+and optional):
 
 ```gradle
 // settings.gradle

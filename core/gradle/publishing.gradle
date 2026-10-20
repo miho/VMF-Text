@@ -8,26 +8,17 @@ ext.publishingInfo.pomName =  ext.publishingInfo.artifactId
 apply from: "gradle/project-info.gradle"
 apply plugin: 'signing'
 
+// Project coordinates come from config/common.properties (via project-info).
+// They are set here, *before* the jar manifest and the publications below are
+// configured, so every artifact and manifest carries the real version (the
+// 0.2.1 jars shipped with "Implementation-Version: unspecified" because the
+// build script only set them after this file had been applied).
+group   = publishingInfo.groupId
+version = publishingInfo.versionId
+
 // -----------------------------------------------------------------------------
 // Performs publishing
 // -----------------------------------------------------------------------------
-
-//task javadocJar(type: Jar, dependsOn: javadoc) {
-//    archiveClassifier  = 'javadoc'
-//    from javadoc.destinationDir
-//}
-//
-//// create one jar for the source files
-//task sourcesJar(type: Jar, dependsOn: classes) {
-//    archiveClassifier  = 'sources'
-//    from sourceSets.main.allSource
-//}
-//
-//artifacts {
-//    archives jar
-//    archives javadocJar
-//    archives sourcesJar
-//}
 
 Date buildTimeAndDate = new Date()
 ext {
@@ -51,82 +42,60 @@ jar {
     }
 }
 
-
-def pomConfig = {
-    name ext.publishingInfo.pomName
-    description ext.publishingInfo.desc
-    url ext.publishingInfo.websiteUrl
-    inceptionYear ext.publishingInfo.inceptionYear
-    licenses {
-        license([:]) {
-            name ext.publishingInfo.license
-            url ext.publishingInfo.licenseUrl
-            distribution 'repo'
-        }
-    }
-    scm {
-        url ext.publishingInfo.vcsUrl
-        connection ext.publishingInfo.vcsUrl
-        developerConnection ext.publishingInfo.vcsUrl
-    }
-    developers {
-        developer {
-            id ext.publishingInfo.developerNameAlias
-            name ext.publishingInfo.developerName
-        }
-    }
-}
-
-
-
-// This replaces the old manual `javadocJar` and `sourcesJar` tasks.
+// Sources and javadoc jars are part of components.java; Maven Central and the
+// Gradle Plugin Portal both require them.
 java {
     withJavadocJar()
     withSourcesJar()
 }
 
-// REMOVED: The old manual tasks for javadocJar, sourcesJar, and the `artifacts {}`
-// block are no longer needed with the modern `java` component configuration above.
+// Maven Central rejects POMs without url/license/developer/scm metadata. This is
+// applied to *every* publication that leaves this build (library jar, plugin jar
+// and plugin marker alike).
+def centralPomMetadata = { org.gradle.api.publish.maven.MavenPom pom ->
+    pom.url = publishingInfo.websiteUrl
+    pom.inceptionYear = publishingInfo.inceptionYear
+    pom.licenses {
+        license {
+            name = publishingInfo.license
+            url = publishingInfo.licenseUrl
+            distribution = 'repo'
+        }
+    }
+    pom.developers {
+        developer {
+            id = publishingInfo.developerAlias
+            name = publishingInfo.developerName
+            email = publishingInfo.developerEmail
+        }
+    }
+    pom.scm {
+        url = publishingInfo.vcsUrl
+        connection = publishingInfo.vcsUrl
+        developerConnection = publishingInfo.vcsUrl
+    }
+}
+
+def isGradlePluginBuild = project.plugins.hasPlugin('java-gradle-plugin')
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {
-            // Read basic coordinates from your project-info.gradle
-            groupId publishingInfo.groupId
-            artifactId publishingInfo.artifactId
-            version publishingInfo.versionId
+        // Library builds (core): one hand-configured publication, 'mavenJava'.
+        // -> publishMavenJavaPublicationTo<Repository>Repository
+        if (!isGradlePluginBuild) {
+            mavenJava(MavenPublication) {
+                groupId = publishingInfo.groupId
+                artifactId = publishingInfo.artifactId
+                version = publishingInfo.versionId
 
-            // Tell Gradle to publish the components of the 'java' project.
-            // This automatically includes the main JAR, sources JAR, and javadoc JAR.
-            from components.java
+                // main JAR + sources JAR + javadoc JAR
+                from components.java
 
-            // NEW: Modern POM configuration using the standard DSL.
-            // This is much cleaner than the old `pom.withXml` and `pomConfig` closure.
-            pom {
-                name = publishingInfo.pomName
-                description = publishingInfo.desc
-                url = publishingInfo.websiteUrl
-                inceptionYear = publishingInfo.inceptionYear
-
-                licenses {
-                    license {
-                        name = publishingInfo.license
-                        url = publishingInfo.licenseUrl
-                        distribution = 'repo'
-                    }
+                pom {
+                    name = publishingInfo.pomName
+                    description = publishingInfo.desc
                 }
-                developers {
-                    developer {
-                        id = publishingInfo.developerAlias
-                        name = publishingInfo.developerName
-                        email = publishingInfo.developerEmail
-                    }
-                }
-                scm {
-                    url = publishingInfo.vcsUrl
-                    connection = publishingInfo.vcsUrl
-                    developerConnection = publishingInfo.vcsUrl
-                }
+                centralPomMetadata(pom)
             }
         }
     }
@@ -134,7 +103,7 @@ publishing {
     repositories {
         // --------------------------------------------------------------------------------
         // Destination Repository 'GitHubPackages'
-        // -> call task 'publishMavenJavaPublicationToGitHubPackagesRepository' to publish
+        // -> call task 'publishAllPublicationsToGitHubPackagesRepository' to publish
         // --------------------------------------------------------------------------------
         maven {
             name = "GitHubPackages"
@@ -158,20 +127,11 @@ publishing {
         }
 
         // --------------------------------------------------------------------------------
-        // Destination Repository 'OSSRH'
-        // telling gradle to publish artifact to local directory
-        // -> call task 'publishMavenJavaPublicationToOSSRHRepository' to publish
-        // -> go to https://oss.sonatype.org/#stagingRepositories, click 'close', drink coffee and then click 'release'
-        //    if closing was successful
+        // Destination Repository 'MavenCentral' (Central Portal, OSSRH-compatible
+        // staging API)
+        // -> call task 'publishAllPublicationsToMavenCentralRepository', then
+        //    'releaseToCentralPortal' (below) to hand the staging repo off to the Portal
         // --------------------------------------------------------------------------------
-//        maven {
-//            name = "OSSRH"
-//            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-//            credentials {
-//                username = project.findProperty("oss.user") ?: System.getenv("OSS_USERNAME")
-//                password = project.findProperty("oss.pwd") ?: System.getenv("OSS_PWD")
-//            }
-//        }
         maven {
             name = "MavenCentral"
 
@@ -188,32 +148,46 @@ publishing {
 
         // --------------------------------------------------------------------------------
         // Destination Repository 'BuildDir'
-        // telling gradle to publish artifact to local directory
-        // -> call task 'publishMavenJavaPublicationToBuildDirRepository' to publish
+        // telling gradle to publish artifact to local directory (build/artifacts) --
+        // useful to inspect exactly what a (signed) publish would upload
+        // -> call task 'publishAllPublicationsToBuildDirRepository' to publish
         // --------------------------------------------------------------------------------
         maven {
             name = "BuildDir"
-            url "file:/${buildDir}/artifacts"
+            url = uri(layout.buildDirectory.dir('artifacts').get().asFile)
         }
     }
+}
 
-
-//    publications {
-//        mavenJava(MavenPublication) {
-//            groupId publishingInfo.groupId
-//            artifactId publishingInfo.artifactId
-//            version publishingInfo.versionId
-//            from components.java
-//            artifact sourcesJar
-//            artifact javadocJar
-//
-//            pom.withXml {
-//                def root = asNode()
-//                root.appendNode 'description', publishingInfo.desc
-//                root.children().last() + pomConfig
-//            }
-//        }
-//    }
+// Gradle-plugin builds (gradle-plugin): java-gradle-plugin creates the
+// publications itself, lazily, after this script body has run:
+//   - 'pluginMaven'                    the plugin jar (from components.java)
+//   - '<pluginName>PluginMarkerMaven'  one marker POM per declared plugin id
+//                                      (eu.mihosoft.vmftext:eu.mihosoft.vmftext.gradle.plugin)
+// Both go to Maven Central *and* to the Plugin Portal, so they get the
+// publishingInfo coordinates and the Central POM metadata here. The marker POM
+// declares a dependency on pluginMaven's coordinates, which is why pluginMaven
+// must keep the standard artifactId: 0.2.1 renamed it to '<artifactId>-portal' to
+// dodge a collision with a separate 'mavenJava' publication, and as a result the
+// marker pointed at an artifact that only existed on the Portal, never on
+// Central (no Central marker was published at all). Central-only resolution of
+// `plugins { id "eu.mihosoft.vmftext" }` therefore only worked for 0.2.0.
+if (isGradlePluginBuild) {
+    publishing.publications.configureEach { pub ->
+        if (pub.name == 'pluginMaven') {
+            pub.groupId = publishingInfo.groupId
+            pub.artifactId = publishingInfo.artifactId
+            pub.version = publishingInfo.versionId
+            pub.pom { org.gradle.api.publish.maven.MavenPom p ->
+                p.name = publishingInfo.pomName
+                p.description = publishingInfo.desc
+            }
+            centralPomMetadata(pub.pom)
+        } else if (pub.name.endsWith('PluginMarkerMaven')) {
+            // name/description come from the gradlePlugin { } declaration
+            centralPomMetadata(pub.pom)
+        }
+    }
 }
 
 if(
@@ -223,6 +197,7 @@ if(
 ) {
 
     signing {
+        // signs every publication, including the ones java-gradle-plugin adds later
         sign publishing.publications
     }
 

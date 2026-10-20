@@ -1,7 +1,10 @@
+// Deliberately Maven Central ONLY (no gradlePluginPortal()): this showcase doubles
+// as CI's smoke test of the published artifacts, and it must prove that the plugin
+// marker (eu.mihosoft.vmftext:eu.mihosoft.vmftext.gradle.plugin) and the plugin
+// itself resolve from Central without the Plugin Portal as a fallback.
 pluginManagement {
     repositories {
         mavenCentral()
-        gradlePluginPortal()
     }
 }
 

@@ -4,12 +4,14 @@ All notable changes to VMF-Text are documented here.
 
 ## [Unreleased]
 
-## [0.2.2] — 2026-09-17
+## [0.2.2] — 2026-10-20
 
 Parser rule maps (model rewriting), fail-fast code generation and quieter
 tinylog-based logging, option/robustness fixes, plus auto-naming polish and
 byte-exact RuleMap token-bearing wrappers ([#33](https://github.com/miho/VMF-Text/pull/33)
-folded into this release — one Maven Central publish).
+folded into this release — one Maven Central publish). Also repairs the Gradle
+plugin's Maven Central publication (the 0.2.1 plugin only resolved via the
+Plugin Portal) and makes the builds Gradle 10-clean.
 
 ### Added
 
@@ -68,6 +70,22 @@ folded into this release — one Maven Central publish).
   emitted on every `generate()`.
 - **ROADMAP sync** (#30 / #33) — Phase 2 items delivered in 0.2.1 are marked
   done; #31/#32 folded into this release rather than a separate 0.2.3.
+- **Build: Gradle 9.8.2 wrapper (was 9.0.0) and Gradle 10-clean build scripts** —
+  `prop = value` assignment, `layout.buildDirectory` instead of `buildDir`,
+  single-string dependency notation, and no `Task.project` access inside
+  `doLast`. `sh ./gradlew help --warning-mode all` is clean in all three builds;
+  the one remaining warning during a `core` build comes from the VMF `0.2.10`
+  Gradle plugin (already fixed upstream, not yet released).
+- **Build: `com.github.hierynomus.license` plugin removed** from `core`,
+  `gradle-plugin` and `test-suite` — unmaintained, ran with
+  `ignoreFailures = true` (so it checked nothing) and breaks under Gradle 10
+  (VMF #86). License headers stay in the sources; `core/config/HEADER` remains
+  as the template.
+- **CI: the Windows leg is required** (was `continue-on-error`; it has been
+  green on every run since July), and the `examples/java24-roundtrip` job
+  resolves the published artifacts from Maven Central **only** (no
+  `gradlePluginPortal()` fallback), so a missing or broken Central plugin
+  marker fails CI.
 
 ### Fixed
 
@@ -82,13 +100,35 @@ folded into this release — one Maven Central publish).
 - **Gradle plugin loads under a Gradle daemon on JDK 17** — the plugin's Groovy
   is now compiled to Java 11 bytecode (was Java 21, which a Gradle running on
   JDK 17 could not load); Groovy also bumped `2.4.12` → `4.0.21`.
+- **Gradle plugin marker is published to Maven Central again** — 0.2.1 shipped
+  no `eu.mihosoft.vmftext:eu.mihosoft.vmftext.gradle.plugin` marker on Central
+  (only 0.2.0 is there), and the marker that went to the Plugin Portal pointed
+  at a renamed `vmf-text-gradle-plugin-portal` artifact that exists nowhere
+  else, so `plugins { id "eu.mihosoft.vmftext" version "0.2.1" }` only resolved
+  through `gradlePluginPortal()`. The plugin build now publishes the
+  publications `java-gradle-plugin` creates (`pluginMaven` + the marker) to
+  Central *and* the Portal under the standard
+  `eu.mihosoft.vmf:vmf-text-gradle-plugin` coordinates, with the POM metadata
+  Central requires; the hand-written `mavenJava` publication and the `-portal`
+  rename are gone (`gradle-plugin/gradle/publishing.gradle`). Verified with a
+  signed publish rehearsal (`publishAllPublicationsToBuildDirRepository`) and a
+  consumer that resolves plugin + marker from plain Maven repositories only.
+- **Jar manifests carry the real version** — `Implementation-Version` and
+  `Specification-Version` read `unspecified` in the 0.2.1 jars because the
+  project version was assigned after the manifest had been configured; the
+  version now comes from `config/common.properties` before anything reads it.
+- **The plugin no longer causes Gradle 10 deprecation warnings in consumer
+  builds** — the runtime dependencies it adds (`vmf-runtime`, `antlr4-runtime`)
+  use single-string notation instead of the deprecated `group:/name:/version:`
+  map form.
 
 ### Publish (pending)
 
 To be published to Maven Central as `eu.mihosoft.vmf:vmf-text:0.2.2` and
-`eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.2`, and to the Gradle Plugin Portal
-(plugin id `eu.mihosoft.vmftext` version `0.2.2`, incl. the Central marker), then
-tagged `v0.2.2` (retargeted to `main` tip including #33) with a GitHub release.
+`eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.2` plus the plugin marker
+`eu.mihosoft.vmftext:eu.mihosoft.vmftext.gradle.plugin:0.2.2`, and to the Gradle
+Plugin Portal (plugin id `eu.mihosoft.vmftext` version `0.2.2`), then tagged
+`v0.2.2` (retargeted to the release commit on `main`) with a GitHub release.
 VMF stays `0.2.10`, ANTLR `4.13.2`. Release credentials are held offline — see
 the ROADMAP "Publishing prerequisites" and "Publish commands (reference)".
 
