@@ -13,8 +13,8 @@ Runnable lexical-preservation showcases. Prefer **0.2.1+** from Maven Central
 | 6 | [`json-list-edit`](json-list-edit) | Model-typed JSON array parent-trivia splice |
 | 7 | [`multilist-hints`](multilist-hints) | Two lists on one rule via codegen `ListShapeHint` |
 | 8 | [`list-separators`](list-separators) | `separatorCount`: `',' 'and'` and separator-less `ID (ID)*` |
-| 9 | [`java8-roundtrip`](java8-roundtrip) | Nested Java 8 model edits (Central **0.2.0**) |
-| 10 | [`java24-roundtrip`](java24-roundtrip) | Java 24 method rename (Central **0.2.0**) |
+| 9 | [`java8-roundtrip`](java8-roundtrip) | Nested Java 8 model edits (Central **0.2.2**) |
+| 10 | [`java24-roundtrip`](java24-roundtrip) | Java 24 method rename (Central **0.2.2**) |
 
 Run any example with:
 

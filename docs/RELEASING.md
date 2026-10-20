@@ -71,9 +71,11 @@ Mirrors
 # 1) core → Maven Central
 cd core
 sh ./gradlew publishMavenJavaPublicationToMavenCentralRepository --no-daemon
-sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft --no-daemon
-# then press "Publish" on https://central.sonatype.com/publishing/deployments
-# (or pass -PpublishingType=automatic to skip the manual click)
+# look up the open staging repository key first (see below) and pass it:
+sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft \
+  -PrepositoryKey=<key> -PpublishingType=automatic --no-daemon
+# (omit -PpublishingType to review + press "Publish" on
+#  https://central.sonatype.com/publishing/deployments instead)
 
 # 2) gradle-plugin → Maven Central + Plugin Portal
 cd ../gradle-plugin
@@ -82,10 +84,32 @@ cd ../gradle-plugin
 sh ./gradlew publishAllPublicationsToMavenCentralRepository --no-daemon
 sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft --no-daemon
 sh ./gradlew publishPlugins --no-daemon
-# -Pgroup=eu.mihosoft.vmf -Pversion=<version> was required in 0.2.1; since 0.2.2
-# group/version are set before any plugin reads them, so pass the flags only if
-# publishPlugins reports 'unspecified'
+# (no -Pgroup/-Pversion flags needed since 0.2.2 — group/version come from
+#  config/common.properties before any plugin reads them)
 ```
+
+**Staging repository key.** The `releaseToCentralPortal` fallback that hands off
+the namespace's *default* repository failed with `HTTP 400` for release
+uploads in 0.2.1, so always pass the key explicitly. Find it with the same
+token (Bearer = base64 of `mavenCentralUsername:mavenCentralPassword`):
+
+```
+GET https://ossrh-staging-api.central.sonatype.com/manual/search/repositories?state=open
+→ {"repositories":[{"key":"<key>","state":"open","portal_deployment_id":…}]}
+```
+
+The default slot is reused for the next module, so repeat the lookup before
+**each** hand-off. After the hand-off the entry moves to `state=released` and
+carries the `portal_deployment_id`; the authoritative state and the exact
+purls of a deployment come from
+
+```
+POST https://central.sonatype.com/api/v1/publisher/status?id=<portal_deployment_id>
+→ {"deploymentState":"PUBLISHING|PUBLISHED|FAILED","purls":[…],"errors":{}}
+```
+
+`PUBLISHING` can last a while; `repo1.maven.org` serves the files some minutes
+after `PUBLISHED`.
 
 ## 4. Tag + GitHub release
 

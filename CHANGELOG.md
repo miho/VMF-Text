@@ -122,15 +122,14 @@ Plugin Portal) and makes the builds Gradle 10-clean.
   use single-string notation instead of the deprecated `group:/name:/version:`
   map form.
 
-### Publish (pending)
+### Publish
 
-To be published to Maven Central as `eu.mihosoft.vmf:vmf-text:0.2.2` and
-`eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.2` plus the plugin marker
-`eu.mihosoft.vmftext:eu.mihosoft.vmftext.gradle.plugin:0.2.2`, and to the Gradle
-Plugin Portal (plugin id `eu.mihosoft.vmftext` version `0.2.2`), then tagged
-`v0.2.2` (retargeted to the release commit on `main`) with a GitHub release.
-VMF stays `0.2.10`, ANTLR `4.13.2`. Release credentials are held offline — see
-the ROADMAP "Publishing prerequisites" and "Publish commands (reference)".
+Published 2026-10-20 to Maven Central: `eu.mihosoft.vmf:vmf-text:0.2.2`,
+`eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.2` and the plugin marker
+`eu.mihosoft.vmftext:eu.mihosoft.vmftext.gradle.plugin:0.2.2` (so
+`mavenCentral()` alone resolves the plugin again); Gradle Plugin Portal: plugin
+id `eu.mihosoft.vmftext` version `0.2.2`. VMF stays `0.2.10`, ANTLR `4.13.2`.
+Tag: [v0.2.2](https://github.com/miho/VMF-Text/releases/tag/v0.2.2).
 
 ## [0.2.1] — 2026-07-17
 
