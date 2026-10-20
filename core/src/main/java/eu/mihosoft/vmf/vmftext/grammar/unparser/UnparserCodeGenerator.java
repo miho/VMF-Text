@@ -101,10 +101,14 @@ public class UnparserCodeGenerator {
             String aName = parentName + "Alt"+a.getAltId();
 
             // filter alt name elements (have to be removed to produce a valid grammar)
+            // and actions / semantic predicates (#48): the check rules only validate
+            // the shape of the text an alternative produced; a predicate that looks
+            // outside the fragment (previous token, symbol table) would be evaluated
+            // against a fragment that has no surroundings.
             String aText = a.getElements().stream().filter(e->!e.getText().
-                    startsWith("#")).map(e->e.getText() + " ").collect(Collectors.joining());
+                    startsWith("#")).filter(e->!e.isAction()).map(e->e.getText() + " ").collect(Collectors.joining());
 
-            aText = VMFText.stripInjectedActions(aText);
+            aText = UPRuleUtil.stripActionsAndPredicates(VMFText.stripInjectedActions(aText));
 
             w.append(aName+": ").append(aText + " " + (aText.endsWith("EOF")?"":"EOF")+" ;\n");
 
@@ -121,7 +125,7 @@ public class UnparserCodeGenerator {
 
                 String eText = e.getText(); // TODO 27.12.2017 maybe simplify expression by removing all labels and substitute sub-rules?
 
-                eText = VMFText.stripInjectedActions(eText);
+                eText = UPRuleUtil.stripActionsAndPredicates(VMFText.stripInjectedActions(eText));
 
                 w.append(srName+": ").append(eText+";\n");
 

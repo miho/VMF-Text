@@ -4,6 +4,16 @@ All notable changes to VMF-Text are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The unparser check rules no longer copy actions and semantic predicates**
+  (#48). The generated `<Grammar>ModelUnparserGrammar.g4` validates the text an
+  alternative produced, fragment by fragment; a predicate that looks outside
+  the fragment (`here(LineTerminator)`, a symbol table) was evaluated against
+  a fragment without surroundings. Actions and predicates are now stripped
+  from the check rules (brace-aware, string-literal-safe); the model parser
+  keeps them.
+
 ## [0.2.4] — 2026-10-20
 
 Mixed-mode formatting for programmatic elements (#40) and the two core fixes
