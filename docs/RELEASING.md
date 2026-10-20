@@ -47,6 +47,21 @@ sh ./build-and-test-all.sh   # mirrors CI: core → gradle-plugin → test-suite
 CI runs the same chain on ubuntu + windows, plus the ArrayLang example resolved
 from `mavenLocal`. Do not publish unless this is green on the release commit.
 
+Then rehearse the publish itself with the signing key but without Central /
+Portal credentials — in `core` and in `gradle-plugin`:
+
+```bash
+sh ./gradlew publishAllPublicationsToBuildDirRepository \
+  -Psigning.keyId=… -Psigning.password=… -Psigning.secretKeyRingFile=… --no-daemon
+```
+
+`build/artifacts/` then holds exactly what would be uploaded. For the plugin
+that must be `eu/mihosoft/vmf/vmf-text-gradle-plugin/<version>/` (jar, sources,
+javadoc, pom, module) **and**
+`eu/mihosoft/vmftext/eu.mihosoft.vmftext.gradle.plugin/<version>/` (the marker
+pom, depending on `vmf-text-gradle-plugin`), every file with an `.asc`. No
+`-portal` artifact may appear (that was the 0.2.1 defect).
+
 ## 3. Publish artifacts (needs the offline credentials)
 
 Mirrors
@@ -62,11 +77,14 @@ sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft --no-daemon
 
 # 2) gradle-plugin → Maven Central + Plugin Portal
 cd ../gradle-plugin
-sh ./gradlew publishMavenJavaPublicationToMavenCentralRepository --no-daemon
+# publishes the plugin jar AND the plugin marker (both created by
+# java-gradle-plugin) — never publish only 'mavenJava'/the jar
+sh ./gradlew publishAllPublicationsToMavenCentralRepository --no-daemon
 sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft --no-daemon
 sh ./gradlew publishPlugins --no-daemon
-# publishPlugins from a release tag currently needs:
-#   -Pgroup=eu.mihosoft.vmf -Pversion=<version>
+# -Pgroup=eu.mihosoft.vmf -Pversion=<version> was required in 0.2.1; since 0.2.2
+# group/version are set before any plugin reads them, so pass the flags only if
+# publishPlugins reports 'unspecified'
 ```
 
 ## 4. Tag + GitHub release
@@ -87,7 +105,10 @@ GitHub release only once the Central + Portal artifacts resolve.
 - Central: `eu.mihosoft.vmf:vmf-text:<version>` and
   `…:vmf-text-gradle-plugin:<version>` visible on `repo1.maven.org`.
 - Plugin marker resolves — `plugins { id "eu.mihosoft.vmftext" version "<version>" }`
-  from a clean consumer with `mavenCentral()` in `pluginManagement`.
+  from a clean consumer whose `pluginManagement` lists `mavenCentral()` **only**
+  (no `gradlePluginPortal()` fallback — that fallback hid the missing 0.2.1
+  marker). `repo1.maven.org` must show
+  `eu/mihosoft/vmftext/eu.mihosoft.vmftext.gradle.plugin/<version>/`.
 - Plugin Portal listing approved (secondary channel; can lag Gradle's review).
 - Smoke-test a clean consumer project against Central-only resolution.
 
@@ -96,6 +117,10 @@ GitHub release only once the Central + Portal artifacts resolve.
 - Flip the `CHANGELOG.md` entry's "Publish (pending)" note to "Published"
   (coordinates + tag link), mirroring the previous release entry.
 - Check off the ROADMAP "Ship &lt;version&gt;" boxes.
+- Bump the plugin pin in `examples/java8-roundtrip` and
+  `examples/java24-roundtrip` (CI's Central-only smoke test of the published
+  artifacts) and the `examples/README.md` table to the new version; CI must stay
+  green.
 - Close the release tracking issue.
 - Delete the merged `release/<version>` branch (local + `origin`); the tag
   preserves the commit.
