@@ -4,6 +4,15 @@ All notable changes to VMF-Text are documented here.
 
 ## [Unreleased]
 
+## [0.2.4] — 2026-10-20
+
+Mixed-mode formatting for programmatic elements (#40) and the two core fixes
+from the second unlabeled grammars-v4 trial, the ECMAScript grammar
+([`experiments/js-grammar-trial`](experiments/js-grammar-trial/README.md)):
+semantic predicates survive the grammar rewrites and a nested `EOF` keeps its
+trailing hidden text. All 15 JavaScript snippets round-trip byte-exact; the C
+trial is unchanged at 27 of 32.
+
 ### Added
 
 - **Mixed-mode formatting for programmatic elements** (#40) — the
@@ -54,6 +63,17 @@ regression grammar `asi`.
   reference to the new `Formatter.eof(...)` hook; the default formatter emits
   the recorded hidden text for parsed elements and nothing for programmatic
   ones (custom formatters: no-op default).
+
+### Publish
+
+**GitHub release only** — tag [v0.2.4](https://github.com/miho/VMF-Text/releases/tag/v0.2.4)
+with a signed Maven-repository archive (`vmf-text-0.2.4-maven-repo.zip`:
+`eu.mihosoft.vmf:vmf-text:0.2.4`, `eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.4`
+and the plugin marker) attached. Not published to Maven Central or the Plugin
+Portal: the monthly release budget is shared across all `eu.mihosoft` projects
+(see `docs/RELEASING.md`). The same content is available as `0.2.4-SNAPSHOT`
+on the Central snapshot repository (90-day retention). The latest version on
+Maven Central remains 0.2.2. VMF `0.2.11`, ANTLR `4.13.2`.
 
 ## [0.2.3] — 2026-10-20
 

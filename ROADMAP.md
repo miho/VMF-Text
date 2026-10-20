@@ -141,6 +141,17 @@ key: `sh ./gradlew publishAllPublicationsToBuildDirRepository -Psigning.keyId=â€
 be uploaded (jar, sources, javadoc, pom, module, marker pom â€” each with `.asc`)
 to `build/artifacts/` for inspection.
 
+## Ship 0.2.4 (GitHub release 2026-10-20, not on Maven Central)
+
+Mixed-mode formatting (#40) and the JavaScript-trial fixes (#49: semantic
+predicates survive the grammar rewrites, a nested `EOF` keeps its trailing
+trivia). Released as
+[v0.2.4](https://github.com/miho/VMF-Text/releases/tag/v0.2.4) with a signed
+Maven-repository archive attached; again **not** published to Maven Central
+(shared monthly release budget). The same content is on the Central snapshot
+repository as `0.2.4-SNAPSHOT`; `main` continues as `0.2.5-SNAPSHOT`.
+Checklist: [`docs/releases/0.2.4.md`](docs/releases/0.2.4.md).
+
 ## Ship 0.2.3 (GitHub release 2026-10-20, not on Maven Central)
 
 The C-trial batch: `X+` lists, lifted block alternatives (auto-labeled and
