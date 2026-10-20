@@ -13,9 +13,10 @@ brackets, and the grammars-v4 grammar is split into lexer and parser
 grammars with base classes. What does VMF-Text need to round-trip real
 Python byte-exact, and what is left for programmatic editing?
 
-**Short answer.** Round-tripping works once four core defects were fixed and
-the grammar was combined by hand (the split form needs
-[#39](https://github.com/miho/VMF-Text/issues/39)). All 28 sample files
+**Short answer.** Round-tripping works once four core defects were fixed;
+since [#39](https://github.com/miho/VMF-Text/issues/39) the grammars-v4 files
+are used as they are (lexer grammar + parser grammar), with an adapted lexer
+base class. All 28 sample files
 that ship with the grammar (CPython's `asyncio` package, 389 KB) and all 23
 snippets come back byte-exact; parsing never fails. Every mismatch
 on the way was a VMF-Text defect, none a limitation of the approach. For
@@ -40,27 +41,32 @@ need their `NEWLINE`/`INDENT`/`DEDENT` values set by the caller.
   `Python3Parser.g4` with `superClass = Python3ParserBase` and
   `tokenVocab = Python3Lexer`; 119 parser rules, 100 lexer rules, 5
   semantic predicates.
-- Combined by hand into [`src/main/vmf-text/py3trial/Python3.g4`](src/main/vmf-text/py3trial/Python3.g4)
-  by [`combine-python3.py`](combine-python3.py) (run it against a checkout
-  of the two grammar files and the Java base class), because a combined
-  grammar is what VMF-Text consumes today:
-  - the parser base (two constant predicates) and the lexer base are
-    inlined as `@parser::members` / `@lexer::members`;
-  - the inlined lexer base gives its synthesized tokens **exact character
-    ranges** (`NEWLINE` = the line-break characters, `INDENT` = the
-    indentation, `DEDENT` = empty, the virtual `NEWLINE`/`DEDENT` of an
-    unterminated file = empty at the end of input) — the upstream
-    `commonToken()` derives bogus ranges from the text length, which
-    lexical preservation cannot live with;
-  - text the upstream lexer *skips* (`SKIP_`: whitespace, comments, line
-    joining) goes to the hidden channel, and so does what `onNewLine()`
-    used to `skip()`: blank lines, newlines inside brackets, same-level
-    indentation and the remainder after `DEDENT`s. The token stream is
-    lossless;
-  - `INDENT` / `DEDENT` are referenced as `Python3Parser.INDENT` etc.:
-    ANTLR does not copy a combined grammar's `tokens {}` block into the
-    implicit lexer;
-  - metadata `AutoLabel(enabled=true)`, `Root(rule=file_input)`.
+- Used as the split pair they are
+  ([`src/main/vmf-text/py3trial/Python3Lexer.g4`](src/main/vmf-text/py3trial/Python3Lexer.g4),
+  [`Python3Parser.g4`](src/main/vmf-text/py3trial/Python3Parser.g4)): the
+  parser grammar is the input, the lexer comes in through `tokenVocab`
+  ([#39](https://github.com/miho/VMF-Text/issues/39)). Three adaptations:
+  - the lexer grammar's `SKIP_` rule goes to the hidden channel instead of
+    being skipped (one line) — whitespace, comments and line joining must
+    reach the token stream;
+  - [`Python3LexerBase.java`](src/main/java/py3trial/parser/Python3LexerBase.java)
+    (the `superClass` of the lexer, in the generated lexer's package) gives
+    its synthesized tokens **exact character ranges** (`NEWLINE` = the
+    line-break characters, `INDENT` = the indentation, `DEDENT` = empty, the
+    virtual `NEWLINE`/`DEDENT` of an unterminated file = empty at the end of
+    input — the upstream `commonToken()` derives bogus ranges from the text
+    length), and emits what `onNewLine()` used to `skip()` as hidden-channel
+    tokens: blank lines, newlines inside brackets, same-level indentation
+    and the remainder after `DEDENT`s. The token stream is lossless;
+  - `Python3ParserBase.java` (two constant predicates) in the parser package
+    and, as for any parser `superClass`, in the unparser's `antlr4` package;
+  - metadata `AutoLabel(enabled=true)`, `Root(rule=file_input)` appended to
+    the parser grammar.
+  The first run used a hand-combined grammar instead
+  ([`combine-python3.py`](combine-python3.py), kept for reference); the
+  combined route additionally had to refer to `INDENT`/`DEDENT` through the
+  parser class, because ANTLR does not copy a combined grammar's `tokens {}`
+  block into the implicit lexer.
 - Samples: the grammar's test inputs `small/` and `large/` (28 distinct
   files, CPython's `asyncio` package, 389 KB); not committed,
   `fetch-samples.sh` downloads them into `samples/`.
@@ -172,5 +178,6 @@ sh ./gradlew run -PmainClass=py3trial.Edit                      # programmatic e
 6. ✅ `reindent(...)` for moved / inserted parsed subtrees (finding 7).
 7. ⏳ Python-aware policy for fully programmatic blocks (finding 7).
 8. ✅ Naming (#47): keyword tokens, `left`/`right`, camelCase for snake_case.
-9. ✅ Split grammars (#39) in core; ⏳ switch this trial to the grammars-v4
-   files as they are (with the adapted lexer base class).
+9. ✅ Split grammars (#39) in core, and this trial runs on the grammars-v4
+   files as they are (adapted lexer base class, one lexer rule on the
+   hidden channel).
