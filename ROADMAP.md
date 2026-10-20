@@ -300,15 +300,21 @@ ship.
   VMF 0.2.11 plugin *marker* is also missing from Maven Central (same defect
   VMF-Text had in 0.2.1) — fix that on the VMF side.
 - **Next phase (decided 2026-10-20), in this order:**
-  1. **Second big language, unlabeled (evidence first).** Take a real
-     grammars-v4 grammar (C, JavaScript or Python), enable `autoLabel`, and
-     record what breaks: inferred names, generation time, unparse speed
-     (slow full-check mode triggers: `~` and properties shared across
-     alternatives with different lexer rules), round-trip fidelity. Timeboxed;
-     its findings decide how much auto-naming polish (plurals, path-derived
-     names, operator-literal discriminators), multi-alt `RuleMap`, non-greedy
-     EBNF and unparser-performance work follows, and whether the per-gap
-     separator model ("Explicitly deferred" above) is worth building.
+  1. **Second big language, unlabeled (evidence first) — DONE 2026-10-20,
+     C.** Write-up and reproducible project:
+     [`experiments/c-grammar-trial`](experiments/c-grammar-trial/README.md).
+     Result on the classic grammars-v4 C grammar with `autoLabel`: generation
+     and parsing work unaided (86 rules, 58 s to generate + compile), 14 of
+     32 sample programs round-trip byte-exact, 10 cannot be unparsed, 8 come
+     back wrong — all traced to a short list of grammar shapes, none to the
+     lexical layer. Follow-ups, in order of samples unblocked per unit of
+     work: (1) `X+`/`X*` single-element lists must unparse; (2) keyword-only
+     alternatives inside blocks need a discriminator; (3) syntax errors must
+     fail loudly by default; (4) explicit root-rule selection + compile-clean
+     alt-labeled root; (5) names for operator literals (`operators`,
+     `symbols2…`); (6) `tokenVocab` / split grammars, since grammars-v4 HEAD
+     is split and predicate-driven. Unparse performance was a non-issue; the
+     per-gap separator model is *not* needed for this grammar.
   2. **Mixed-mode formatting for programmatic elements.** Today a custom
      `Formatter` replaces the lexical-preserving default (all-or-nothing), and
      the `ProgrammaticSeparatorPolicy` hook sees neither the previous terminal

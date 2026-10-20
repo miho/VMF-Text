@@ -1,0 +1,9 @@
+// Experiment, not a showcase: resolves the released VMF-Text plugin from Maven
+// Central (or a local publish first). Not part of CI.
+pluginManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
+rootProject.name = 'c-grammar-trial'
