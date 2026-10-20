@@ -4,7 +4,7 @@
 plugins {
     id 'java'
     id 'application'
-    id 'eu.mihosoft.vmftext' version '0.2.2'
+    id 'eu.mihosoft.vmftext' // version: config/common.properties via settings.gradle
 }
 
 java {

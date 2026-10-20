@@ -57,7 +57,8 @@ dependencies {
     implementation gradleApi()
     implementation localGroovy()
 
-    implementation 'eu.mihosoft.vmf:vmf-text:0.2.2'
+    // same version as this plugin: both come from config/common.properties
+    implementation "eu.mihosoft.vmf:vmf-text:${publishingInfo.versionId}"
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation gradleTestKit()

@@ -1,4 +1,13 @@
+// pluginManagement must be the first statement in a settings script, so the
+// property lookup lives inside it. This example is CI's smoke test of the
+// *local* build (mavenLocal first); its plugin version therefore follows
+// config/common.properties instead of a pin.
 pluginManagement {
+    def commonProps = new Properties()
+    file(new File(settingsDir.parentFile.parentFile, "config/common.properties")).withInputStream { commonProps.load(it) }
+    plugins {
+        id 'eu.mihosoft.vmftext' version commonProps.get('publication.version')
+    }
     repositories {
         mavenLocal()
         mavenCentral()

@@ -82,9 +82,12 @@ working tree on `main`, and CI green on the release commit.
 
 ## 1. Prep (on a `release/<version>` branch)
 
-1. Bump `publication.version` in `config/common.properties`.
-2. Align version references: `README.md`, `gradle-plugin/README.md`, and the
-   `examples/**` plugin ids. Confirm the pinned VMF and ANTLR versions
+1. Bump `publication.version` in `config/common.properties`. This single
+   property drives core, the plugin's dependency on core, the plugin marker,
+   the test-suite's plugin classpath and the ArrayLang example.
+2. Align the remaining version references: `README.md`,
+   `gradle-plugin/README.md`, and the `examples/**` plugin ids that pin a
+   *published* version. Confirm the pinned VMF and ANTLR versions
    (currently VMF `0.2.11`, ANTLR `4.13.2`).
 3. Finalize the `CHANGELOG.md` entry — date it and list Added / Changed / Fixed.
 4. Add the ROADMAP "Ship &lt;version&gt;" section and the per-release checklist at
@@ -124,8 +127,17 @@ To spend **one** release event instead of two, upload *both* modules into the
 open staging repository first and hand off once: run the two `publish…ToMavenCentralRepository`
 tasks (core, then gradle-plugin), look up the staging key, then a single
 `releaseToCentralPortal`. The deployment then carries all three purls
-(`vmf-text`, `vmf-text-gradle-plugin`, the plugin marker). The commands below
-show the per-module form used for 0.2.2.
+(`vmf-text`, `vmf-text-gradle-plugin`, the plugin marker). This is scripted:
+
+```bash
+sh scripts/publish-central.sh            # upload both, hand off once, review on the Portal
+sh scripts/publish-central.sh automatic  # … or publish without the manual click
+sh scripts/central-staging.sh repos|status <id>|props   # the read-only helpers it uses
+```
+
+For a `-SNAPSHOT` version the same script uploads to the snapshot repository
+and stops (no hand-off). The commands below show the per-module form used for
+0.2.2.
 
 ```bash
 # 1) core → Maven Central
