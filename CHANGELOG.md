@@ -4,6 +4,16 @@ All notable changes to VMF-Text are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **`<Grammar>TriviaSupport.reindent(element, oldIndent, newIndent)`** rebases
+  the indentation of a parsed subtree: the first line's leading whitespace,
+  every inner line start that begins with the old indentation, and
+  whitespace-only token values (Python's `INDENT`). A statement moved into a
+  block at another depth keeps its trivia otherwise — in Python that changes
+  the meaning (`experiments/py3-grammar-trial`, `py3trial.Edit`). The
+  generated `<Grammar>TriviaSupport` class is public now.
+
 ### Fixed
 
 - **The unparser check rules no longer copy actions and semantic predicates**

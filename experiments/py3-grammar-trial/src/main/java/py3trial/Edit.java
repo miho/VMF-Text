@@ -1,6 +1,7 @@
 package py3trial;
 
 import py3trial.parser.Python3ModelParser;
+import py3trial.parser.Python3TriviaSupport;
 import py3trial.unparser.Formatter;
 import py3trial.unparser.Python3ModelUnparser;
 
@@ -20,13 +21,15 @@ public class Edit {
         Stmt moved = ((File_inputChoiceAlt2) donor.getRoot().getFile_inputChoices().get(0)).getStmt();
         block.getStmts().add(moved);
 
-        System.out.println("default formatter:");
+        System.out.println("moved as is (default formatter):");
+        System.out.println(show(new Python3ModelUnparser().unparse(target)));
+        // the moved statement came from depth 0; the function body is at depth 1
+        Python3TriviaSupport.reindent(moved, "", "    ");
+        System.out.println("after Python3TriviaSupport.reindent(moved, \"\", \"    \"):");
         System.out.println(show(new Python3ModelUnparser().unparse(target)));
         Python3ModelUnparser u = new Python3ModelUnparser();
         u.setFormatter(Formatter.newBlockIndentFormatter());
-        System.out.println("block-indent formatter:");
-        System.out.println(show(u.unparse(target)));
-        System.out.println("programmatic ranges: " + u.getFormatter().programmaticRanges().size());
+        System.out.println("programmatic ranges with the block-indent formatter: " + u.getFormatter().programmaticRanges().size());
     }
 
     static String show(String s) {

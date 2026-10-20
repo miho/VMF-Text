@@ -18,10 +18,11 @@ the grammar was combined by hand (the split form needs
 [#39](https://github.com/miho/VMF-Text/issues/39)). All 28 sample files
 that ship with the grammar (CPython's `asyncio` package, 389 KB) and all 23
 snippets come back byte-exact; parsing never fails. Every mismatch
-on the way was a VMF-Text defect, none a limitation of the approach. What
-is left is programmatic editing: a statement moved into a function body
-keeps its own trivia and lands at column 0, so Python needs an
-indentation-aware separator policy (finding 7).
+on the way was a VMF-Text defect, none a limitation of the approach. For
+programmatic editing, a moved statement keeps its own trivia and would land
+at column 0; `Python3TriviaSupport.reindent(statement, oldIndent,
+newIndent)` rebases it (finding 7). Fully programmatic Python blocks still
+need their `NEWLINE`/`INDENT`/`DEDENT` values set by the caller.
 
 | Stage | Snippets exact | asyncio sources exact |
 |---|---|---|
@@ -128,15 +129,17 @@ sh ./gradlew run -PmainClass=py3trial.Edit                      # programmatic e
    and newlines inside brackets all survive. The only lexer-side surprise:
    `CommonToken` reads an empty range at the end of input as `<EOF>`, so
    empty tokens set their text explicitly.
-7. **Programmatic edits need an indentation policy (open).** `py3trial.Edit`
+7. **Moved statements keep their trivia (utility added).** `py3trial.Edit`
    moves `x = 2` into `def f(): return 1`: the moved statement keeps its
    trivia and prints at column 0, with the default and with the block-indent
-   formatter alike — in Python that changes the meaning. A Python-aware
-   `ProgrammaticSeparatorPolicy` has to re-indent moved or inserted
-   statements to the depth of the enclosing `INDENT`/`DEDENT` block and
-   synthesize `NEWLINE`/`INDENT`/`DEDENT` text for programmatic blocks. The
-   building blocks exist (mixed-mode formatting, #40: the policy sees every
-   terminal and the element depth); the policy itself is the next step.
+   formatter alike — in Python that changes the meaning. The generated
+   `<Grammar>TriviaSupport.reindent(element, oldIndent, newIndent)` rebases a
+   parsed subtree: the first line's leading whitespace, every inner line
+   start that begins with the old indentation, and whitespace-only token
+   values (the `INDENT` tokens of nested blocks); the driver shows the
+   corrected output. Still open: a Python-aware `ProgrammaticSeparatorPolicy`
+   that synthesizes `NEWLINE`/`INDENT`/`DEDENT` text for blocks built
+   programmatically (today the caller sets those three properties).
 8. **Naming.** Rule names keep their underscores (`File_input`,
    `Simple_stmts`, `getFile_inputChoices()`), nested lifting yields
    `dictorsetmakerChoiceChoice4`, and 20 positional suffixes appear — all
@@ -160,5 +163,6 @@ sh ./gradlew run -PmainClass=py3trial.Edit                      # programmatic e
    (finding 4, #53).
 5. ✅ Per-item lifting of repeated blocks with optional properties
    (finding 5, #54).
-6. ⏳ Indentation-aware policy for programmatic Python (finding 7).
-7. ⏳ Naming (#47), split grammars (#39).
+6. ✅ `reindent(...)` for moved / inserted parsed subtrees (finding 7).
+7. ⏳ Python-aware policy for fully programmatic blocks (finding 7).
+8. ⏳ Naming (#47), split grammars (#39).
