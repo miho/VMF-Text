@@ -104,7 +104,8 @@ public class AutoLabelerTest {
         // neither the rule name nor the token name is used as a label
         Assert.assertFalse(text, text.matches("(?s).*[^A-Za-z]Identifier=.*"));
         Assert.assertFalse(text, text.matches("(?s).*[^A-Za-z]identifier=.*"));
-        Assert.assertTrue(text, text.contains("identifier2=Identifier"));
+        // #73: the token reference says what it holds; the keyword-context name still wins for the rule
+        Assert.assertTrue(text, text.contains("identifierToken=Identifier"));
         Assert.assertTrue(text, text.contains("letIdentifier=identifier"));
 
         org.antlr.v4.Tool tool = new org.antlr.v4.Tool(new String[]{rewritten.getAbsolutePath(), "-o", dir.getAbsolutePath()});
@@ -112,9 +113,12 @@ public class AutoLabelerTest {
         Assert.assertEquals("ANTLR accepts the labels: " + text, 0, tool.errMgr.getNumErrors());
     }
 
-    /** Without keyword context the numeric suffix is the only way out. */
+    /**
+     * #73: without keyword context a reference to the rule is {@code identifierNode} (a second one in
+     * the same type {@code identifierNode2}) and a reference to the token {@code identifierToken}.
+     */
     @Test
-    public void labelWithoutKeywordContextGetsANumericSuffixWhenRuleAndTokenShareTheName() throws Exception {
+    public void ruleAndTokenReferencesAreNodeAndTokenWhenRuleAndTokenShareTheName() throws Exception {
         String grammar = ""
                 + "grammar TokenClash2;\n"
                 + "\n"
@@ -132,8 +136,79 @@ public class AutoLabelerTest {
         File rewritten = AutoLabeler.rewrite(grammarFile, false, null);
         String text = new String(Files.readAllBytes(rewritten.toPath()), StandardCharsets.UTF_8);
 
+        Assert.assertTrue(text, text.contains("identifierNode=identifier"));
+        Assert.assertTrue(text, text.contains("identifierNode2=identifier"));
+        Assert.assertTrue(text, text.contains("identifierToken=Identifier"));
+
+        org.antlr.v4.Tool tool = new org.antlr.v4.Tool(new String[]{rewritten.getAbsolutePath(), "-o", dir.getAbsolutePath()});
+        tool.processGrammarsOnCommandLine();
+        Assert.assertEquals("ANTLR accepts the labels: " + text, 0, tool.errMgr.getNumErrors());
+    }
+
+    /**
+     * #73: a rule that repeats an alternative label (grammars-v4 JavaScript's three
+     * {@code # NewExpression} alternatives) generates one type per label. Names are counted per
+     * label, so unrelated alternatives keep {@code left} / {@code right} instead of numbering
+     * across the rule ({@code AdditiveExpression.getSingleExpression15()} before).
+     */
+    @Test
+    public void repeatedAlternativeLabelCountsNamesPerLabel() throws Exception {
+        String grammar = ""
+                + "grammar RepeatedLabel;\n"
+                + "\n"
+                + "expr\n"
+                + "    : expr '+' expr      # Add\n"
+                + "    | expr '*' expr      # Mul\n"
+                + "    | 'new' expr         # New\n"
+                + "    | 'new' expr '(' ')' # New\n"
+                + "    | ID                 # Ref\n"
+                + "    ;\n"
+                + "\n"
+                + "ID : [a-z]+ ;\n"
+                + "WS : [ \\t\\r\\n]+ -> channel(HIDDEN) ;\n";
+
+        File dir = tmp.newFolder("repeatedlabel");
+        File grammarFile = new File(dir, "RepeatedLabel.g4");
+        Files.write(grammarFile.toPath(), grammar.getBytes(StandardCharsets.UTF_8));
+
+        File rewritten = AutoLabeler.rewrite(grammarFile, false, null);
+        String text = new String(Files.readAllBytes(rewritten.toPath()), StandardCharsets.UTF_8);
+
+        Assert.assertTrue(text, text.contains("left=expr '+' right=expr"));
+        Assert.assertTrue(text, text.contains("left=expr '*' right=expr"));
+        // the two New alternatives are one type: their names stay unique between them
+        Assert.assertEquals(text, 1, text.split("newExpr=expr", -1).length - 1);
+        Assert.assertTrue(text, text.contains("'new' newExpr=expr"));
+
+        org.antlr.v4.Tool tool = new org.antlr.v4.Tool(new String[]{rewritten.getAbsolutePath(), "-o", dir.getAbsolutePath()});
+        tool.processGrammarsOnCommandLine();
+        Assert.assertEquals("ANTLR accepts the labels: " + text, 0, tool.errMgr.getNumErrors());
+    }
+
+    /** #73: when the suffixed name is a rule of its own, the numeric suffix is the fallback. */
+    @Test
+    public void clashFallsBackToANumberWhenTheSuffixedNameIsTaken() throws Exception {
+        String grammar = ""
+                + "grammar TokenClash3;\n"
+                + "\n"
+                + "unit : identifier ':' identifierNode EOF ;\n"
+                + "\n"
+                + "identifier : Identifier ;\n"
+                + "\n"
+                + "identifierNode : '#' Identifier ;\n"
+                + "\n"
+                + "Identifier : [a-z]+ ;\n"
+                + "WS : [ \\t\\r\\n]+ -> channel(HIDDEN) ;\n";
+
+        File dir = tmp.newFolder("tokenclash3");
+        File grammarFile = new File(dir, "TokenClash3.g4");
+        Files.write(grammarFile.toPath(), grammar.getBytes(StandardCharsets.UTF_8));
+
+        File rewritten = AutoLabeler.rewrite(grammarFile, false, null);
+        String text = new String(Files.readAllBytes(rewritten.toPath()), StandardCharsets.UTF_8);
+
         Assert.assertTrue(text, text.contains("identifier2=identifier"));
-        Assert.assertTrue(text, text.contains("identifier3=identifier"));
+        Assert.assertFalse(text, text.contains("identifierNode=identifier "));
 
         org.antlr.v4.Tool tool = new org.antlr.v4.Tool(new String[]{rewritten.getAbsolutePath(), "-o", dir.getAbsolutePath()});
         tool.processGrammarsOnCommandLine();

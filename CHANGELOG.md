@@ -58,7 +58,19 @@ All notable changes to VMF-Text are documented here.
   with error 70 ("label conflicts with token with same name"). Token names
   (lexer rules and `tokens {}` entries, also from the lexer grammar of a split
   pair) are now taken into account: a keyword-context name still wins, else
-  the name gets a numeric suffix (`identifier2`).
+  the name says what the property holds (#73) — a reference to the rule is
+  `identifierNode` (an `Identifier` node), a reference to the token
+  `identifierToken` (its text); a numeric suffix only when such a name is
+  taken. These names are the model's API in code (getters, setters, builders,
+  reflection). Regression grammar `nameclash`.
+- **Names are counted per alternative label when a rule repeats a label**
+  (#73). A rule whose hand-written alternative labels repeat one (grammars-v4
+  JavaScript: three `# NewExpression` alternatives in `singleExpression`)
+  generates one type per label, but auto-labeling counted element names across
+  the whole rule: `AdditiveExpression.getSingleExpression15()` /
+  `getSingleExpression16()` instead of `getLeft()` / `getRight()`, an
+  `identifierNode2` in a class with a single identifier. Alternatives with the
+  same label now share a namespace and every other label has its own.
 - **A repeated literal inside a repeated block keeps its iteration** (#64).
   `(','+ arrayElement)*` in grammars-v4 JavaScript's array literal captured
   the commas of all iterations as one list, and the unparser's first `','+`

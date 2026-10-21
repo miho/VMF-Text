@@ -267,6 +267,17 @@ name would collide with a parser rule (ANTLR error 69) is emitted in PascalCase
 lower-camel, and Java-keyword token names get a `Value` suffix (e.g. `INT` →
 `intValue`). Repeated elements are pluralized into list properties.
 
+When a parser rule and a token share a name, as `identifier` and `Identifier`
+do in the grammars-v4 JavaScript grammar, ANTLR accepts neither spelling as a
+label, so the name says what the property holds: a reference to the rule is
+`identifierNode` (`getIdentifierNode()` returns the `Identifier` node), a
+reference to the token is `identifierToken` (its text), unless a keyword in
+front gives a keyword-context name (`'goto' label` → `gotoLabel`). These names
+are the model's API in code — getters, setters, builders
+(`withIdentifierNode(...)`) and VMF reflection — and every token-typed property
+also carries the annotation `vmf-text:token` with the token's grammar name, so
+code can find the property that holds a token without knowing its name.
+
 When the same base name would collide inside a type, AutoLabeler prefers a
 keyword-context name if the nearest preceding sibling is a keyword-like string
 literal (`[a-zA-Z_][a-zA-Z0-9_]*` after stripping quotes): e.g.
