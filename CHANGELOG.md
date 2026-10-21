@@ -39,6 +39,17 @@ All notable changes to VMF-Text are documented here.
 
 ### Fixed
 
+- **The Gradle plugin honours `vmfText { vmfVersion; antlrVersion }`** (#74).
+  Both runtime dependencies (`eu.mihosoft.vmf:vmf-runtime`,
+  `org.antlr:antlr4-runtime`) were declared while the plugin was applied,
+  before the build script's `vmfText { }` block ran, so the settings were
+  silently ignored (the Python trial set VMF `0.2.11` and got
+  `0.2.12-SNAPSHOT`). They are added lazily now and follow the settings; a
+  `vmfVersion` that differs from the VMF version the plugin generates the
+  model code with gets a warning. The Central snapshot repository the plugin
+  adds is declared regardless of the version and scoped to `eu.mihosoft.vmf`
+  snapshots. The ArrayLang example and the Python trial no longer set the
+  stale `vmfVersion = '0.2.11'`.
 - **Auto-labeling no longer produces a label equal to a token name** (#64).
   A label equal to a parser rule name is written in PascalCase (`identifier`
   → `Identifier`, ANTLR error 69 otherwise); when a token of that name exists

@@ -21,7 +21,7 @@ repositories {
 }
 
 vmfText {
-    vmfVersion   = '0.2.11'
+    // vmfVersion: the VMF runtime defaults to the VMF version this plugin generates code with
     antlrVersion = '4.13.2'
 }
 

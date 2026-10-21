@@ -30,7 +30,7 @@ resolve from the Central snapshot repository
 (`https://central.sonatype.com/repository/maven-snapshots/`, declared in
 `core/settings.gradle`, `core/build.gradle`, `gradle-plugin/build.gradle`,
 `test-suite/build.gradle`, the ArrayLang example, and added to consumer
-projects by the plugin while its default `vmfVersion` is a snapshot). A plain
+projects by the plugin, scoped to `eu.mihosoft.vmf` snapshots). A plain
 checkout builds without extra steps. Gradle trusts a cached `-SNAPSHOT` for
 24 h, so after a new VMF snapshot build run the `core` build once with
 `--refresh-dependencies` (CI does so on every run). When VMF is released next,
