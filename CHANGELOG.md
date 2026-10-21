@@ -2,7 +2,30 @@
 
 All notable changes to VMF-Text are documented here.
 
-## [Unreleased]
+## [0.2.5] — 2026-10-21
+
+Python 3 support, end to end: split lexer/parser grammars with `tokenVocab`
+and base classes are one unit (#39), so the grammars-v4 Python grammar is
+used as it ships ([`experiments/py3-grammar-trial`](experiments/py3-grammar-trial/README.md):
+all 28 asyncio sources and 23 snippets round-trip byte-exact); the five core
+defects that trial exposed are fixed (#52, #53, #54, the `tokens {}` block,
+identity instead of VMF's structural equals); moved statements can be
+re-indented and blocks built from scratch get their `NEWLINE`/`INDENT`/`DEDENT`
+tokens and placement (#60). Naming: keyword tokens, `left`/`right`, camelCase
+classes and properties for snake_case rules (#47, #63). The unparser's check
+rules carry no predicates (#48), optional punctuation is left out of
+programmatic elements (#60), and a parser base class lives in one package (#62).
+
+### Publish
+
+**GitHub release only** — tag [v0.2.5](https://github.com/miho/VMF-Text/releases/tag/v0.2.5)
+with a signed Maven-repository archive (`vmf-text-0.2.5-maven-repo.zip`:
+`eu.mihosoft.vmf:vmf-text:0.2.5`, `eu.mihosoft.vmf:vmf-text-gradle-plugin:0.2.5`
+and the plugin marker) attached. Not published to Maven Central or the Plugin
+Portal: the monthly release budget is shared across all `eu.mihosoft` projects
+(see `docs/RELEASING.md`). The same content is available as `0.2.5-SNAPSHOT`
+on the Central snapshot repository (90-day retention). The latest version on
+Maven Central remains 0.2.2. VMF `0.2.11`, ANTLR `4.13.2`.
 
 ### Added
 
