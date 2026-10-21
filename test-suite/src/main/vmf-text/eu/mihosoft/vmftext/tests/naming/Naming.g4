@@ -5,7 +5,8 @@ grammar Naming;
 //    property, but keyword context for its successor (If sum Else sum -> ifSum, elseSum);
 //  - the operands of `term Plus term` are left / right;
 //  - snake_case rule names give camelCase property and synthetic rule names
-//    (simpleStmts, simpleStmtChoice); the rule's own class keeps the spelling.
+//    (simpleStmts, simpleStmtChoice); since #63 the rule itself is renamed
+//    before any other pass, so its class is FileInput / SimpleStmt as well.
 file_input: simple_stmt* EOF ;
 
 simple_stmt: Var ID '=' (sum | cond) NEWLINE ;

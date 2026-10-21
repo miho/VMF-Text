@@ -250,8 +250,11 @@ keyword, not a value: it gets no property, and it provides keyword context
 for the element after it (`Else statement` → `elseStatement`, like a literal
 `'else'`). The two operands of an `expr op expr` alternative are `left` and
 `right`. Property names and synthetic rule names derived from snake_case
-rules drop the underscores (`simple_stmt*` → `simpleStmts`); the model class
-of such a rule itself keeps ANTLR's spelling (`Simple_stmt`).
+rules drop the underscores (`simple_stmt*` → `simpleStmts`), and a
+snake_case parser rule is itself renamed to camelCase before any other pass,
+so its model class is `SimpleStmt` and the ANTLR parser says `simpleStmt()`
+(a trailing underscore as in `subscript_` stays; `Root(rule=simple_stmt)`
+and type-map apply-to lists accept either spelling).
 
 Explicit labels always win and mix consistently with auto-labeling. Unlabeled
 parser-rule and token references receive deterministic lower-camel names based
@@ -313,11 +316,12 @@ after the parser grammar minus its `Parser` suffix — `Python3Lexer.g4` +
 `Python3Parser.g4` give `Python3Model`, `Python3ModelParser` and
 `Python3ModelUnparser` — and the lexer is generated into the same
 `<package>.parser` package, which is also where a lexer `superClass` base
-class has to live. A parser `superClass` base class is needed in
-`<package>.parser` and in `<package>.unparser.antlr4` (the unparser's check
-grammar shares the lexer but has its own parser), exactly as for a combined
-grammar. Lexer rules that are a single literal (`Var: 'var';`) keep working
-as keywords, see above.
+class has to live. A parser `superClass` base class lives there too, once:
+an unqualified `superClass` option is qualified with `<package>.parser` in
+the grammar handed to ANTLR, so the unparser's check grammar (which shares
+the lexer but has its own parser) extends the same class, exactly as for a
+combined grammar. Lexer rules that are a single literal (`Var: 'var';`) keep
+working as keywords, see above.
 
 ## Typed Lexical Metadata
 

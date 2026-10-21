@@ -21,16 +21,16 @@ public class NamingTest {
 
     @Test
     public void keywordTokensAreNotProperties() {
-        Assert.assertFalse("Var is a keyword, not a value", hasMethod(Simple_stmt.class, "getVar"));
+        Assert.assertFalse("Var is a keyword, not a value", hasMethod(SimpleStmt.class, "getVar"));
         Assert.assertFalse(hasMethod(Cond.class, "getIfValue"));
         Assert.assertFalse(hasMethod(Cond.class, "getElseValue"));
-        Assert.assertTrue(hasMethod(Simple_stmt.class, "getId"));
+        Assert.assertTrue(hasMethod(SimpleStmt.class, "getId"));
     }
 
     @Test
     public void binaryOperandsAreLeftAndRight() {
         NamingModel model = new NamingModelParser().parse("var x = a + 1\n");
-        Simple_stmt stmt = model.getRoot().getSimpleStmts().get(0);
+        SimpleStmt stmt = model.getRoot().getSimpleStmts().get(0);
         SumAlt1 sum = (SumAlt1) ((SimpleStmtChoiceAlt1) stmt.getSimpleStmtChoice()).getSum();
         Assert.assertTrue(sum.getLeft() instanceof TermAlt1);
         Assert.assertTrue(sum.getRight() instanceof TermAlt2);
@@ -44,10 +44,14 @@ public class NamingTest {
         Assert.assertNotNull(cond.getElseSum());
     }
 
+    /** #47: camelCase properties; #63: the rule's own class is camelCase too (file_input → FileInput). */
     @Test
-    public void snakeCaseRulesGiveCamelCaseProperties() {
-        Assert.assertTrue(hasMethod(File_input.class, "getSimpleStmts"));
-        Assert.assertTrue(hasMethod(Simple_stmt.class, "getSimpleStmtChoice"));
+    public void snakeCaseRulesGiveCamelCaseClassesAndProperties() {
+        Assert.assertTrue(hasMethod(FileInput.class, "getSimpleStmts"));
+        Assert.assertTrue(hasMethod(SimpleStmt.class, "getSimpleStmtChoice"));
+        Assert.assertEquals("FileInput", new NamingModelParser().parse("var z = 1\n").getRoot().vmf().reflect().type().getName()
+                .replaceAll(".*\\.", ""));
+        Assert.assertEquals("fileInput", eu.mihosoft.vmftext.tests.naming.parser.NamingParser.ruleNames[0]);
     }
 
     @Test

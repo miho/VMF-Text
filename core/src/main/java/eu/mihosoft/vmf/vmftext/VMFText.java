@@ -152,6 +152,12 @@ public class VMFText {
             List<String> comments = GrammarMetaInformationUtil.extractVMFTextCommentsFromCode(new FileInputStream(grammar));
             // split grammar (#39): a parser grammar with tokenVocab and the lexer grammar next to it
             final File lexerGrammar = SplitGrammarSupport.lexerGrammarOf(grammarInput);
+            // snake_case parser rules get camelCase names, so the model class of
+            // file_input is FileInput like its properties (#63)
+            grammar = SnakeCaseRuleRenamer.rewrite(grammar);
+            // one parser base class in <package>.parser serves the model parser, the
+            // unparser's copy of the grammar and its check grammar (#62)
+            grammar = SuperClassQualifier.rewrite(grammar, packageName);
             if(options.isAutoLabel() || GrammarMetaInformationUtil.isAutoLabelEnabled(comments)) {
                 grammar = AutoLabeler.rewrite(grammar, lexerGrammar, options.isEmitAutoLabelReport(),
                         options.getAutoLabelReportFile());
@@ -571,6 +577,7 @@ public class VMFText {
 
         // explicit model root via Root(rule=...) metadata; default is the first parser rule
         GrammarMetaInformationUtil.getRootRuleName(comments)
+                .map(SnakeCaseRuleRenamer::rename) // Root(rule=file_input) names the renamed rule (#63)
                 .ifPresent(grammarToModelListener::setExplicitRootRule);
 
         walker.walk(grammarToModelListener, tree);

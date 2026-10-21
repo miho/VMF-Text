@@ -298,7 +298,7 @@ final class AutoLabeler {
             if(!choice && !perItem) {
                 return;
             }
-            String ruleName = uniqueRuleName(camelCase(currentRuleName) + (choice ? "Choice" : "Item"));
+            String ruleName = uniqueRuleName(camelCase(liftBaseName(currentRuleName)) + (choice ? "Choice" : "Item"));
             boolean repeated = suffix.startsWith("*") || suffix.startsWith("+") || isInsideRepetition(ctx);
 
             StringBuilder ruleText = new StringBuilder();
@@ -498,6 +498,27 @@ final class AutoLabeler {
             return candidate;
         }
 
+        private static final java.util.regex.Pattern SYNTHETIC_SUFFIX =
+                java.util.regex.Pattern.compile("(.+?)(?:Choice|Item)\\d*");
+
+        /**
+         * The grammar rule a synthetic rule was lifted from, so a block nested
+         * inside an already lifted block is named after that rule and the
+         * suffixes do not stack (#63): {@code dictorsetmakerChoice} →
+         * {@code dictorsetmaker}, so its inner block becomes
+         * {@code dictorsetmakerChoice2} instead of {@code dictorsetmakerChoiceChoice}.
+         * A suffix is only stripped while the remainder is a rule of the grammar.
+         */
+        private String liftBaseName(String ruleName) {
+            String base = ruleName;
+            java.util.regex.Matcher m;
+            while((m = SYNTHETIC_SUFFIX.matcher(base)).matches()
+                    && reservedNamesLower.contains(m.group(1).toLowerCase())) {
+                base = m.group(1);
+            }
+            return base;
+        }
+
         private static boolean isInside(ParserRuleContext ctx, Set<ParserRuleContext> ancestors) {
             for(ParserRuleContext p = ctx.getParent(); p != null; p = p.getParent()) {
                 if(ancestors.contains(p)) {
@@ -523,7 +544,9 @@ final class AutoLabeler {
     /**
      * {@code simple_stmt} → {@code simpleStmt}: property names and synthetic
      * rule names derived from snake_case rule names drop the underscores
-     * (#47). The model class of the rule itself keeps ANTLR's spelling.
+     * (#47); since #63 the rule itself is renamed the same way before any
+     * other pass ({@link SnakeCaseRuleRenamer}), so the model class is
+     * {@code SimpleStmt} as well.
      */
     static String camelCase(String name) {
         if(name == null || name.indexOf('_') < 0) {

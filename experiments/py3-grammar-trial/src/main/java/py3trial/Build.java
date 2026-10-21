@@ -61,16 +61,16 @@ public class Build {
                 .build();
     }
 
-    /** {@code pass} as a statement: stmt → simple_stmts → simple_stmt → pass_stmt */
+    /** {@code pass} as a statement: stmt → simple_stmts → simple_stmt → pass_stmt (classes SimpleStmts, SimpleStmt, PassStmt since #63) */
     static Stmt pass() {
-        Simple_stmt simple = Simple_stmt.newBuilder()
-                .withSimpleStmtChoice(SimpleStmtChoiceAlt3.newBuilder().withPassStmt(Pass_stmt.newBuilder().build()).build())
+        SimpleStmt simple = SimpleStmt.newBuilder()
+                .withSimpleStmtChoice(SimpleStmtChoiceAlt3.newBuilder().withPassStmt(PassStmt.newBuilder().build()).build())
                 .build();
-        return StmtAlt1.newBuilder().withSimpleStmts(Simple_stmts.newBuilder().withSimpleStmt(simple).build()).build();
+        return StmtAlt1.newBuilder().withSimpleStmts(SimpleStmts.newBuilder().withSimpleStmt(simple).build()).build();
     }
 
     static Stmt compound(Funcdef f) {
-        return StmtAlt2.newBuilder().withCompoundStmt(Compound_stmtAlt6.newBuilder().withFuncdef(f).build()).build();
+        return StmtAlt2.newBuilder().withCompoundStmt(CompoundStmtAlt6.newBuilder().withFuncdef(f).build()).build();
     }
 
     static Funcdef funcdefNamed(BlockAlt2 block, String name) {
