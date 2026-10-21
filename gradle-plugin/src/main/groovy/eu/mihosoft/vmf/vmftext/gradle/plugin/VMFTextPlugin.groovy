@@ -71,7 +71,13 @@ interface VMFTextSourceVirtualDirectory {
 }
 
 class VMFTextPluginExtension {
+    /**
+     * Version of the VMF runtime ({@code eu.mihosoft.vmf:vmf-runtime}) added to the
+     * {@code implementation} configuration. The default is the VMF version this plugin
+     * generates the model code with; another version is used as given, with a warning.
+     */
     String vmfVersion     = "0.2.12-SNAPSHOT"
+    /** Version of the ANTLR runtime ({@code org.antlr:antlr4-runtime}) added to {@code implementation}. */
     String antlrVersion   = "4.13.2"
     boolean autoLabel     = false
     boolean emitAutoLabelReport = true
@@ -132,14 +138,19 @@ public class VMFTextPlugin implements Plugin<Project> {
         project.getPluginManager().apply(JavaPlugin.class);
 
         def extension = project.extensions.create('vmfText', VMFTextPluginExtension)
+        // the VMF version the code generator of this plugin (VMF-Text core) produces code for
+        final String generatorVmfVersion = extension.vmfVersion
 
         project.repositories {
             mavenLocal()
             mavenCentral()
-            if (extension.vmfVersion.endsWith('-SNAPSHOT')) {
-                // the VMF runtime this plugin version depends on is a Central snapshot
-                // (0.2.12-SNAPSHOT: list-equals fix, Gradle 10 fixes, plugin marker)
-                maven { url = project.uri('https://central.sonatype.com/repository/maven-snapshots/') }
+            // VMF snapshots (vmf-runtime x.y.z-SNAPSHOT) are published to the Central snapshot
+            // repository. Scoped to them, so no other dependency is ever looked up there, and
+            // declared regardless of the version: vmfText { vmfVersion } is set after this runs.
+            maven {
+                url = project.uri('https://central.sonatype.com/repository/maven-snapshots/')
+                mavenContent { snapshotsOnly() }
+                content { includeGroup('eu.mihosoft.vmf') }
             }
         }
 
@@ -152,11 +163,24 @@ public class VMFTextPlugin implements Plugin<Project> {
 //                }
 //        )
 
-        // single-string notation: the map form (group:/name:/version:) is deprecated
-        // in Gradle 9 and removed in Gradle 10, and would warn in every consumer build
-        project.dependencies {
-            implementation "eu.mihosoft.vmf:vmf-runtime:${extension.vmfVersion}"
-            implementation "org.antlr:antlr4-runtime:${extension.antlrVersion}"
+        // The runtime dependencies follow vmfText { vmfVersion; antlrVersion }. A build script
+        // sets those after the plugin is applied, so the dependencies are added lazily: the
+        // versions are read when the dependencies are first needed, not here (#74 — the
+        // settings used to be ignored). Single-string notation: the map form is deprecated in
+        // Gradle 9 and fails in Gradle 10.
+        def implementation = project.configurations.getByName('implementation')
+        implementation.dependencies.addLater(project.provider {
+            project.dependencies.create("eu.mihosoft.vmf:vmf-runtime:${extension.vmfVersion}")
+        })
+        implementation.dependencies.addLater(project.provider {
+            project.dependencies.create("org.antlr:antlr4-runtime:${extension.antlrVersion}")
+        })
+        project.afterEvaluate {
+            if (extension.vmfVersion != generatorVmfVersion) {
+                project.logger.warn("VMF-Text: vmfText.vmfVersion = '${extension.vmfVersion}' differs from VMF " +
+                        "${generatorVmfVersion}, which this plugin generates the model code with; the generated " +
+                        "code may not compile or run against another VMF runtime.")
+            }
         }
 
         // load VMF class (depending on version)

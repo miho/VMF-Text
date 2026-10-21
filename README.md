@@ -122,7 +122,9 @@ plugins {
 
 ```gradle
 vmfText {
-    vmfVersion   = '0.2.11'  // (runtime version)
+    // vmfVersion = '…'      // VMF runtime; defaults to the VMF version the plugin
+                             // generates code with — leave it unset (honoured since
+                             // 0.2.6, with a warning when it differs; ignored before)
     antlrVersion = '4.13.2'  // (runtime version)
     // autoLabel = true      // opt-in: derive labels for unlabeled grammars,
                              // see "Automatic Labels" below
