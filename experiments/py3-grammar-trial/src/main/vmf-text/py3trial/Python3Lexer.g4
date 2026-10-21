@@ -178,7 +178,7 @@ RIGHT_SHIFT_ASSIGN : '>>=';
 POWER_ASSIGN       : '**=';
 IDIV_ASSIGN        : '//=';
 
-SKIP_: ( SPACES | COMMENT | LINE_JOINING) -> channel(HIDDEN);
+SKIP_: ( SPACES | COMMENT | LINE_JOINING) -> skip;
 
 UNKNOWN_CHAR: .;
 
@@ -311,6 +311,3 @@ fragment ID_CONTINUE:
     //| [\p{Other_ID_Continue}]
     | UNICODE_OIDC
 ;
-
-// VMF-Text trial: SKIP_ goes to the hidden channel instead of being skipped (1 rule changed);
-// everything else is https://github.com/antlr/grammars-v4/blob/master/python/python3/Python3Lexer.g4 as is.

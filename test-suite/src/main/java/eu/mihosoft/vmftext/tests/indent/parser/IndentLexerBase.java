@@ -14,6 +14,13 @@ import org.antlr.v4.runtime.Token;
  * the end of the input) and emits what Python's lexer skips — blank lines,
  * comment-only lines, same-level indentation and the remainder after DEDENTs —
  * as hidden-channel tokens, so the token stream is lossless.
+ *
+ * <p>Since #61 VMF-Text recovers skipped text from the input positions, so a
+ * lexer base like the Python trial's can simply {@code skip()}. This one keeps
+ * the hidden-channel emission on purpose: the indentation after a DEDENT is
+ * emitted after the (empty) DEDENT although it lies before it, so the tokens
+ * are not in position order and VMF-Text falls back to the hidden-channel
+ * tokens for such an input. {@code IndentTest} covers that path.</p>
  */
 public abstract class IndentLexerBase extends Lexer {
 

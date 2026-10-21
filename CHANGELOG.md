@@ -4,6 +4,21 @@ All notable changes to VMF-Text are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Text the lexer skips round-trips** (#61). The trivia before a terminal is
+  now the input text between the previous default-channel token and the
+  terminal, taken by character position, instead of the concatenated
+  hidden-channel tokens. A grammar that drops white-space or comments with
+  `-> skip` — most grammars-v4 grammars — keeps them on unparse; before, they
+  were lost. Hidden-channel text is unchanged. Exact token positions are
+  required: when the tokens do not lie in the input in stream order (a lexer
+  base class with computed ranges), VMF-Text falls back to the hidden-channel
+  tokens for that input. The Python trial now uses the grammars-v4 lexer
+  grammar byte for byte; its lexer base keeps only the exact-range change.
+  Regression grammar `skiplex` (skipped white-space and line comments, hidden
+  block comments, alternating in one gap).
+
 ### Changed
 
 - **VMF `0.2.12-SNAPSHOT`** (#65). `main` depends on the VMF snapshot that

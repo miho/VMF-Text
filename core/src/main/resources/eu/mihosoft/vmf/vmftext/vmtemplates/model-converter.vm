@@ -1111,15 +1111,24 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
     }
 
     /**
-     * This listener visits every terminal node and records hidden characters between them. Commonly, white-spaces are
-     * ignored and the grammar doesn't rely on the number of white-spaces between elements.
+     * This listener visits every terminal node and records the text between it and the previous default-channel
+     * token: white-space, comments, line joining. The text is taken from the input by character position, so it
+     * includes what the lexer skipped ({@code -> skip}) as well as what it sent to another channel (#61). That
+     * needs exact token positions: when the tokens do not lie in the input in stream order (a lexer base class
+     * that emits tokens with computed, inexact ranges), the hidden-channel tokens between two terminals are
+     * concatenated instead, for the whole input — mixing both per gap could print a piece twice.
      */
     public static class IgnoredPiecesOfTextListener implements org.antlr.v4.runtime.tree.ParseTreeListener {
-    
+
         // ignored pieces of text per rule
         private final java.util.Map<ParserRuleContext, java.util.List<String>> ignoredPiecesOfText = new java.util.HashMap<>();
         // the token stream used to access the hidden/ignored pieces of text
         private final TokenStream stream;
+        // the input the tokens were lexed from (null if the token source has none)
+        private final org.antlr.v4.runtime.CharStream input;
+        // true when every token lies in the input in stream order, without overlaps: then the text
+        // between two terminals is taken from the input by position
+        private final boolean positionsTrusted;
         // previous token index per rule context (across all channels)
         private final java.util.Map<ParserRuleContext, Integer> prevTokenIndexPerCtx = new java.util.HashMap<>();
     
@@ -1136,21 +1145,45 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             if(debugOutputEnabled)
                         System.out.print("\n[DEBUG: IgnoredPiecesOfTextListener]\n");
             this.stream = stream;
+            this.input = stream.getTokenSource() == null ? null : stream.getTokenSource().getInputStream();
+            this.positionsTrusted = input != null && tokensInPositionOrder(stream);
         }
-    
+
+        /**
+         * Whether the tokens lie in the input in stream order: each one starts at or after the end of the
+         * previous one (an empty token, such as a synthesized DEDENT, at or after it). Gaps are fine — that
+         * is skipped text.
+         */
+        private static boolean tokensInPositionOrder(TokenStream stream) {
+            int pos = 0;
+            for (int i = 0; i < stream.size(); i++) {
+                org.antlr.v4.runtime.Token t = stream.get(i);
+                if (t.getStartIndex() < pos || t.getStopIndex() < t.getStartIndex() - 1) {
+                    return false;
+                }
+                pos = Math.max(pos, t.getStopIndex() + 1);
+            }
+            return true;
+        }
+
         @Override
         public void visitTerminal(TerminalNode node) {
             ParserRuleContext currentCtx = ruleContextStack.peek();
 
-            int currentIndex = node.getSymbol().getTokenIndex();
+            org.antlr.v4.runtime.Token current = node.getSymbol();
+            int currentIndex = current.getTokenIndex();
             Integer prevIndexObj = prevTokenIndexPerCtx.get(currentCtx);
             int prevIndex = prevIndexObj==null ? currentCtx.start.getTokenIndex()-1 : prevIndexObj;
 
-            String piece = "";
-            if (currentIndex - 1 >= prevIndex + 1) {
-                org.antlr.v4.runtime.Token startTok = ((org.antlr.v4.runtime.TokenStream)stream).get(prevIndex + 1);
-                org.antlr.v4.runtime.Token stopTok  = ((org.antlr.v4.runtime.TokenStream)stream).get(currentIndex - 1);
-                piece = stream.getText(startTok, stopTok);
+            String piece = textBetween(prevIndex, current);
+            if (piece == null) {
+                // fallback: the hidden-channel tokens in between
+                piece = "";
+                if (currentIndex - 1 >= prevIndex + 1) {
+                    org.antlr.v4.runtime.Token startTok = ((org.antlr.v4.runtime.TokenStream)stream).get(prevIndex + 1);
+                    org.antlr.v4.runtime.Token stopTok  = ((org.antlr.v4.runtime.TokenStream)stream).get(currentIndex - 1);
+                    piece = stream.getText(startTok, stopTok);
+                }
             }
 
             getIgnoredPiecesOfText(currentCtx).add(piece);
@@ -1158,7 +1191,25 @@ public final class ${Util.firstToUpper($model.grammarName)}ModelParser {
             if(debugOutputEnabled)
                 System.out.print("{" + piece + "}");
 
-            prevTokenIndexPerCtx.put(currentCtx, currentIndex);
+            if (currentIndex >= 0) {
+                // a token conjured by error recovery (index -1) is not in the stream
+                prevTokenIndexPerCtx.put(currentCtx, currentIndex);
+            }
+        }
+
+        /**
+         * The input text between the end of the token at {@code prevIndex} (the start of the input for -1) and
+         * the start of {@code current}, by character position — this includes text the lexer skipped. Returns
+         * {@code null} when positions are not used for this input or the token has no position (a token
+         * conjured by error recovery).
+         */
+        private String textBetween(int prevIndex, org.antlr.v4.runtime.Token current) {
+            if (!positionsTrusted || current.getTokenIndex() < 0 || current.getStartIndex() < 0) {
+                return null;
+            }
+            int from = prevIndex < 0 ? 0 : stream.get(prevIndex).getStopIndex() + 1;
+            int to = current.getStartIndex() - 1;
+            return to < from ? "" : input.getText(org.antlr.v4.runtime.misc.Interval.of(from, to));
         }
 
         private int previousDefaultTokenIndexBefore(int tokenIndex) {

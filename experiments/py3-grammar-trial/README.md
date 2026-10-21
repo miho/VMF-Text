@@ -2,7 +2,9 @@
 
 *Run 2026-10-20 against VMF-Text `0.2.5-SNAPSHOT` (unreleased `main` after
 v0.2.4 plus the fixes made during this trial), VMF 0.2.11, ANTLR 4.13.2,
-JDK 21. Third trial language after [`../c-grammar-trial`](../c-grammar-trial/README.md)
+JDK 21; re-run 2026-10-21 against `0.2.6-SNAPSHOT` (VMF `0.2.12-SNAPSHOT`)
+with the grammars-v4 lexer grammar byte for byte (#61). Third trial language
+after [`../c-grammar-trial`](../c-grammar-trial/README.md)
 and [`../js-grammar-trial`](../js-grammar-trial/README.md); requested as
 "add Python 3 support".*
 
@@ -48,19 +50,21 @@ statements placed by `Formatter.newIndentationTokenFormatter()`
   ([`src/main/vmf-text/py3trial/Python3Lexer.g4`](src/main/vmf-text/py3trial/Python3Lexer.g4),
   [`Python3Parser.g4`](src/main/vmf-text/py3trial/Python3Parser.g4)): the
   parser grammar is the input, the lexer comes in through `tokenVocab`
-  ([#39](https://github.com/miho/VMF-Text/issues/39)). Three adaptations:
-  - the lexer grammar's `SKIP_` rule goes to the hidden channel instead of
-    being skipped (one line) — whitespace, comments and line joining must
-    reach the token stream;
+  ([#39](https://github.com/miho/VMF-Text/issues/39)). The lexer grammar is
+  the grammars-v4 file byte for byte (`SKIP_ ... -> skip` included: since
+  [#61](https://github.com/miho/VMF-Text/issues/61) VMF-Text takes the text
+  between two tokens from the input by position, so skipped white-space,
+  comments and line joining come back). Adaptations:
   - [`Python3LexerBase.java`](src/main/java/py3trial/parser/Python3LexerBase.java)
     (the `superClass` of the lexer, in the generated lexer's package) gives
     its synthesized tokens **exact character ranges** (`NEWLINE` = the
-    line-break characters, `INDENT` = the indentation, `DEDENT` = empty, the
-    virtual `NEWLINE`/`DEDENT` of an unterminated file = empty at the end of
-    input — the upstream `commonToken()` derives bogus ranges from the text
-    length), and emits what `onNewLine()` used to `skip()` as hidden-channel
-    tokens: blank lines, newlines inside brackets, same-level indentation
-    and the remainder after `DEDENT`s. The token stream is lossless;
+    line-break characters, `INDENT` = the indentation, `DEDENT` = empty right
+    after the line break, the virtual `NEWLINE`/`DEDENT` of an unterminated
+    file = empty at the end of input — the upstream `commonToken()` derives
+    ranges from the text length and the current position, which puts
+    `NEWLINE` on the indentation). It skips exactly what upstream skips.
+    Before #61 it also had to emit the skipped text as hidden-channel tokens
+    and the `SKIP_` rule went to the hidden channel;
   - `Python3ParserBase.java` (two constant predicates) in the parser package
     (one copy since [#62](https://github.com/miho/VMF-Text/issues/62): the
     unparser's check grammar extends it there as well);
@@ -137,8 +141,9 @@ sh ./gradlew run -PmainClass=py3trial.Build                     # programmatic b
 6. **Synthesized tokens are ordinary tokens to VMF-Text.** `NEWLINE`,
    `INDENT` (text = the indentation) and `DEDENT` (empty) become string
    properties (`BlockAlt2.getNewline()/getIndent()/getDedent()`); with exact
-   ranges and a lossless hidden channel, indentation, blank lines, comments
-   and newlines inside brackets all survive. The only lexer-side surprise:
+   ranges, indentation, blank lines, comments and newlines inside brackets
+   all survive (first through a lossless hidden channel, since #61 from the
+   input positions, with the upstream `-> skip`). The only lexer-side surprise:
    `CommonToken` reads an empty range at the end of input as `<EOF>`, so
    empty tokens set their text explicitly.
 7. **Moved statements keep their trivia (utility added).** `py3trial.Edit`
@@ -183,11 +188,10 @@ sh ./gradlew run -PmainClass=py3trial.Build                     # programmatic b
    [#39](https://github.com/miho/VMF-Text/issues/39)).** Everything above was
    done on a hand-combined grammar. VMF-Text now processes a `parser grammar`
    with `tokenVocab` and the `lexer grammar` next to it as one unit, so the
-   grammars-v4 files can be used as they are — except that the lexer base
-   still needs the exact-range and hidden-channel changes described under
-   *Setup* (or VMF-Text has to derive trivia from character positions instead
-   of hidden tokens). Switching this trial to the split files is the next
-   step.
+   grammars-v4 files can be used as they are — the lexer grammar byte for
+   byte since VMF-Text derives trivia from character positions
+   ([#61](https://github.com/miho/VMF-Text/issues/61)); only the lexer base
+   needs exact token ranges (see *Setup*).
 
 ## What was done with this
 
@@ -207,5 +211,5 @@ sh ./gradlew run -PmainClass=py3trial.Build                     # programmatic b
    punctuation is no longer printed for programmatic elements (`pass;`).
 8. ✅ Naming (#47): keyword tokens, `left`/`right`, camelCase for snake_case.
 9. ✅ Split grammars (#39) in core, and this trial runs on the grammars-v4
-   files as they are (adapted lexer base class, one lexer rule on the
-   hidden channel).
+   files as they are: the lexer grammar byte for byte (#61, trivia from
+   character positions), the lexer base class with exact token ranges.
