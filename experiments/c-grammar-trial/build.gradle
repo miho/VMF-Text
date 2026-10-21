@@ -3,15 +3,18 @@
 plugins {
     id 'java'
     id 'application'
-    id 'eu.mihosoft.vmftext' version '0.2.2'
+    id 'eu.mihosoft.vmftext' version '0.2.6-SNAPSHOT'
 }
 
 java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 
-repositories { mavenLocal(); mavenCentral() }
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url = uri('https://central.sonatype.com/repository/maven-snapshots/') }
+}
 
 vmfText {
-    vmfVersion   = '0.2.11'
     antlrVersion = '4.13.2'
     autoLabel    = true      // the point of the experiment: no manual labels
 }

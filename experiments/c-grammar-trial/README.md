@@ -1,7 +1,9 @@
 # Experiment: an unlabeled grammars-v4 C grammar through VMF-Text
 
 *Run 2026-10-20 against VMF-Text 0.2.2 (plugin from Maven Central / mavenLocal),
-VMF 0.2.11, ANTLR 4.13.2, JDK 21. Roadmap item "second big language, unlabeled".*
+VMF 0.2.11, ANTLR 4.13.2, JDK 21; re-run 2026-10-21 against `0.2.6-SNAPSHOT`
+(VMF `0.2.12-SNAPSHOT`) with two GCC extensions patched into the grammar:
+32 of 32 byte-exact. Roadmap item "second big language, unlabeled".*
 
 **Question.** What breaks when a real, unlabeled ANTLR grammar is fed to
 VMF-Text with `autoLabel = true`, and how good is the round trip? The Java 24
@@ -26,6 +28,16 @@ mismatches, 0 unparse failures**; the 5 remaining files are real syntax errors
 are reported as `SyntaxErrorException` instead of silently producing garbage.
 All 16 isolation snippets are exact except the GNU one.
 
+**Grammar patched (2026-10-21): 32 of 32.** A plain ANTLR parser generated
+from the same `C.g4`, without VMF-Text, rejects exactly these 5 files with the
+same messages: the limit is the grammar's, and VMF-Text round-trips every file
+the grammar parses. The samples come from grammars-v4 `master` and are written
+for its current C grammar, which supports both extensions. Two rules of the
+trial grammar now accept them, each marked `VMF-Text trial patch`: an empty
+struct body (`structDeclarationList?`) and `'__restrict'` / `'__restrict__'`
+as type qualifiers. With that, all 32 samples and all 16 snippets round-trip
+byte-exact.
+
 | Sample programs | Before | After |
 |---|---|---|
 | exact | 14 | 27 |
@@ -33,15 +45,23 @@ All 16 isolation snippets are exact except the GNU one.
 | unparse failure | 10 | 0 |
 | parse failure (now loud) | 0 | 5 |
 
+| Sample programs, grammar patched (2026-10-21) | Result |
+|---|---|
+| exact | 32 |
+| wrong output / unparse failure / parse failure | 0 / 0 / 0 |
+| snippets exact | 16 / 16 |
+
 ## Setup
 
 - Grammar: the last *single-file* `C.g4` from grammars-v4
   (commit `e25e2973`, BSD, Sam Harwell 2013; 1111 lines, 86 parser rules,
   no labels, no predicates, hidden-channel comments and directives). Copied
   to [`src/main/vmf-text/ctrial/C.g4`](src/main/vmf-text/ctrial/C.g4)
-  unchanged except for a trailing metadata comment:
+  unchanged except for a trailing metadata comment —
   `AutoLabel(enabled=true)` and `Root(rule=compilationUnit)` (the first run
-  had to move `compilationUnit` to the top instead, see finding 4).
+  had to move `compilationUnit` to the top instead, see finding 4) — and,
+  since 2026-10-21, two GCC extensions the sample files use: an empty struct
+  body and `__restrict` / `__restrict__` (marked `VMF-Text trial patch`).
 - Why not grammars-v4 HEAD: the C grammar there is now split into
   `CLexer.g4` + `CParser.g4` (`tokenVocab`), both with `superClass` base
   classes; the lexer base runs the *C preprocessor* (gcc/clang) over the
@@ -155,7 +175,11 @@ In order of samples unblocked per unit of work (see `CHANGELOG.md`
    parameter insertion) uncovered real unparse bugs that are now fixed —
    appending to a one-element `(',' item)*` list dropped the separator, and
    the conservative fallback glued keywords to identifiers (`bint insP`).
-6. ⏳ `tokenVocab` / split grammars (finding 8) — a separate feature.
+6. ✅ `tokenVocab` / split grammars (finding 8) — done as #39 (see the
+   Python and HEAD JavaScript trials); the current C grammar stays out of reach
+   because its lexer base replaces the input with the output of `gcc -E`.
+7. ✅ The two GCC extensions the last 5 samples use, patched into the grammar
+   (2026-10-21): 32 of 32.
 
 The prediction was "roughly 29/32"; the actual ceiling for this grammar is
 27/32 because two more samples (`restrict.c`, `4380.c`) also use GNU
