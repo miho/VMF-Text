@@ -71,7 +71,7 @@ interface VMFTextSourceVirtualDirectory {
 }
 
 class VMFTextPluginExtension {
-    String vmfVersion     = "0.2.11"
+    String vmfVersion     = "0.2.12-SNAPSHOT"
     String antlrVersion   = "4.13.2"
     boolean autoLabel     = false
     boolean emitAutoLabelReport = true
@@ -136,6 +136,11 @@ public class VMFTextPlugin implements Plugin<Project> {
         project.repositories {
             mavenLocal()
             mavenCentral()
+            if (extension.vmfVersion.endsWith('-SNAPSHOT')) {
+                // the VMF runtime this plugin version depends on is a Central snapshot
+                // (0.2.12-SNAPSHOT: list-equals fix, Gradle 10 fixes, plugin marker)
+                maven { url = project.uri('https://central.sonatype.com/repository/maven-snapshots/') }
+            }
         }
 
 //        project.configurations(

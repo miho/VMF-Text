@@ -6,6 +6,8 @@ buildscript {
 
     repositories {
         mavenLocal()
+        // VMF 0.2.12-SNAPSHOT (list-equals fix, Gradle 10 fixes, plugin marker) until the next VMF release
+        maven { url = uri('https://central.sonatype.com/repository/maven-snapshots/') }
     }
 
     dependencies {
@@ -60,6 +62,8 @@ if (!hasProperty('mainClass')) {
 
 repositories {
     mavenCentral()
+    // VMF 0.2.12-SNAPSHOT (list-equals fix, Gradle 10 fixes, plugin marker) until the next VMF release
+    maven { url = uri('https://central.sonatype.com/repository/maven-snapshots/') }
 //    jcenter()
     mavenLocal()
 }
