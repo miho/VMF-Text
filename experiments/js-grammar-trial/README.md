@@ -1,8 +1,9 @@
 # Experiment: an unlabeled grammars-v4 ECMAScript grammar through VMF-Text
 
 *Run 2026-10-20 against VMF-Text `0.2.4-SNAPSHOT` (unreleased `main` after the
-C-trial fixes and mixed-mode formatting), VMF 0.2.11, ANTLR 4.13.2, JDK 21.
-Second trial language after [`../c-grammar-trial`](../c-grammar-trial/README.md).*
+C-trial fixes and mixed-mode formatting), VMF 0.2.11, ANTLR 4.13.2, JDK 21;
+re-run 2026-10-21 against `0.2.6-SNAPSHOT` (VMF `0.2.12-SNAPSHOT`) with the
+same results. Second trial language after [`../c-grammar-trial`](../c-grammar-trial/README.md).*
 
 **Question.** The C trial fixed the grammar *shapes* of a predicate-free
 grammar. What breaks on a grammar that leans on everything C did not use:
@@ -14,9 +15,10 @@ insertion (ASI: an `eos` rule that may match `EOF` or nothing at all)?
 **Short answer.** Two defects, both in core, both fixed the same day and
 covered by the regression grammar `asi` in the test-suite. Everything else
 went through unaided: 55 parser rules and 103 lexer rules became 991 generated
-Java files in 108 s, and after the fixes all 15 snippets and both parseable
-sample programs round-trip byte-exact (the third sample is an intentionally
-invalid input and is reported as a syntax error).
+Java files in 108 s, and after the fixes all 15 snippets round-trip
+byte-exact and all 3 samples pass: two round-trip byte-exact, the third,
+`3728.js`, is a negative test (it ships with `3728.js.errors`) and fails with
+exactly the expected syntax error.
 
 1. **Semantic predicates were turned into optional actions.** The
    optional-wrapping rewrite took `{...}?` for an optional element and
@@ -35,11 +37,11 @@ invalid input and is reported as a syntax error).
    `Formatter.eof(...)` hook that emits the recorded hidden text for parsed
    elements and nothing for programmatic ones.
 
-| Stage | Snippets exact | Samples exact / invalid input |
+| Stage | Snippets exact | Samples passed / failed (3 tests) |
 |---|---|---|
 | first build | unparser grammar does not compile | — |
-| predicates left alone | 13 / 15 | 2 / 3 (+1) |
-| `EOF` slot emitted | 15 / 15 | 2 / 3 (+1) |
+| predicates left alone | 13 / 15 | 3 / 0 |
+| `EOF` slot emitted | 15 / 15 | 3 / 0 |
 
 ## Setup
 
@@ -59,11 +61,12 @@ invalid input and is reported as a syntax error).
   [#39](https://github.com/miho/VMF-Text/issues/39).
 - Samples: the three `*.js` files from `grammars-v4/javascript/ecmascript/examples`
   (`helloworld.js`, `nn.js`, `3728.js`; mixed licenses, not committed —
-  `fetch-samples.sh` downloads them into `samples/`). `3728.js` starts with
-  `(||`: an ANTLR issue reproducer that is invalid ECMAScript and now fails
-  loudly with `SyntaxErrorException`.
+  `fetch-samples.sh` downloads them, with the `.errors` file of the negative
+  test, into `samples/`). `3728.js` is `(||`: an ANTLR issue reproducer, invalid
+  ECMAScript, shipped with `3728.js.errors` (`line 1:1 mismatched input '||'
+  expecting {…}`); it fails with exactly that error.
 - Drivers: `jstrial.Main` parses + unparses every sample and reports
-  byte-exactness and timings; `jstrial.Snip` runs the 15 ES5 snippets in
+  byte-exactness and timings (every sample is a test case: it passes when it round-trips byte-exact, or — a negative test with a `<name>.errors` file next to it, the grammars-v4 convention — when parsing fails with exactly the errors listed there; the summary reads `passed x/n`); `jstrial.Snip` runs the 15 ES5 snippets in
   `snippets.txt` (statements, literals, regex vs division, ASI, comments,
   labels, `try`/`catch`/`finally`).
 
@@ -85,7 +88,7 @@ The project resolves the plugin from `mavenLocal()` first, so a
 | Generate + compile (`gradlew clean build`) | 108 s |
 | Auto-labeled elements (of which alternative classes) | 373 (92) |
 | Numeric-suffix names / PascalCase collision-avoidance names | 21 / 160 |
-| Samples: exact / mismatch / unparse failure / parse failure | 2 / 0 / 0 / 1 (invalid input) |
+| Samples (3 tests): passed / failed | 3 / 0 (2 byte-exact round trips, 1 expected syntax error) |
 | Snippets exact | 15 / 15 |
 | Parse / unparse time, 689 chars (incl. JIT and ATN warm-up) | 369 ms / 54 ms |
 

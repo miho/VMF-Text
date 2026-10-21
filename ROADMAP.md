@@ -438,8 +438,9 @@ ship.
      grammar files byte for byte:
      [`experiments/jshead-grammar-trial`](experiments/jshead-grammar-trial/README.md).
      Two auto-labeling defects fixed — labels equal to token names, per-item
-     lifting of repeated literals (regression grammar `commalift`); 40 of 41
-     examples (the 41st is invalid input) and 22 snippets byte-exact. Rule/token
+     lifting of repeated literals (regression grammar `commalift`); all 41
+     examples pass (40 byte-exact round trips, 1 negative test rejected with its
+     expected error) and 22 snippets round-trip byte-exact. Rule/token
      name clashes are named after what they hold — `identifierNode`,
      `identifierToken` ([#73](https://github.com/miho/VMF-Text/issues/73)).
   Background: `LEXICAL_PRESERVATION_ASSESSMENT.md`, `docs/UNPARSING.md` §6–§7.

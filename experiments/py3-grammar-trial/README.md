@@ -78,7 +78,8 @@ statements placed by `Formatter.newIndentationTokenFormatter()`
 - Samples: the grammar's test inputs `small/` and `large/` (28 distinct
   files, CPython's `asyncio` package, 389 KB); not committed,
   `fetch-samples.sh` downloads them into `samples/`.
-- Drivers: `py3trial.Main` (samples), `py3trial.Snip` (`snippets.txt`, 13
+- Drivers: `py3trial.Main` (samples; every sample is a test case: it passes when it round-trips byte-exact, or — a negative test with a `<name>.errors` file next to it, the grammars-v4 convention — when parsing fails with exactly the errors listed there; the summary reads `passed x/n`; the Python samples have
+  no negative tests), `py3trial.Snip` (`snippets.txt`, 13
   indentation / comment / bracket cases; `snippets2.txt`, 10 trailing-comma
   and default-argument cases), `py3trial.Edit` (moves a statement into a
   function body), `py3trial.Build` (builds a function from scratch and nests

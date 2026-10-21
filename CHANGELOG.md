@@ -80,7 +80,8 @@ All notable changes to VMF-Text are documented here.
   (`elementListItems+=elementListItem*`, each item with its own commas).
   Regression grammar `commalift`. The HEAD JavaScript trial
   ([`experiments/jshead-grammar-trial`](experiments/jshead-grammar-trial/README.md))
-  round-trips all 40 parseable examples and 22 snippets byte-exact, with both
+  passes all 41 examples — 40 byte-exact round trips and one negative test
+  rejected with exactly its expected error — and 22 snippets, with both
   grammar files byte for byte.
 
 ## [0.2.5] — 2026-10-21
