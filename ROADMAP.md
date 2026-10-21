@@ -141,6 +141,20 @@ key: `sh ./gradlew publishAllPublicationsToBuildDirRepository -Psigning.keyId=�
 be uploaded (jar, sources, javadoc, pom, module, marker pom — each with `.asc`)
 to `build/artifacts/` for inspection.
 
+## Ship 0.2.5 (GitHub release 2026-10-21, not on Maven Central)
+
+Python 3 support end to end — split grammars with `tokenVocab` and base
+classes (#39), the five core fixes from the Python trial (#52, #53, #54,
+`tokens {}`, identity equals), `reindent(...)` (#56) and indentation tokens
+for blocks built from scratch (#60) — plus the naming batch (#47, #63),
+predicate-free check rules (#48), optional punctuation left out of
+programmatic elements (#60) and one parser base class (#62). Released as
+[v0.2.5](https://github.com/miho/VMF-Text/releases/tag/v0.2.5) with a signed
+Maven-repository archive attached; again **not** published to Maven Central
+(shared monthly release budget). The same content is on the Central snapshot
+repository as `0.2.5-SNAPSHOT`; `main` continues as `0.2.6-SNAPSHOT`.
+Checklist: [`docs/releases/0.2.5.md`](docs/releases/0.2.5.md).
+
 ## Ship 0.2.4 (GitHub release 2026-10-20, not on Maven Central)
 
 Mixed-mode formatting (#40) and the JavaScript-trial fixes (#49: semantic

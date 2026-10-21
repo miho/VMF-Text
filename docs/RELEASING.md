@@ -195,7 +195,7 @@ after `PUBLISHED`.
 ## 3b. GitHub-only release (no Maven Central budget)
 
 When a release is worth tagging but not worth one of the organization's
-monthly Maven Central release events (0.2.3 and 0.2.4 were released this way), skip §3
+monthly Maven Central release events (0.2.3, 0.2.4 and 0.2.5 were released this way), skip §3
 and attach a signed Maven-repository archive to the GitHub release instead:
 
 ```bash
