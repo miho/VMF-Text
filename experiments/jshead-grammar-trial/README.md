@@ -17,19 +17,20 @@ regular-expression literals), parser predicates (`n("of")`,
 hand-written alternative labels next to unlabeled rules. What breaks?
 
 **Short answer.** Two auto-labeling defects, both fixed in core with regression
-tests. With them, every example program the grammar itself can parse (40 of
-41) and all 22 snippets round-trip byte-exact; the one failing example is
-invalid input on purpose. Both grammar files are used byte for byte; the two
-base classes only got a `package` line. Everything the grammar rejects, plain
-ANTLR rejects too.
+tests. With them, all 41 example programs pass and all 22 snippets
+round-trip byte-exact: 40 examples round-trip byte-exact, and the 41st,
+`3728.js`, is a negative test — it ships with `3728.js.errors` and fails with
+exactly the error listed there. Both grammar files are used byte for byte; the
+two base classes only got a `package` line. Everything the grammar rejects,
+plain ANTLR rejects too.
 
-| Stage | Snippets exact | Examples exact / mismatch / parse failure |
+| Stage | Snippets exact | Examples passed / failed (41 tests) |
 |---|---|---|
 | first build | generation fails (16 × ANTLR error 70) | — |
-| labels avoid token names | 20 / 22 (2 grammar limits) | 33 / 7 / 1 |
-| per-item lifting of repeated literals | 20 / 22 (2 grammar limits) | 40 / 0 / 1 |
-| snippets the grammar accepts | 22 / 22 | 40 / 0 / 1 |
-| names by kind for rule/token clashes, counted per label (#73) | 22 / 22 | 40 / 0 / 1 |
+| labels avoid token names | 20 / 22 (2 grammar limits) | 34 / 7 |
+| per-item lifting of repeated literals | 20 / 22 (2 grammar limits) | 41 / 0 |
+| snippets the grammar accepts | 22 / 22 | 41 / 0 |
+| names by kind for rule/token clashes, counted per label (#73) | 22 / 22 | 41 / 0 |
 
 ## Setup
 
@@ -52,9 +53,10 @@ ANTLR rejects too.
   Unlike the Python lexer base, nothing else needed changing: these lexer
   methods keep ANTLR's exact token ranges.
 - Examples: the grammar's 41 `examples/*.js` at the same commit (45 KB); not
-  committed, `fetch-samples.sh` downloads them into `samples/`. `3728.js` is
-  an intentionally invalid input (it ships with a `.errors` file).
-- Drivers: `jsheadtrial.Main` (examples), `jsheadtrial.Snip`
+  committed, `fetch-samples.sh` downloads them, with the `.errors` file of the
+  negative test, into `samples/`. `3728.js` (`(||`) is a negative test: its
+  `3728.js.errors` expects `line 1:1 no viable alternative at input '(||'`.
+- Drivers: `jsheadtrial.Main` (examples; every sample is a test case: it passes when it round-trips byte-exact, or — a negative test with a `<name>.errors` file next to it, the grammars-v4 convention — when parsing fails with exactly the errors listed there; the summary reads `passed x/n`), `jsheadtrial.Snip`
   (`snippets.txt`, 22 ES2015+ shapes: classes with fields and accessors,
   arrow functions, nested template literals, destructuring, spread,
   async/await, generators, optional chaining, modules, regex vs division,
@@ -80,7 +82,7 @@ sh ./gradlew run -PmainClass=jsheadtrial.Build                     # the model i
 | Auto-labeled elements (of which alternative classes) | 496 (155) |
 | Lifted blocks: choices / per-item | 8 / 1 |
 | Numbered element names (all several references in one type) | 8 |
-| Examples (41): exact / mismatch / parse failure | 40 / 0 / 1 (invalid input) |
+| Examples (41 tests): passed / failed | 41 / 0 (40 byte-exact round trips, 1 expected syntax error) |
 | Snippets exact | 22 / 22 |
 | Parse / unparse time, 45 KB (incl. warm-up) | ~2.3 s / ~0.2 s |
 

@@ -71,7 +71,8 @@ byte-exact.
 - Samples: the 32 `*.c` files from `grammars-v4/c/examples` (mixed licenses,
   not committed — `fetch-samples.sh` downloads them into `samples/`).
 - Drivers: `ctrial.Main` parses + unparses every sample and reports
-  byte-exactness and timings; `ctrial.Snip` runs the one-line snippets in
+  byte-exactness and timings (every sample is a test case: it passes when it round-trips byte-exact, or — a negative test with a `<name>.errors` file next to it, the grammars-v4 convention — when parsing fails with exactly the errors listed there; the summary reads `passed x/n`; the C examples have no
+  negative tests); `ctrial.Snip` runs the one-line snippets in
   `snippets.txt`, which isolate each failure.
 
 ```bash
