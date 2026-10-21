@@ -6,6 +6,24 @@ All notable changes to VMF-Text are documented here.
 
 ### Added
 
+- **Indentation-structured languages: blocks built from scratch** (#60). In
+  Python a block is `NEWLINE INDENT stmt+ DEDENT`, so a programmatic block
+  carries the three tokens as properties and the caller had to set them.
+  `<Grammar>TriviaSupport.fillIndentationTokens(root, indentUnit)` now sets
+  every unset one by nesting depth — a `NEWLINE` becomes the line break, a
+  `DEDENT` the empty string, an `INDENT` the indentation of the enclosing
+  block (parsed or filled) plus one unit — and
+  `Formatter.newIndentationTokenFormatter()` (`IndentationTokenSeparatorPolicy`,
+  token names and spacing configurable) tracks the indentation in effect
+  through every rendered `INDENT`/`DEDENT` and starts the programmatic
+  statements that follow a `NEWLINE` or `DEDENT` on their own line at that
+  depth, also inside a parsed block. Every token-typed model property now
+  carries the VMF annotation `vmf-text:token` with the token's grammar name,
+  which is what the helper goes by; a separator policy is told when a new
+  document starts (`documentStart()`). Regression grammar `indent` (split,
+  with a Python-style lexer base); the Python trial's `py3trial.Build` builds a
+  function and nests one into a parsed class body.
+
 - **`<Grammar>TriviaSupport.reindent(element, oldIndent, newIndent)`** rebases
   the indentation of a parsed subtree: the first line's leading whitespace,
   every inner line start that begins with the old indentation, and
@@ -25,6 +43,21 @@ All notable changes to VMF-Text are documented here.
   changes. Regression grammar `splitlex`.
 
 ### Changed
+
+- **Optional punctuation is left out of elements built from scratch** (#60).
+  An element without recorded optional states printed every state-driven
+  optional construct ("pretty-print"), so a programmatic Python statement came
+  out as `pass;`, a C parameter list as `(int a, ...)`, and an absent
+  `('(' arglist? ')')?` as `class A():`. Such a construct is now left out when
+  nothing in the model asks for it: always for optional punctuation
+  (`';'?`, `(',' '...')?`, `('(' ')')?` — separators and brackets nothing in
+  the model could stand for), and for a block with named elements while its
+  properties are all unset — `('(' bases=idList? ')')?` prints once `bases` is
+  set (`RuleInfo.isUnbackedOptional()`, generated per element as a check
+  against the unparsed object). An optional keyword label such as
+  `('anchor:')?` keeps printing: it reads as the fuller form of the syntax.
+  Elements whose optionality comes from a literal-only sibling alternative and
+  parsed elements are unchanged. Regression: `optblock`.
 
 - **Auto-labeling names** (#47, from the JavaScript and Python trials):
   a lexer rule that is a single literal (`Var: 'var';`) is a keyword, not a

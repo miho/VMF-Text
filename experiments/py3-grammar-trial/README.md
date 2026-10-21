@@ -22,8 +22,11 @@ snippets come back byte-exact; parsing never fails. Every mismatch
 on the way was a VMF-Text defect, none a limitation of the approach. For
 programmatic editing, a moved statement keeps its own trivia and would land
 at column 0; `Python3TriviaSupport.reindent(statement, oldIndent,
-newIndent)` rebases it (finding 7). Fully programmatic Python blocks still
-need their `NEWLINE`/`INDENT`/`DEDENT` values set by the caller.
+newIndent)` rebases it (finding 7). Blocks built from scratch get their
+`NEWLINE`/`INDENT`/`DEDENT` values from
+`Python3TriviaSupport.fillIndentationTokens(root, indentUnit)` and their
+statements placed by `Formatter.newIndentationTokenFormatter()`
+([#60](https://github.com/miho/VMF-Text/issues/60), `py3trial.Build`).
 
 | Stage | Snippets exact | asyncio sources exact |
 |---|---|---|
@@ -73,13 +76,15 @@ need their `NEWLINE`/`INDENT`/`DEDENT` values set by the caller.
 - Drivers: `py3trial.Main` (samples), `py3trial.Snip` (`snippets.txt`, 13
   indentation / comment / bracket cases; `snippets2.txt`, 10 trailing-comma
   and default-argument cases), `py3trial.Edit` (moves a statement into a
-  function body).
+  function body), `py3trial.Build` (builds a function from scratch and nests
+  one into a parsed class body).
 
 ```bash
 sh ./fetch-samples.sh
 sh ./gradlew run                                               # all samples
 sh ./gradlew run -PmainClass=py3trial.Snip --args=snippets.txt  # isolated shapes
 sh ./gradlew run -PmainClass=py3trial.Edit                      # programmatic edit
+sh ./gradlew run -PmainClass=py3trial.Build                     # programmatic blocks
 ```
 
 ## Numbers
@@ -143,9 +148,26 @@ sh ./gradlew run -PmainClass=py3trial.Edit                      # programmatic e
    parsed subtree: the first line's leading whitespace, every inner line
    start that begins with the old indentation, and whitespace-only token
    values (the `INDENT` tokens of nested blocks); the driver shows the
-   corrected output. Still open: a Python-aware `ProgrammaticSeparatorPolicy`
-   that synthesizes `NEWLINE`/`INDENT`/`DEDENT` text for blocks built
-   programmatically (today the caller sets those three properties).
+   corrected output.
+   **Blocks built from scratch** ([#60](https://github.com/miho/VMF-Text/issues/60),
+   `py3trial.Build`): a programmatic `BlockAlt2` without its `NEWLINE` is
+   rejected by the unparser ("Language model is invalid" — a block without
+   its line break is not a block), and the caller had to set all three token
+   values. `Python3TriviaSupport.fillIndentationTokens(root, "    ")` now
+   sets every unset one by nesting depth (the model knows which property
+   holds which token through the `vmf-text:token` annotation): a `NEWLINE`
+   becomes the line break, a `DEDENT` the empty string, an `INDENT` the
+   enclosing block's indentation plus one unit — so a function nested into a
+   parsed class body gets eight spaces, a top-level one four. With
+   `Formatter.newIndentationTokenFormatter()` the statements inside are placed
+   at that depth; the driver builds `def f(): pass; pass`, appends it to a
+   parsed module, appends `pass` and `def g(): pass` to a parsed class body
+   (ten token values filled), and the output re-parses byte-exact. On the way
+   the driver exposed a general defect: the trailing `';'?` of
+   `simple_stmts` was printed for every programmatic statement (`pass;`),
+   because an element without recorded optional states printed all optional
+   constructs. Optional punctuation nothing in the model asks for is now left
+   out (core change, regression grammar `optblock`).
 8. **Naming (improved under [#47](https://github.com/miho/VMF-Text/issues/47)).**
    Property and synthetic rule names derived from snake_case rules are
    camelCase now (`getFileInputChoices()`, `FileInputChoiceAlt2`); the model
@@ -176,7 +198,9 @@ sh ./gradlew run -PmainClass=py3trial.Edit                      # programmatic e
 5. ✅ Per-item lifting of repeated blocks with optional properties
    (finding 5, #54).
 6. ✅ `reindent(...)` for moved / inserted parsed subtrees (finding 7).
-7. ⏳ Python-aware policy for fully programmatic blocks (finding 7).
+7. ✅ Blocks built from scratch: `fillIndentationTokens(...)` +
+   `Formatter.newIndentationTokenFormatter()` (finding 7, #60); optional
+   punctuation is no longer printed for programmatic elements (`pass;`).
 8. ✅ Naming (#47): keyword tokens, `left`/`right`, camelCase for snake_case.
 9. ✅ Split grammars (#39) in core, and this trial runs on the grammars-v4
    files as they are (adapted lexer base class, one lexer rule on the

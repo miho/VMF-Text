@@ -182,6 +182,12 @@ public interface Formatter {
    */
   interface ProgrammaticSeparatorPolicy {
     /**
+     * Called when the formatter starts a new document (the outermost element
+     * of an unparse call), so a policy that tracks structure across terminals
+     * can forget the previous document.
+     */
+    default void documentStart() {}
+    /**
      * Separator to emit before a terminal/lexer element when the parent carries
      * no lexical metadata at all (e.g. programmatically created models),
      * with context. Delegates to {@link #separatorBefore(CodeElement, RuleInfo)}.
@@ -240,6 +246,17 @@ public interface Formatter {
    */
   static Formatter newBlockIndentFormatter() { return new DefaultFormatter(new BlockIndentSeparatorPolicy()); }
 
+  /**
+   * Returns a lexical-preserving formatter for indentation-structured
+   * languages (Python): programmatic or edited parts are printed on their own
+   * lines with the indentation of the enclosing block, which the policy
+   * tracks through the {@code INDENT} / {@code DEDENT} tokens of the output
+   * ({@link IndentationTokenSeparatorPolicy} with its defaults). Parsed bytes
+   * stay exact. The tokens of blocks built from scratch are filled by
+   * {@code <Grammar>TriviaSupport.fillIndentationTokens(...)} before unparsing.
+   */
+  static Formatter newIndentationTokenFormatter() { return new DefaultFormatter(new IndentationTokenSeparatorPolicy()); }
+
   static enum RuleType {
     LEXER_RULE,
     TERMINAL,
@@ -266,16 +283,23 @@ public interface Formatter {
     // Examples:
     // (1) name=IDENTIFIER ';'?
     // (2) ('(' assignments+=assignment* ')')?
-    private final boolean optional; 
+    private final boolean optional;
 
-    // like (',' names+=IDENTIFIER)*  
+    // nothing in the model asks for the optional construct this element
+    // belongs to (its own ?/* suffix or the enclosing ?/* block): optional
+    // punctuation such as ';'? or (',' '...')?, or a block like
+    // ('(' arglist? ')')? whose properties are all unset — evaluated against
+    // the unparsed object; an optional keyword label ('anchor:')? is not unbacked
+    private final boolean unbackedOptional;
+
+    // like (',' names+=IDENTIFIER)*
     private final String grammarText;
 
     // consumed
     private boolean consumed;
 
     private RuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText,
-                     String rulePath, boolean unnamed, boolean optional, String grammarText) {
+                     String rulePath, boolean unnamed, boolean optional, boolean unbackedOptional, String grammarText) {
       this.parentObject = parentObject;
       this.ruleType = ruleType;
       this.ruleName = ruleName;
@@ -284,6 +308,7 @@ public interface Formatter {
       this.rulePath = rulePath;
       this.unnamed  = unnamed;
       this.optional = optional;
+      this.unbackedOptional = unbackedOptional;
       this.grammarText = grammarText;
     }
 
@@ -369,7 +394,7 @@ public interface Formatter {
             public String asString() {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }
-        }, RuleType.NONE, "","", "", true, false, "");
+        }, RuleType.NONE, "","", "", true, false, false, "");
     }
 
    /**
@@ -384,9 +409,9 @@ public interface Formatter {
       return this.consumed;
     }
 
-    /*package private*/ static RuleInfo newRuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText, 
-        String rulePath, boolean unnamed, boolean optional, String grammarText) {
-      return new RuleInfo(parentObject, ruleType, ruleName, ruleText, rulePath, unnamed, optional, grammarText);
+    /*package private*/ static RuleInfo newRuleInfo(CodeElement parentObject, RuleType ruleType, String ruleName, String ruleText,
+        String rulePath, boolean unnamed, boolean optional, boolean unbackedOptional, String grammarText) {
+      return new RuleInfo(parentObject, ruleType, ruleName, ruleText, rulePath, unnamed, optional, unbackedOptional, grammarText);
     }
 
     public CodeElement getParentObject() {
@@ -415,6 +440,20 @@ public interface Formatter {
 
     public boolean isOptional() {
       return this.optional;
+    }
+
+    /**
+     * True when nothing in the model asks for the optional construct this
+     * element belongs to — its own {@code ?}/{@code *} suffix or the enclosing
+     * {@code ?}/{@code *} block: optional punctuation ({@code ';'?},
+     * {@code (',' '...')?}), or a block such as {@code ('(' arglist? ')')?}
+     * whose properties are all unset on the unparsed object. An element built
+     * from scratch (no recorded optional states) leaves such a construct out.
+     * An optional keyword label ({@code ('anchor:')?}) is not unbacked: it
+     * reads as the fuller form of the syntax and stays printed.
+     */
+    public boolean isUnbackedOptional() {
+      return this.unbackedOptional;
     }
 
     public String getGrammarText() {
@@ -491,6 +530,7 @@ public interface Formatter {
             lastTerminalText = null;
             ranges.clear();
             pendingRanges.clear();
+            programmaticPolicy.documentStart();
         }
         openElements.push(e);
         elementDepth = openElements.size();
@@ -748,8 +788,11 @@ public interface Formatter {
                     // No OptionalState entries at all. Parse often omits absent
                     // optionals entirely, so "empty states" is ambiguous:
                     //   - parsed element (range / trivia / path set) → absent
-                    //   - programmatic bare model → present (pretty-print)
-                    symbolState = !looksLikeParsedElement(e);
+                    //   - programmatic bare model → present (pretty-print), unless
+                    //     nothing in the model asks for the construct: optional
+                    //     punctuation such as ';'? or (',' '...')?, or a block like
+                    //     ('(' arglist? ')')? whose properties are unset → absent
+                    symbolState = !looksLikeParsedElement(e) && !ruleInfo.isUnbackedOptional();
                   }
                 }
 
@@ -896,6 +939,11 @@ class BlockIndentSeparatorPolicy implements Formatter.ProgrammaticSeparatorPolic
   }
 
   @Override
+  public void documentStart() {
+    depth = 0;
+  }
+
+  @Override
   public void terminal(Formatter.RuleInfo ruleInfo, boolean programmatic) {
     String t = ruleInfo.getRuleText();
     if(openers.contains(t)) depth++;
@@ -919,6 +967,126 @@ class BlockIndentSeparatorPolicy implements Formatter.ProgrammaticSeparatorPolic
       return (ctx.atLineStart() ? "" : "\n") + indent(depth);
     }
     return " ";
+  }
+
+  @Override
+  public String separatorBeforeEdited(CodeElement parent, Formatter.RuleInfo ruleInfo, Formatter.FormattingContext ctx) {
+    return separatorBefore(parent, ruleInfo, ctx);
+  }
+
+  @Override
+  public String separatorBefore(CodeElement parent, Formatter.RuleInfo ruleInfo) {
+    return " ";
+  }
+
+  @Override
+  public String separatorBeforeEdited(CodeElement parent, Formatter.RuleInfo ruleInfo) {
+    return ruleInfo.getRuleType() == Formatter.RuleType.LEXER_RULE ? " " : "";
+  }
+
+  @Override
+  public String separatorBeforeClosingDelimiter(CodeElement parent, Formatter.RuleInfo ruleInfo) {
+    return "";
+  }
+}
+
+
+/**
+ * A {@link Formatter.ProgrammaticSeparatorPolicy} for indentation-structured
+ * languages such as Python, where line ends and block structure are tokens
+ * that a lexer base class synthesizes: {@code NEWLINE} (the line break),
+ * {@code INDENT} (its text is the indentation of the block's first line) and
+ * {@code DEDENT} (empty). The policy tracks the indentation in effect through
+ * every rendered {@code INDENT} / {@code DEDENT} token, parsed or not, and
+ * starts a programmatic statement that follows a {@code NEWLINE} or
+ * {@code DEDENT} on a new line with exactly that indentation. It never writes
+ * the three tokens itself: a block built from scratch needs their values set,
+ * which {@code <Grammar>TriviaSupport.fillIndentationTokens(...)} does by
+ * nesting depth. Between the other tokens it never glues word-like tokens,
+ * puts no space before {@code ) ] } , : ; .} and none after {@code ( [ { .};
+ * an opening bracket follows an identifier or value directly ({@code f(x)},
+ * {@code a[0]}) and a keyword with a space ({@code return (x)}).
+ */
+class IndentationTokenSeparatorPolicy implements Formatter.ProgrammaticSeparatorPolicy {
+  private String newlineToken = "NEWLINE";
+  private String indentToken = "INDENT";
+  private String dedentToken = "DEDENT";
+  private final java.util.Set<String> noSpaceBefore = new java.util.HashSet<>(java.util.Arrays.asList(")", "]", "}", ",", ":", ";", "."));
+  private final java.util.Set<String> noSpaceAfter = new java.util.HashSet<>(java.util.Arrays.asList("(", "[", "{", "."));
+  private final java.util.Set<String> openers = new java.util.HashSet<>(java.util.Arrays.asList("(", "["));
+  // the INDENT token texts in effect, innermost first
+  private final java.util.Deque<String> indents = new java.util.ArrayDeque<>();
+  private String lastName = null;
+  private String lastText = null;
+  private boolean lastIsValue = false; // a named lexer-rule token: identifier, number, string
+
+  /** Names of the line-break, indentation and dedentation tokens (defaults {@code NEWLINE}, {@code INDENT}, {@code DEDENT}). */
+  public IndentationTokenSeparatorPolicy withTokens(String newline, String indent, String dedent) {
+    this.newlineToken = newline; this.indentToken = indent; this.dedentToken = dedent; return this;
+  }
+  public IndentationTokenSeparatorPolicy withNoSpaceBefore(String... t) { noSpaceBefore.clear(); noSpaceBefore.addAll(java.util.Arrays.asList(t)); return this; }
+  public IndentationTokenSeparatorPolicy withNoSpaceAfter(String... t) { noSpaceAfter.clear(); noSpaceAfter.addAll(java.util.Arrays.asList(t)); return this; }
+
+  /** The indentation in effect at the current output position: the text of the innermost open {@code INDENT} token, or empty. */
+  public String currentIndentation() {
+    return indents.isEmpty() ? "" : indents.peek();
+  }
+
+  @Override
+  public void documentStart() {
+    indents.clear();
+    lastName = null;
+    lastText = null;
+    lastIsValue = false;
+  }
+
+  @Override
+  public void terminal(Formatter.RuleInfo ruleInfo, boolean programmatic) {
+    String name = ruleInfo.getRuleName().orElse(null);
+    String text = ruleInfo.getRuleText();
+    if(indentToken.equals(name)) {
+      indents.push(text == null ? "" : text);
+    } else if(dedentToken.equals(name) && !indents.isEmpty()) {
+      indents.pop();
+    }
+    lastName = name;
+    lastText = text;
+    lastIsValue = ruleInfo.getRuleType() == Formatter.RuleType.LEXER_RULE && !ruleInfo.isUnnamed();
+  }
+
+  @Override
+  public String separatorBefore(CodeElement parent, Formatter.RuleInfo ruleInfo, Formatter.FormattingContext ctx) {
+    String name = ruleInfo.getRuleName().orElse(null);
+    String t = ruleInfo.getRuleText();
+    if(ctx.previousTerminalText() == null) {
+      return ""; // start of the document
+    }
+    if(newlineToken.equals(name) || indentToken.equals(name) || dedentToken.equals(name)) {
+      return ""; // the structural tokens follow their line directly
+    }
+    if(newlineToken.equals(lastName) || dedentToken.equals(lastName)) {
+      // a new line at the current depth; an empty NEWLINE (the virtual one that
+      // closes an unterminated file) still needs the line break
+      return (ctx.atLineStart() ? "" : "\n") + currentIndentation();
+    }
+    if(indentToken.equals(lastName)) {
+      return ""; // the INDENT token is the indentation of the block's first line
+    }
+    if(t == null || t.isEmpty()) {
+      return "";
+    }
+    if(noSpaceBefore.contains(t) || (lastText != null && noSpaceAfter.contains(lastText))) {
+      return "";
+    }
+    if(openers.contains(t)) {
+      // f(x), a[0], g()(1) — but 'return (x)'
+      return isWord(lastText) && !lastIsValue ? " " : "";
+    }
+    return " ";
+  }
+
+  private static boolean isWord(String s) {
+    return s != null && !s.isEmpty() && Character.isJavaIdentifierPart(s.charAt(s.length() - 1));
   }
 
   @Override

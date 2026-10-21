@@ -89,7 +89,12 @@ terminal:
 - No `optionalStates` at all:
   - parsed element (original range / trivia / grammar path) ⇒ **absent**
     (parse often omits absent optionals from the state list)
-  - programmatic bare model ⇒ **present** (pretty-print)
+  - programmatic bare model ⇒ **present** (pretty-print), unless nothing in
+    the model asks for the construct (`RuleInfo.isUnbackedOptional()`, #60):
+    optional punctuation such as `';'?` or `(',' '...')?` is left out, and a
+    block like `('(' arglist? ')')?` is left out while its properties are all
+    unset and printed once one is set; an optional keyword label
+    (`('anchor:')?`) stays printed as the fuller form
 - Wildcard state `path="*"` with `present=true` ⇒ **force all present**
   (used when null→value on a fully unrecorded optional group)
 
@@ -254,6 +259,7 @@ through regions it is never asked about. Two built-ins:
 |---|---|
 | `ConservativeSeparatorPolicy` (default) | single spaces, never glues word-like tokens; flat |
 | `BlockIndentSeparatorPolicy` (`Formatter.newBlockIndentFormatter()`) | line break after `{` `}` `;`, indentation by block depth, no space before `; , ) ] . (` or after `( [ .` — all sets configurable |
+| `IndentationTokenSeparatorPolicy` (`Formatter.newIndentationTokenFormatter()`) | for languages whose line ends and blocks are tokens (Python's `NEWLINE` / `INDENT` / `DEDENT`): tracks the indentation in effect through every rendered `INDENT`/`DEDENT`, starts a statement after a `NEWLINE`/`DEDENT` on a new line at that depth, never glues word-like tokens, no space before `) ] } , : ; .` or after `( [ { .`, a bracket follows an identifier directly — token names and sets configurable |
 
 ```java
 unparser.setFormatter(Formatter.newBlockIndentFormatter());
@@ -263,6 +269,27 @@ for (Formatter.OutputRange r : unparser.getFormatter().programmaticRanges()) {
     r.getStartLine(); r.getEndLine();                 // 1-based, inclusive → external formatter --lines
 }
 ```
+
+A separator policy only ever writes *between* tokens. In an
+indentation-structured language the structure itself is tokens, so a block
+built from scratch needs its `NEWLINE`, `INDENT` (the indentation of the
+block's first line) and `DEDENT` (empty) values — they are ordinary
+properties of the block. `<Grammar>TriviaSupport.fillIndentationTokens(root,
+indentUnit)` sets every unset one by nesting depth: an `INDENT` becomes the
+enclosing block's indentation (parsed or filled) plus one unit, so a new block
+inside a parsed one continues the parsed indentation; values that are set are
+left alone (idempotent). It finds the token properties through the VMF
+annotation `vmf-text:token` that every token-typed property carries (its
+value is the token's grammar name, `TriviaSupport.tokenOf(property)`):
+
+```java
+Python3TriviaSupport.fillIndentationTokens(model.getRoot(), "    ");   // "\n", NEWLINE/INDENT/DEDENT by default
+unparser.setFormatter(Formatter.newIndentationTokenFormatter());
+String out = unparser.unparse(model);               // parsed bytes exact, new blocks at their depth
+```
+
+Policies that track structure are told when a new document starts
+(`documentStart()`), so one formatter instance can be reused.
 
 `programmaticRanges()` lists the elements rendered without lexical
 information after the last top-level unparse, outermost first. Everything

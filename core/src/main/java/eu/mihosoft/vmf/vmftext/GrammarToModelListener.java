@@ -196,6 +196,16 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
                     build());
         }
 
+        if (ParseTreeUtil.isLexerRule(e)) {
+            // The model remembers which token a property holds, so generic
+            // helpers (Python-style INDENT/DEDENT filling) can find token-typed
+            // properties by their grammar name instead of by property name:
+            // obj.vmf().reflect().properties() → annotationByKey("vmf-text:token").
+            property.getAnnotations().add(PropertyAnnotation.newBuilder().
+                    withText("@eu.mihosoft.vmf.core.Annotation(key = \"vmf-text:token\", value = \""
+                            + ParseTreeUtil.getElementText(e) + "\")").build());
+        }
+
         return property;
     }
 
