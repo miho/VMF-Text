@@ -2,6 +2,20 @@
 
 All notable changes to VMF-Text are documented here.
 
+## [Unreleased]
+
+### Changed
+
+- **VMF `0.2.12-SNAPSHOT`** (#65). `main` depends on the VMF snapshot that
+  carries the generated list `equals` fix ([miho/VMF#87](https://github.com/miho/VMF/issues/87):
+  lists of different length compare as unequal instead of throwing), VMF's
+  Gradle 9/10 fixes (the last Gradle deprecation warning in the `core` build
+  is gone) and a plugin marker that reaches Maven Central. The builds resolve
+  it from the Central snapshot repository (declared in the three builds and
+  the ArrayLang example); the Gradle plugin adds that repository to consumer
+  projects while its default `vmfVersion` is a snapshot. The identity-based
+  rule removal from 0.2.5 stays; it no longer depends on the fix.
+
 ## [0.2.5] — 2026-10-21
 
 Python 3 support, end to end: split lexer/parser grammars with `tokenVocab`

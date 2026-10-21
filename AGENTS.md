@@ -22,16 +22,24 @@ uses `--no-daemon`. If you hit `Permission denied`, invoke it as `sh ./gradlew`.
 ### Upstream dependency: VMF
 `core` depends on the sibling VMF project (`eu.mihosoft.vmf:vmf`,
 `:vmf-runtime`, and the `eu.mihosoft.vmf` Gradle plugin =
-`:vmf-gradle-plugin`). Since VMF `0.2.10` these are released on Maven Central,
-so a plain checkout builds without any extra steps. Only when developing
-against an unreleased VMF `-SNAPSHOT` (bumped in `core/build.gradle`) does VMF
-have to be built from source first:
+`:vmf-gradle-plugin`). Releases are on Maven Central (`0.2.11` is the latest);
+`main` currently depends on `0.2.12-SNAPSHOT` (generated list `equals` fix
+miho/VMF#87, Gradle 10 fixes, plugin marker on Central), which the builds
+resolve from the Central snapshot repository
+(`https://central.sonatype.com/repository/maven-snapshots/`, declared in
+`core/settings.gradle`, `core/build.gradle`, `gradle-plugin/build.gradle`,
+`test-suite/build.gradle`, the ArrayLang example, and added to consumer
+projects by the plugin while its default `vmfVersion` is a snapshot). A plain
+checkout builds without extra steps; `-SNAPSHOT` metadata is re-checked on
+every build (24 h cache). When VMF is released next, pin the release in those
+places (and `README.md`, `VMFTextPlugin.groovy`) and drop the repository.
+Building VMF from source is only needed for unpublished VMF work:
 
 ```
 git clone --depth 1 https://github.com/miho/VMF.git ~/deps/VMF
 cd ~/deps/VMF && sh ./gradlew clean publishToMavenLocal --no-daemon
 ```
-(VMF pins JDK 11/17 toolchains for that source build.)
+(VMF pins JDK 17 toolchains for that source build.)
 
 ### JDK toolchains
 Gradle 9 itself runs on JDK 17+, but the projects pin a Java toolchain that
