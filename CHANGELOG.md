@@ -37,6 +37,29 @@ All notable changes to VMF-Text are documented here.
   identity-based rule removal from 0.2.5 stays; it no longer depends on the
   fix.
 
+### Fixed
+
+- **Auto-labeling no longer produces a label equal to a token name** (#64).
+  A label equal to a parser rule name is written in PascalCase (`identifier`
+  → `Identifier`, ANTLR error 69 otherwise); when a token of that name exists
+  too, as in grammars-v4 JavaScript (`identifier` / `Identifier`,
+  `templateStringAtom` / `TemplateStringAtom`), ANTLR rejected the grammar
+  with error 70 ("label conflicts with token with same name"). Token names
+  (lexer rules and `tokens {}` entries, also from the lexer grammar of a split
+  pair) are now taken into account: a keyword-context name still wins, else
+  the name gets a numeric suffix (`identifier2`).
+- **A repeated literal inside a repeated block keeps its iteration** (#64).
+  `(','+ arrayElement)*` in grammars-v4 JavaScript's array literal captured
+  the commas of all iterations as one list, and the unparser's first `','+`
+  took every comma: `[1, 2, 3]` came back as `[1,, 2]`. Auto-labeling now
+  lifts a repeated block with a `+`/`*`-repeated literal into per-item sub
+  classes, as it does for optional properties since #54
+  (`elementListItems+=elementListItem*`, each item with its own commas).
+  Regression grammar `commalift`. The HEAD JavaScript trial
+  ([`experiments/jshead-grammar-trial`](experiments/jshead-grammar-trial/README.md))
+  round-trips all 40 parseable examples and 22 snippets byte-exact, with both
+  grammar files byte for byte.
+
 ## [0.2.5] — 2026-10-21
 
 Python 3 support, end to end: split lexer/parser grammars with `tokenVocab`

@@ -1,0 +1,24 @@
+// Experiment: the grammars-v4 HEAD JavaScript grammar (split lexer/parser grammar
+// with base classes), through VMF-Text with auto-labeling. See README.md.
+plugins {
+    id 'java'
+    id 'application'
+    id 'eu.mihosoft.vmftext' version '0.2.6-SNAPSHOT'
+}
+
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url = uri('https://central.sonatype.com/repository/maven-snapshots/') }
+}
+
+vmfText {
+    antlrVersion = '4.13.2'
+    autoLabel    = true      // no manual labels beyond the ones the grammar ships with
+}
+
+application { mainClass = project.findProperty('mainClass') ?: 'jsheadtrial.Main' }
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }

@@ -1,0 +1,68 @@
+let x = 1;
+const y = x ** 2;
+----
+const add = (a, b) => a + b;
+const id = v => v;
+----
+class A extends B {
+  static count = 0;
+  #secret = 1;
+  constructor(x) { super(x); this.x = x; }
+  get value() { return this.x; }
+  set value(v) { this.x = v; }
+  static create() { return new A(1); }
+}
+----
+const s = `a ${b + `inner ${c}`} d`;
+----
+const { a, b: [c, d = 2], ...rest } = obj;
+----
+f(...args, ...[1, 2]);
+const o = { ...p, q: 1, [k]: 2, m() { return 3; } };
+----
+async function load(url) {
+  const r = await fetch(url);
+  return r?.json() ?? null;
+}
+----
+function* gen() {
+  yield 1
+  yield* other()
+}
+----
+import def, { a as b, c } from './mod.js';
+export const z = 1;
+export default function () {}
+----
+for (const [k, v] of map) { console.log(k, v); }
+for (let i in obj) if (i) break;
+----
+const r = /ab+c/gi.test(s) ? a / b / c : 0;
+----
+x = 1
+y = 2
+----
+return
+x
+----
+label: for (;;) { continue label; }
+----
+// line comment
+/* block
+   comment */ var t = x ? y : z; // trailing
+----
+const big = 1_000_000n + 0x1Fn;
+----
+try { risky(); } catch { recover(); } finally { done(); }
+----
+switch (k) { case 1: a(); break; default: b(); }
+----
+const fn = async ({ a }, [b], ...c) => { await a; };
+----
+new Foo;
+new Foo.Bar(1)(2);
+----
+e ??= f ?? g;
+----
+"use strict";
+let v = 1;

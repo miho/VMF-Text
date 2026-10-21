@@ -125,7 +125,7 @@ final class AutoLabeler {
             }
 
             AutoLabelListener listener = new AutoLabelListener(tokens, rewriter, reserved.reservedNamesLower(),
-                    reserved.keywordTokens());
+                    reserved.keywordTokens(), reserved.tokenNames());
 
             ParseTreeWalker.DEFAULT.walk(listener, tree);
 
@@ -402,9 +402,12 @@ final class AutoLabeler {
          * reference inside. Captured as parallel lists ({@code tfpdefs+=…},
          * {@code tests+=…}) the optional property loses its iteration:
          * {@code (',' tfpdef ('=' test)?)*} drifted Python's default arguments to
-         * the first parameters. Literal-only optionals are fine (their presence
-         * is recorded per occurrence) and so are plain nested choices (one choice
-         * object per iteration). Manual labels disable lifting as for choices.
+         * the first parameters. A repeated literal ({@code ','+}, {@code ','*})
+         * counts too: it becomes a list as well, and {@code (','+ element)*}
+         * shared one comma list between all iterations (#64). Literal-only
+         * optionals are fine (their presence is recorded per occurrence) and so
+         * are plain nested choices (one choice object per iteration). Manual
+         * labels disable lifting as for choices.
          */
         private boolean isPerItemLiftable(ANTLRv4Parser.BlockContext block, String suffix) {
             if(!(suffix.startsWith("*") || suffix.startsWith("+"))) {
@@ -429,6 +432,16 @@ final class AutoLabeler {
                 if(el.atom() != null) {
                     if(suffixed && isPropertyAtom(el.atom())) {
                         return true;
+                    }
+                    // a repeated literal (','+ or ','*) is captured as a list (commas+=','+); how
+                    // many of it belong to one iteration varies, which a list shared by all
+                    // iterations cannot tell: grammars-v4 JavaScript's (','+ arrayElement)*
+                    // unparsed [1, 2, 3] as [1,, 2] (#64). A '?' literal stays state-driven.
+                    if(suffixed && el.atom().terminal() != null && el.atom().terminal().STRING_LITERAL() != null) {
+                        String s = el.ebnfSuffix().getText();
+                        if(s.startsWith("+") || s.startsWith("*")) {
+                            return true;
+                        }
                     }
                 } else if(el.ebnf() != null && el.ebnf().block() != null) {
                     ANTLRv4Parser.BlockContext inner = el.ebnf().block();
@@ -587,9 +600,27 @@ final class AutoLabeler {
         private final Set<String> reservedLower = new HashSet<>();
         // lexer rules that are a single literal (Var: 'var';): keywords, see #47
         private final Map<String,String> keywordTokens = new LinkedHashMap<>();
+        // token names, case-sensitive: a label must not equal one (ANTLR error 70)
+        private final Set<String> tokenNames = new HashSet<>();
+
+        @Override
+        public void enterTokensSpec(ANTLRv4Parser.TokensSpecContext ctx) {
+            if(ctx.idList() != null) {
+                for(ANTLRv4Parser.IdentifierContext id : ctx.idList().identifier()) {
+                    tokenNames.add(id.getText());
+                }
+            }
+        }
+
+        Set<String> tokenNames() {
+            return tokenNames;
+        }
 
         @Override
         public void enterLexerRuleSpec(ANTLRv4Parser.LexerRuleSpecContext ctx) {
+            if(ctx.FRAGMENT() == null && ctx.TOKEN_REF() != null) {
+                tokenNames.add(ctx.TOKEN_REF().getText());
+            }
             if(ctx.FRAGMENT() != null || ctx.TOKEN_REF() == null || ctx.lexerRuleBlock() == null
                     || ctx.lexerRuleBlock().lexerAltList() == null) {
                 return;
@@ -639,6 +670,7 @@ final class AutoLabeler {
         private final TokenStreamRewriter rewriter;
         private final Set<String> reservedNamesLower;
         private final Map<String,String> keywordTokens;
+        private final Set<String> tokenNames;
         private final Map<String,Integer> nameCountsInRule = new HashMap<>();
         private final Map<String,Map<String,String>> entriesByRule = new LinkedHashMap<>();
         // operand names planned per alternative (expr op expr -> left / right, #47)
@@ -656,11 +688,12 @@ final class AutoLabeler {
         private boolean altTypedRule;
 
         AutoLabelListener(CommonTokenStream tokens, TokenStreamRewriter rewriter, Set<String> reservedNamesLower,
-                          Map<String,String> keywordTokens) {
+                          Map<String,String> keywordTokens, Set<String> tokenNames) {
             this.tokens = tokens;
             this.rewriter = rewriter;
             this.reservedNamesLower = reservedNamesLower;
             this.keywordTokens = keywordTokens;
+            this.tokenNames = tokenNames;
         }
 
         @Override
@@ -946,7 +979,7 @@ final class AutoLabeler {
                 labelBase = StringUtil.firstToUpper(labelBase);
             }
 
-            String labelName = uniqueName(labelBase);
+            String labelName = antlrSafeUniqueName(labelBase);
             String assignment = repeated ? "+=" : "=";
             rewriter.insertBefore(ctx.start, labelName + assignment);
             recordEntry(elementIndex, labelName);
@@ -1086,7 +1119,7 @@ final class AutoLabeler {
             if(reservedNamesLower.contains(base.toLowerCase())) {
                 base = StringUtil.firstToUpper(base); // ANTLR error 69: label == rule name
             }
-            String labelName = uniqueName(base);
+            String labelName = antlrSafeUniqueName(base);
             rewriter.insertBefore(ctx.start, labelName + (repeated ? "+=" : "="));
             suppressedSubTrees.add(ebnf);
             recordEntry(elementIndex, labelName);
@@ -1163,6 +1196,22 @@ final class AutoLabeler {
 
             String text = tokens.getText(ebnfSuffix);
             return text.startsWith("*") || text.startsWith("+");
+        }
+
+        /**
+         * {@link #uniqueName(String)}, except when the name is a token name (ANTLR error 70, "label
+         * conflicts with token with same name"). That happens when the PascalCase fallback for a label
+         * equal to a parser rule name (error 69) meets a token of the same word — grammars-v4 JavaScript
+         * has both {@code identifier} and {@code Identifier}. Neither spelling can be a label then, so
+         * the lower-camel name gets a numeric suffix like any other taken name ({@code identifier2}).
+         */
+        private String antlrSafeUniqueName(String baseName) {
+            if(!tokenNames.contains(baseName)) {
+                return uniqueName(baseName);
+            }
+            String lower = StringUtil.firstToLower(baseName);
+            nameCountsInRule.putIfAbsent(lower, 1); // the plain name is not available
+            return uniqueName(lower);
         }
 
         private String uniqueName(String baseName) {

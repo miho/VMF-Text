@@ -426,8 +426,22 @@ ship.
      model is named after the parser grammar minus `Parser`, the lexer is
      generated into the same package, the unparser's check grammar shares it,
      the plugin skips lexer grammars and regenerates on lexer changes.
-     Regression grammar `splitlex` (with a lexer `superClass`). Next: run the
-     Python trial on the grammars-v4 files as they are.
+     Regression grammar `splitlex` (with a lexer `superClass`). The Python
+     trial runs on the grammars-v4 files as they are (#59), the lexer grammar
+     byte for byte since trivia comes from character positions
+     ([#61](https://github.com/miho/VMF-Text/issues/61)).
+  6. **HEAD JavaScript — DONE 2026-10-21
+     ([#64](https://github.com/miho/VMF-Text/issues/64)).** The maintained
+     grammars-v4 `javascript/javascript` grammar (split, base classes,
+     template-literal lexer modes, an `ERROR` channel, lexer and parser
+     predicates, 64 hand-written alternative labels) with auto-labeling, both
+     grammar files byte for byte:
+     [`experiments/jshead-grammar-trial`](experiments/jshead-grammar-trial/README.md).
+     Two auto-labeling defects fixed — labels equal to token names, per-item
+     lifting of repeated literals (regression grammar `commalift`); 40 of 41
+     examples (the 41st is invalid input) and 22 snippets byte-exact. Open:
+     nicer names for rule/token name clashes (`identifier2`,
+     [#73](https://github.com/miho/VMF-Text/issues/73)).
   Background: `LEXICAL_PRESERVATION_ASSESSMENT.md`, `docs/UNPARSING.md` §6–§7.
 
 ## Non-goals
