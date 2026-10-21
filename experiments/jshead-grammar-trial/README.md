@@ -130,4 +130,5 @@ sh ./gradlew run -PmainClass=jsheadtrial.Snip --args=snippets.txt  # isolated sh
    `AutoLabelerTest`.
 2. ✅ Per-item lifting of repeated blocks with a repeated literal (finding 2):
    core `AutoLabeler`, regression grammar `commalift`.
-3. ⏳ Naming of rule/token name clashes (finding 5).
+3. ⏳ Naming of rule/token name clashes (finding 5,
+   [#73](https://github.com/miho/VMF-Text/issues/73)).
