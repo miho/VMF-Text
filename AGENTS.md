@@ -31,9 +31,11 @@ resolve from the Central snapshot repository
 `core/settings.gradle`, `core/build.gradle`, `gradle-plugin/build.gradle`,
 `test-suite/build.gradle`, the ArrayLang example, and added to consumer
 projects by the plugin while its default `vmfVersion` is a snapshot). A plain
-checkout builds without extra steps; `-SNAPSHOT` metadata is re-checked on
-every build (24 h cache). When VMF is released next, pin the release in those
-places (and `README.md`, `VMFTextPlugin.groovy`) and drop the repository.
+checkout builds without extra steps. Gradle trusts a cached `-SNAPSHOT` for
+24 h, so after a new VMF snapshot build run the `core` build once with
+`--refresh-dependencies` (CI does so on every run). When VMF is released next,
+pin the release in those places (and `README.md`, `VMFTextPlugin.groovy`),
+drop the repository and the CI flag.
 Building VMF from source is only needed for unpublished VMF work:
 
 ```
