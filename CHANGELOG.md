@@ -67,9 +67,29 @@ All notable changes to VMF-Text are documented here.
   context (`Else statement` → `elseStatement`); the two operands of an
   `expr op expr` alternative are `left` and `right` instead of `expr` /
   `expr2`; property names and synthetic rule names derived from snake_case
-  rules drop the underscores (`simpleStmts`, `fileInputChoice` — the model
-  class of a snake_case rule itself keeps ANTLR's spelling, `File_input`).
+  rules drop the underscores (`simpleStmts`, `fileInputChoice`).
   Regression grammar `naming`.
+
+- **snake_case parser rules are renamed to camelCase before any other
+  pass** (#63), so the model class of `file_input` is `FileInput` — like its
+  properties since #47 — and the ANTLR parser, the model converter and the
+  unparsers all use that one spelling (`fileInput()`, `FileInputContext`).
+  Only names with an underscore between word characters change
+  (`subscript_` stays); a rule whose camelCase name exists already keeps its
+  name; rule names inside actions and predicates are not rewritten.
+  `Root(rule=file_input)` and the apply-to lists of type and rule maps accept
+  either spelling; custom model interfaces declared in VMF-Text metadata
+  must use the camelCase class names. Nested lifted blocks no longer stack
+  suffixes: a block inside `dictorsetmakerChoice` becomes
+  `dictorsetmakerChoice2`, not `dictorsetmakerChoiceChoice`.
+
+- **One parser base class** (#62). An unqualified parser `superClass` option
+  is qualified with `<package>.parser` in the grammar handed to ANTLR, so the
+  model parser, the unparser's own copy of the rewritten grammar and its
+  check grammar all extend the one class in `<package>.parser`; the second
+  copy in `<package>.unparser.antlr4` is no longer needed (removed for the
+  `java24` test grammar and the Python trial). Lexer base classes were
+  already shared.
 
 ### Fixed
 

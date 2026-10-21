@@ -92,7 +92,14 @@ public class UnparserCodeGenerator {
                 w.append("  tokenVocab=").append(gModel.getTokenVocab()).append(";\n");
             }
             if(superClass) {
-                w.append("  superClass=").append(gModel.getOptions().getSuperClassName()).append(";\n");
+                // the one base class in <package>.parser (#62); the rewritten grammar
+                // carries the qualified name already, this is the fallback
+                String base = gModel.getOptions().getSuperClassName();
+                if(base.indexOf('.') < 0 && gModel.getPackageName() != null && !gModel.getPackageName().isEmpty()) {
+                    base = gModel.getPackageName() + ".parser." + base;
+                }
+                // a qualified name goes in as a string literal: 'parser' is an ANTLR keyword
+                w.append("  superClass=").append(base.indexOf('.') >= 0 ? "'" + base + "'" : base).append(";\n");
             }
             w.append("}").append('\n');
         }

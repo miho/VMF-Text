@@ -62,7 +62,8 @@ statements placed by `Formatter.newIndentationTokenFormatter()`
     tokens: blank lines, newlines inside brackets, same-level indentation
     and the remainder after `DEDENT`s. The token stream is lossless;
   - `Python3ParserBase.java` (two constant predicates) in the parser package
-    and, as for any parser `superClass`, in the unparser's `antlr4` package;
+    (one copy since [#62](https://github.com/miho/VMF-Text/issues/62): the
+    unparser's check grammar extends it there as well);
   - metadata `AutoLabel(enabled=true)`, `Root(rule=file_input)` appended to
     the parser grammar.
   The first run used a hand-combined grammar instead
@@ -170,11 +171,14 @@ sh ./gradlew run -PmainClass=py3trial.Build                     # programmatic b
    out (core change, regression grammar `optblock`).
 8. **Naming (improved under [#47](https://github.com/miho/VMF-Text/issues/47)).**
    Property and synthetic rule names derived from snake_case rules are
-   camelCase now (`getFileInputChoices()`, `FileInputChoiceAlt2`); the model
-   class of a snake_case rule itself keeps ANTLR's spelling (`File_input`,
-   `Simple_stmts`). The 20 operand pairs of `expr op expr` shapes are `left` /
-   `right`, keyword tokens such as `async` are no longer properties. Still
-   cosmetic: nested lifting yields names like `dictorsetmakerChoiceChoice4`.
+   camelCase now (`getFileInputChoices()`, `FileInputChoiceAlt2`), and since
+   [#63](https://github.com/miho/VMF-Text/issues/63) the rule itself is
+   renamed before any other pass, so its model class is `FileInput` /
+   `SimpleStmts` too (the ANTLR parser then says `fileInput()`; the trailing
+   underscore of `subscript_` stays). The 20 operand pairs of `expr op expr`
+   shapes are `left` / `right`, keyword tokens such as `async` are no longer
+   properties, and nested lifting no longer stacks suffixes
+   (`dictorsetmakerChoice2` instead of `dictorsetmakerChoiceChoice`).
 9. **The split grammar is the real entry point (supported since
    [#39](https://github.com/miho/VMF-Text/issues/39)).** Everything above was
    done on a hand-combined grammar. VMF-Text now processes a `parser grammar`

@@ -350,6 +350,11 @@ class GrammarToModelListener extends ANTLRv4ParserBaseListener {
 
         if("superClass".equals(optionsName)) {
             var superClassName = ctx.optionValue().getText();
+            // a qualified name is written as a string literal ('parser' is an ANTLR
+            // keyword, see SuperClassQualifier); the model keeps the bare name
+            if(superClassName.length() >= 2 && (superClassName.startsWith("'") || superClassName.startsWith("\""))) {
+                superClassName = superClassName.substring(1, superClassName.length() - 1);
+            }
             Logger.debug(" -> setting superClass: " + superClassName);
             model.getOptions().setSuperClassName(superClassName);
         } else if("tokenVocab".equals(optionsName)) {

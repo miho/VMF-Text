@@ -65,8 +65,9 @@ public final class GrammarMetaInformationUtil {
 
                 TypeMapping typeMapping = TypeMapping.newInstance();
 
+                // a snake_case rule is named by its camelCase spelling after the rename pass (#63)
                 typeMapping.getApplyToNames().addAll(ctx.applyTo.stream().
-                        map(t -> t.getText()).collect(Collectors.toList()));
+                        map(t -> SnakeCaseRuleRenamer.rename(t.getText())).collect(Collectors.toList()));
 
                 currentMapping = typeMapping;
 
@@ -131,7 +132,7 @@ public final class GrammarMetaInformationUtil {
                 RuleMapping ruleMapping = RuleMapping.newInstance();
 
                 ruleMapping.getApplyToNames().addAll(ctx.applyTo.stream().
-                        map(t -> t.getText()).collect(Collectors.toList()));
+                        map(t -> SnakeCaseRuleRenamer.rename(t.getText())).collect(Collectors.toList()));
 
                 currentMapping = ruleMapping;
 
