@@ -52,9 +52,19 @@ LexicalInfo
 
 ### 2.1 Trivia slots (`TriviaPiece`)
 
-For a rule instance, parse-time hidden-channel text (and some empty pads) is
-stored as an ordered list: **one slot before each terminal** of that rule’s
-footprint, plus a trailing empty pad for EOF-less / end-of-rule cases.
+For a rule instance, the parse-time text between terminals (and some empty
+pads) is stored as an ordered list: **one slot before each terminal** of that
+rule’s footprint, plus a trailing empty pad for EOF-less / end-of-rule cases.
+
+A slot holds the input text between the previous default-channel token and the
+terminal, taken **by character position** (#61). It therefore contains what the
+lexer sent to another channel (`-> channel(HIDDEN)`) *and* what it skipped
+(`-> skip`): grammars-v4 grammars that skip white-space or comments round-trip
+unchanged. This needs exact token positions. When the tokens do not lie in the
+input in stream order — a lexer base class that synthesizes tokens with
+computed ranges, or emits a token after one that lies behind it — the slots are
+built from the hidden-channel tokens between two terminals instead (the earlier
+behaviour), for the whole input.
 
 Token **text** is not in trivia. Values are rendered from properties (or from
 `OriginalLexeme` when applicable). Trivia only holds the whitespace/comments

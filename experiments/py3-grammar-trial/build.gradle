@@ -3,7 +3,7 @@
 plugins {
     id 'java'
     id 'application'
-    id 'eu.mihosoft.vmftext' version '0.2.5-SNAPSHOT'
+    id 'eu.mihosoft.vmftext' version '0.2.6-SNAPSHOT'
 }
 
 java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
