@@ -373,6 +373,40 @@ policies are consulted only where exact preservation is undefined by constructio
 **structural** edit such as list add/remove). In-place value rewrites keep
 parsed trivia — see `LEXICAL_PRESERVATION_ASSESSMENT.md` § *Edit invalidation*.
 
+## The Model Is a Tree
+
+The generated model is a containment tree. Every property that holds a parser
+rule (`Test getRight()`, `VList<Stmt> getStmts()`, …) is a VMF containment
+reference whose opposite is `CodeElement.getParent()`, a `@Container` property
+that VMF maintains:
+
+- `getParent()` is the element an element sits in; `root()` and `pathToRoot()`
+  walk it. It has no setter: it changes through the child properties.
+- Setting an element into a property of another parent, or adding it to one of
+  its lists, removes it from the previous parent (the previous property becomes
+  `null`, the previous list loses exactly that instance), so a subtree moves by
+  being assigned.
+- `equals`/`hashCode` are structural over the subtree: two separately parsed
+  `1` compare equal, `1` and `4` do not; lexical metadata and code ranges are
+  ignored. A setter takes a new subtree even when it equals the current one.
+  Code that must tell equal subtrees apart searches by identity
+  (`IdentityHashMap`, `==` over list indices), as VMF's own bookkeeping does.
+- `element.vmf().content().stream(...)` stays within the element's subtree,
+  with the default iteration strategy as well as with
+  `IterationStrategy.CONTAINMENT_TREE`; `clone()` deep-copies the subtree
+  together with its lexical metadata.
+
+A grammar property that declares its own relation in the grammar's model
+section (`@Contains(opposite = "…")`, `@Container`, `@Refers`) keeps it; its
+children reach the parent through the declared opposite instead of
+`getParent()`.
+
+This needs the VMF `0.2.12-SNAPSHOT` build of 2026-10-21 or later
+(miho/VMF#91): an opposite declared in a base type, setters that compare
+model values by identity, release from the previous parent by identity and
+for subtypes of the property type, and no container property id for a
+containment without opposite.
+
 ## Building VMF-Text (Core)
 
 ### Requirements

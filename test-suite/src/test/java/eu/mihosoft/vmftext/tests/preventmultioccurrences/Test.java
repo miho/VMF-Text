@@ -1,6 +1,5 @@
 /*
- * Copyright 2017-2018 Michael Hoffer <info@michaelhoffer.de>. All rights reserved.
- * Copyright 2017-2018 Goethe Center for Scientific Computing, University Frankfurt. All rights reserved.
+ * Copyright 2017-2026 Michael Hoffer <info@michaelhoffer.de>. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * If you use this software for scientific research then please cite the following publication(s):
- *
- * M. Hoffer, C. Poliwoda, & G. Wittum. (2013). Visual reflection library:
- * a framework for declarative GUI programming on the Java platform.
- * Computing and Visualization in Science, 2013, 16(4),
- * 181–192. http://doi.org/10.1007/s00791-014-0230-y
  */
 package eu.mihosoft.vmftext.tests.preventmultioccurrences;
 
@@ -35,28 +27,52 @@ import org.junit.Assert;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
+/**
+ * Grammar children are containment references: an element is contained in
+ * exactly one place. Setting it into another slot (or adding it to another
+ * list) moves it there and releases it from its previous parent, so the model
+ * never holds the same instance twice. (This test used to document the
+ * opposite, before the model became a containment tree.)
+ */
 public class Test {
     @org.junit.Test
     public void preventMultipleOccurrencesOfInstanceTest() {
 
         ExpressionLangModel model = ExpressionLangModel.newBuilder().build();
 
+        NumberExpr two = NumberExpr.newBuilder().withValue(2.0).build();
+        NumberExpr three = NumberExpr.newBuilder().withValue(3.0).build();
+
         PlusMinusOpExpr operator = PlusMinusOpExpr.newBuilder().
-                withLeft(NumberExpr.newBuilder().withValue(2.0).build()).
-                withRight(NumberExpr.newBuilder().withValue(3.0).build()).build();
+                withLeft(two).
+                withRight(three).build();
 
         model.setRoot(Prog.newBuilder().withExpression(operator).build());
 
-        boolean multipleOccurrences1 = containsMultipleOccurrencesExcludingParents(model);
+        Assert.assertFalse("The model does not contain multiple occurrences of the same instance",
+                containsMultipleOccurrencesExcludingParents(model));
+        Assert.assertSame(operator, two.getParent());
+        Assert.assertSame(operator, three.getParent());
 
-        operator.setLeft(operator);
+        // setting an element into another slot moves it
+        operator.setRight(two);
 
-        boolean multipleOccurrences2 = containsMultipleOccurrencesExcludingParents(model);
+        Assert.assertFalse("The model never contains multiple occurrences of the same instance",
+                containsMultipleOccurrencesExcludingParents(model));
+        Assert.assertNull("the previous slot is released", operator.getLeft());
+        Assert.assertSame(two, operator.getRight());
+        Assert.assertSame(operator, two.getParent());
+        Assert.assertNull("the replaced element is released", three.getParent());
 
-        Assert.assertTrue("The model does not contain multiple occurrences of the same instance", !multipleOccurrences1);
+        // the same holds for the root of the model
+        ExpressionLangModel otherModel = ExpressionLangModel.newBuilder().build();
+        Prog prog = model.getRoot();
 
-        Assert.assertTrue("The model does contain multiple occurrences of the same instance", multipleOccurrences2);
+        otherModel.setRoot(prog);
 
+        Assert.assertNull(model.getRoot());
+        Assert.assertSame(prog, otherModel.getRoot());
+        Assert.assertFalse(containsMultipleOccurrencesExcludingParents(otherModel));
     }
 
     private boolean containsMultipleOccurrencesExcludingParents(VObject root) {

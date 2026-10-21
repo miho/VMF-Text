@@ -32,6 +32,12 @@ import eu.mihosoft.vmf.core.*;
 interface ${Util.firstToUpper($model.grammarName)}Model {
 #if(${model.hasRootClass()})
 
+  /**
+   * The root element. Contained by the model (no opposite: the model is not a
+   * code element, so the root's {@code getParent()} is {@code null}), so the
+   * model's equality and containment-tree traversal cover the whole tree.
+   */
+  @eu.mihosoft.vmf.core.Contains
   ${model.rootClass().nameWithUpper()} getRoot();
 
 #end
@@ -153,7 +159,15 @@ interface CodeElement {
   @eu.mihosoft.vmf.core.IgnoreEquals
   CodeRange getCodeRange();
 
+  /**
+   * The element this element is contained in (its parent in the syntax tree),
+   * {@code null} for the root. Maintained by VMF: every grammar-derived child
+   * property is a containment property with this property as its opposite, so
+   * setting or adding an element to another parent removes it from its
+   * previous one. Read-only; it changes through the child properties.
+   */
   @eu.mihosoft.vmf.core.IgnoreEquals
+  @eu.mihosoft.vmf.core.Container
   CodeElement getParent();
 
   @eu.mihosoft.vmf.core.DelegateTo(className="${delegationPackageName}.CodeElementDelegate")

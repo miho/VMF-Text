@@ -294,8 +294,10 @@ public class Test {
         // print the result
         methodBody.getBlock().add(PrintStatement.newBuilder().withPrintExpression(mulExpression).build());
 
-        // reuse the mult expression as return statement
-        methodBody.setReturnExpr(mulExpression);
+        // the return statement gets a copy of the mult expression: an element is
+        // contained in exactly one place, reusing the instance would move it out
+        // of the print statement
+        methodBody.setReturnExpr(mulExpression.clone());
         classDeclaration.getMethodDeclarations().add(mDecl);
 
         // finally add our custom class to the model

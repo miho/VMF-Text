@@ -25,7 +25,12 @@ uses `--no-daemon`. If you hit `Permission denied`, invoke it as `sh ./gradlew`.
 `:vmf-gradle-plugin`). Releases are on Maven Central (`0.2.11` is the latest);
 `main` currently depends on `0.2.12-SNAPSHOT` (generated list `equals` fix
 miho/VMF#87, Gradle 10 fixes, plugin marker on Central, a VMF Gradle plugin
-that resolves its classpath lazily miho/VMF#89), which the builds
+that resolves its classpath lazily miho/VMF#89, and since the build of
+2026-10-21, build 4, setters that compare model values by identity,
+containment opposites declared in a base type, release from the previous
+container by identity and for subtypes, and no container property id for a
+containment without opposite, miho/VMF#91 — the containment model of the
+generated code needs that build), which the builds
 resolve from the Central snapshot repository
 (`https://central.sonatype.com/repository/maven-snapshots/`, declared in
 `core/settings.gradle`, `core/build.gradle`, `gradle-plugin/build.gradle`,
