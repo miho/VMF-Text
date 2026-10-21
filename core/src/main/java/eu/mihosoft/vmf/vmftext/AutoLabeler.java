@@ -671,7 +671,12 @@ final class AutoLabeler {
         private final Set<String> reservedNamesLower;
         private final Map<String,String> keywordTokens;
         private final Set<String> tokenNames;
-        private final Map<String,Integer> nameCountsInRule = new HashMap<>();
+        // element-name counters of the current type (the rule, or one labeled alternative)
+        private Map<String,Integer> nameCountsInRule = new HashMap<>();
+        // rules whose labeled alternatives repeat a label: alternatives with the same label are one
+        // type and share a namespace, every other label has its own (#73); null for other rules
+        private Map<String,Map<String,Integer>> namespacesByLabel;
+        private ANTLRv4Parser.ParserRuleSpecContext currentRuleSpec;
         private final Map<String,Map<String,String>> entriesByRule = new LinkedHashMap<>();
         // operand names planned per alternative (expr op expr -> left / right, #47)
         private final Map<ParserRuleContext,String> plannedNames = new HashMap<>();
@@ -702,11 +707,13 @@ final class AutoLabeler {
             currentRuleIndex++;
             currentAltIndex = -1;
             currentElementIndex = 0;
-            nameCountsInRule.clear();
+            nameCountsInRule = new HashMap<>();
+            currentRuleSpec = ctx;
 
             altTypedRule = labelAlternatives(ctx);
+            namespacesByLabel = !altTypedRule && hasRepeatedManualLabels(ctx) ? new HashMap<>() : null;
 
-            if(!altTypedRule) {
+            if(!altTypedRule && namespacesByLabel == null) {
                 // reserve the names of manually labeled elements so auto-generated
                 // element labels never collide with the manual ones. (Alt-typed
                 // rules seed per top-level alternative instead, see
@@ -840,10 +847,49 @@ final class AutoLabeler {
             // manual labels. Nested block alternatives (parent is not a
             // labeledAlt) share the namespace of their top-level alternative.
             if(altTypedRule && ctx.getParent() instanceof ANTLRv4Parser.LabeledAltContext) {
-                nameCountsInRule.clear();
+                nameCountsInRule = new HashMap<>();
                 seedManualElementLabels(ctx);
+            } else if(namespacesByLabel != null && ctx.getParent() instanceof ANTLRv4Parser.LabeledAltContext) {
+                // a rule that repeats a label (grammars-v4 JavaScript: three `# NewExpression`
+                // alternatives in singleExpression) generates one type per label: alternatives
+                // with the same label share a namespace, every other label has its own. Counting
+                // across the whole rule numbered names over unrelated types
+                // (AdditiveExpression.getSingleExpression15(), no left/right, identifierNode2).
+                ANTLRv4Parser.LabeledAltContext labeled = (ANTLRv4Parser.LabeledAltContext) ctx.getParent();
+                String key = labeled.identifier() != null ? labeled.identifier().getText() : "#alt" + currentAltIndex;
+                Map<String,Integer> namespace = namespacesByLabel.get(key);
+                if(namespace == null) {
+                    namespace = new HashMap<>();
+                    namespacesByLabel.put(key, namespace);
+                    nameCountsInRule = namespace;
+                    // reserve the manual element labels of every alternative of this type
+                    for(ANTLRv4Parser.LabeledAltContext alt : currentRuleSpec.ruleBlock().ruleAltList().labeledAlt()) {
+                        if(alt.identifier() != null && alt.identifier().getText().equals(key)) {
+                            seedManualElementLabels(alt);
+                        }
+                    }
+                    if(labeled.identifier() == null) {
+                        seedManualElementLabels(ctx);
+                    }
+                } else {
+                    nameCountsInRule = namespace;
+                }
             }
             planBinaryOperands(ctx);
+        }
+
+        /** Whether two or more top-level alternatives of the rule carry the same manual label. */
+        private static boolean hasRepeatedManualLabels(ANTLRv4Parser.ParserRuleSpecContext ctx) {
+            if(ctx.ruleBlock() == null || ctx.ruleBlock().ruleAltList() == null) {
+                return false;
+            }
+            Set<String> seen = new HashSet<>();
+            for(ANTLRv4Parser.LabeledAltContext alt : ctx.ruleBlock().ruleAltList().labeledAlt()) {
+                if(alt.identifier() != null && !seen.add(alt.identifier().getText())) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /**
@@ -979,7 +1025,7 @@ final class AutoLabeler {
                 labelBase = StringUtil.firstToUpper(labelBase);
             }
 
-            String labelName = antlrSafeUniqueName(labelBase);
+            String labelName = antlrSafeUniqueName(labelBase, clashSuffix(ctx));
             String assignment = repeated ? "+=" : "=";
             rewriter.insertBefore(ctx.start, labelName + assignment);
             recordEntry(elementIndex, labelName);
@@ -1119,7 +1165,7 @@ final class AutoLabeler {
             if(reservedNamesLower.contains(base.toLowerCase())) {
                 base = StringUtil.firstToUpper(base); // ANTLR error 69: label == rule name
             }
-            String labelName = antlrSafeUniqueName(base);
+            String labelName = antlrSafeUniqueName(base, null);
             rewriter.insertBefore(ctx.start, labelName + (repeated ? "+=" : "="));
             suppressedSubTrees.add(ebnf);
             recordEntry(elementIndex, labelName);
@@ -1201,17 +1247,44 @@ final class AutoLabeler {
         /**
          * {@link #uniqueName(String)}, except when the name is a token name (ANTLR error 70, "label
          * conflicts with token with same name"). That happens when the PascalCase fallback for a label
-         * equal to a parser rule name (error 69) meets a token of the same word — grammars-v4 JavaScript
-         * has both {@code identifier} and {@code Identifier}. Neither spelling can be a label then, so
-         * the lower-camel name gets a numeric suffix like any other taken name ({@code identifier2}).
+         * equal to a parser rule name (error 69) meets a token of the same word — grammars-v4
+         * JavaScript has both {@code identifier} and {@code Identifier}. Neither spelling can be a
+         * label then, so the name says what the property holds (#73): {@code identifierNode} for a
+         * reference to the rule (an {@code Identifier} node), {@code identifierToken} for a reference
+         * to the token (its text). A second one in the same type is numbered
+         * ({@code identifierNode2}); a numeric suffix on the plain word remains the fallback when
+         * the suffixed name is taken or the element is neither kind of reference.
+         *
+         * @param clashSuffix {@code "Node"} for a rule reference, {@code "Token"} for a token
+         *                    reference, {@code null} otherwise
          */
-        private String antlrSafeUniqueName(String baseName) {
+        private String antlrSafeUniqueName(String baseName, String clashSuffix) {
             if(!tokenNames.contains(baseName)) {
                 return uniqueName(baseName);
             }
             String lower = StringUtil.firstToLower(baseName);
+            if(clashSuffix != null) {
+                String suffixed = lower + clashSuffix;
+                if(!reservedNamesLower.contains(suffixed.toLowerCase()) && !tokenNames.contains(suffixed)) {
+                    return uniqueName(suffixed);
+                }
+            }
             nameCountsInRule.putIfAbsent(lower, 1); // the plain name is not available
             return uniqueName(lower);
+        }
+
+        /** {@code "Node"} for a parser rule reference, {@code "Token"} for a token reference, else {@code null}. */
+        private static String clashSuffix(ANTLRv4Parser.ElementContext ctx) {
+            if(ctx.atom() == null) {
+                return null;
+            }
+            if(ctx.atom().ruleref() != null) {
+                return "Node";
+            }
+            if(ctx.atom().terminal() != null && ctx.atom().terminal().TOKEN_REF() != null) {
+                return "Token";
+            }
+            return null;
         }
 
         private String uniqueName(String baseName) {

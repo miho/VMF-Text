@@ -439,9 +439,9 @@ ship.
      [`experiments/jshead-grammar-trial`](experiments/jshead-grammar-trial/README.md).
      Two auto-labeling defects fixed — labels equal to token names, per-item
      lifting of repeated literals (regression grammar `commalift`); 40 of 41
-     examples (the 41st is invalid input) and 22 snippets byte-exact. Open:
-     nicer names for rule/token name clashes (`identifier2`,
-     [#73](https://github.com/miho/VMF-Text/issues/73)).
+     examples (the 41st is invalid input) and 22 snippets byte-exact. Rule/token
+     name clashes are named after what they hold — `identifierNode`,
+     `identifierToken` ([#73](https://github.com/miho/VMF-Text/issues/73)).
   Background: `LEXICAL_PRESERVATION_ASSESSMENT.md`, `docs/UNPARSING.md` §6–§7.
 
 ## Non-goals

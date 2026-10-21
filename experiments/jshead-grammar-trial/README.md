@@ -29,6 +29,7 @@ ANTLR rejects too.
 | labels avoid token names | 20 / 22 (2 grammar limits) | 33 / 7 / 1 |
 | per-item lifting of repeated literals | 20 / 22 (2 grammar limits) | 40 / 0 / 1 |
 | snippets the grammar accepts | 22 / 22 | 40 / 0 / 1 |
+| names by kind for rule/token clashes, counted per label (#73) | 22 / 22 | 40 / 0 / 1 |
 
 ## Setup
 
@@ -57,12 +58,16 @@ ANTLR rejects too.
   (`snippets.txt`, 22 ES2015+ shapes: classes with fields and accessors,
   arrow functions, nested template literals, destructuring, spread,
   async/await, generators, optional chaining, modules, regex vs division,
-  ASI, comments, BigInt, labels, `new` without arguments, `"use strict"`).
+  ASI, comments, BigInt, labels, `new` without arguments, `"use strict"`),
+  `jsheadtrial.Build` (the model in code: edits a parsed `continue outer`,
+  builds `stop: break stop;` with the builders, lists properties through VMF
+  reflection).
 
 ```bash
 sh ./fetch-samples.sh
 sh ./gradlew run                                                  # the examples
 sh ./gradlew run -PmainClass=jsheadtrial.Snip --args=snippets.txt  # isolated shapes
+sh ./gradlew run -PmainClass=jsheadtrial.Build                     # the model in code
 ```
 
 ## Numbers
@@ -74,6 +79,7 @@ sh ./gradlew run -PmainClass=jsheadtrial.Snip --args=snippets.txt  # isolated sh
 | Generate + compile (`gradlew clean build -x test`, alone) | ~99 s |
 | Auto-labeled elements (of which alternative classes) | 496 (155) |
 | Lifted blocks: choices / per-item | 8 / 1 |
+| Numbered element names (all several references in one type) | 8 |
 | Examples (41): exact / mismatch / parse failure | 40 / 0 / 1 (invalid input) |
 | Snippets exact | 22 / 22 |
 | Parse / unparse time, 45 KB (incl. warm-up) | ~2.3 s / ~0.2 s |
@@ -87,10 +93,10 @@ sh ./gradlew run -PmainClass=jsheadtrial.Snip --args=snippets.txt  # isolated sh
    has the parser rule `identifier` *and* the token `Identifier` (likewise
    `templateStringAtom` / `TemplateStringAtom`). Neither spelling can be a
    label then. Auto-labeling now also collects token names (lexer rules and
-   `tokens {}` entries, from the lexer grammar of a split pair too) and falls
-   back to a numeric suffix (`identifier2`), the existing policy for taken
-   names; a keyword-context name still wins where there is one. Core tests in
-   `AutoLabelerTest` (the ANTLR tool accepts the result).
+   `tokens {}` entries, from the lexer grammar of a split pair too); a
+   keyword-context name still wins where there is one, else the name says what
+   the property holds (finding 5). Core tests in `AutoLabelerTest` (the ANTLR
+   tool accepts the result).
 2. **A repeated literal inside a repeated block lost its iteration (fixed).**
    7 examples came back with array literals mangled: `[ 1, 2, 3 ]` as
    `[ 1,, 2 ]`, `[ n1, n2, n3, ...others ]` as `[ n1,,, n2 ]`. The rule is
@@ -117,12 +123,30 @@ sh ./gradlew run -PmainClass=jsheadtrial.Snip --args=snippets.txt  # isolated sh
    break in between they parse). A plain ANTLR parser generated from the same
    files fails on exactly these inputs and on `3728.js`; the snippet file uses
    accepted forms instead.
-5. **Naming (cosmetic, open).** The numeric fallback of finding 1 lands on the
-   most common node: 15 × `identifier2`, among them the token inside the
-   `identifier` rule itself (`Identifier.getIdentifier2()`), plus
-   `identifier3` and `templateStringAtom2`. A better fallback for a rule/token
-   name clash (e.g. `identifierToken` for the token reference) would be a
-   small naming change; it is not made here because it renames properties.
+5. **The names are the model's API in code (fixed, [#73](https://github.com/miho/VMF-Text/issues/73)).**
+   The first fallback for finding 1 was a numeric suffix, and
+   `jsheadtrial.Build` showed what that means for code that works with the
+   model: `ContinueStatement.getIdentifier2()` returned the `Identifier` node,
+   `IdentifierAlt1.getIdentifier2()` its text, and building `stop: break stop;`
+   read `withIdentifier2(IdentifierAlt1.newBuilder().withIdentifier2("stop")…)`.
+   The names now say what the property holds: a reference to the rule is
+   `identifierNode`, a reference to the token `identifierToken` (14 ×
+   `identifierNode`, 2 × `identifierToken`, 1 × `templateStringAtomToken`);
+   VMF reflection lists `identifierToken : String (token Identifier)` through
+   the `vmf-text:token` annotation, so code can also find a token's property
+   without knowing its name. The same check exposed a second cause of
+   unreadable names: `singleExpression` repeats the label `# NewExpression`
+   three times, which made auto-labeling count names across all 48
+   alternatives — `AdditiveExpression.getSingleExpression15()` /
+   `getSingleExpression16()`, no `left` / `right`, an `identifierNode2` in a
+   class with one identifier. Names are counted per label now: binary
+   expressions read `getLeft()` / `getRight()`, and the numbered names fell
+   from 38 to 8, each one several references in one type (the ternary's three
+   operands, `for (init; condition; update)`, a computed property's key and
+   value, the two backticks of a template literal) or the grammar's own token
+   `OctalIntegerLiteral2`. The built program unparses as ` stop : break stop ;`
+   (conservative separators) and re-parses byte-exact. Regression grammar
+   `nameclash` builds such a model with the builders.
 
 ## What was done with this
 
@@ -130,5 +154,7 @@ sh ./gradlew run -PmainClass=jsheadtrial.Snip --args=snippets.txt  # isolated sh
    `AutoLabelerTest`.
 2. ✅ Per-item lifting of repeated blocks with a repeated literal (finding 2):
    core `AutoLabeler`, regression grammar `commalift`.
-3. ⏳ Naming of rule/token name clashes (finding 5,
-   [#73](https://github.com/miho/VMF-Text/issues/73)).
+3. ✅ Names for rule/token clashes by what they hold (`identifierNode`,
+   `identifierToken`) and names counted per alternative label (finding 5,
+   [#73](https://github.com/miho/VMF-Text/issues/73)): core `AutoLabeler`,
+   tests in `AutoLabelerTest`, regression grammar `nameclash`.
