@@ -75,4 +75,68 @@ public class AutoLabelerTest {
         Assert.assertTrue(report.contains("elseStatement") || report.contains("statement"));
         Assert.assertTrue(report.contains("explicit ANTLR labels always win"));
     }
+
+    /**
+     * #64 (grammars-v4 JavaScript): a reference to the parser rule {@code identifier} cannot be
+     * labeled {@code identifier} (ANTLR error 69, rule name) nor {@code Identifier} when a token of
+     * that name exists (error 70). With a preceding keyword the keyword-context name is used, and a
+     * reference to the token itself is labeled without conflict; ANTLR accepts the result.
+     */
+    @Test
+    public void labelAvoidsTokenNamesAsWellAsRuleNames() throws Exception {
+        String grammar = ""
+                + "grammar TokenClash;\n"
+                + "\n"
+                + "unit : 'let' identifier '=' Identifier ';' EOF ;\n"
+                + "\n"
+                + "identifier : Identifier ;\n"
+                + "\n"
+                + "Identifier : [a-z]+ ;\n"
+                + "WS : [ \\t\\r\\n]+ -> channel(HIDDEN) ;\n";
+
+        File dir = tmp.newFolder("tokenclash");
+        File grammarFile = new File(dir, "TokenClash.g4");
+        Files.write(grammarFile.toPath(), grammar.getBytes(StandardCharsets.UTF_8));
+
+        File rewritten = AutoLabeler.rewrite(grammarFile, false, null);
+        String text = new String(Files.readAllBytes(rewritten.toPath()), StandardCharsets.UTF_8);
+
+        // neither the rule name nor the token name is used as a label
+        Assert.assertFalse(text, text.matches("(?s).*[^A-Za-z]Identifier=.*"));
+        Assert.assertFalse(text, text.matches("(?s).*[^A-Za-z]identifier=.*"));
+        Assert.assertTrue(text, text.contains("identifier2=Identifier"));
+        Assert.assertTrue(text, text.contains("letIdentifier=identifier"));
+
+        org.antlr.v4.Tool tool = new org.antlr.v4.Tool(new String[]{rewritten.getAbsolutePath(), "-o", dir.getAbsolutePath()});
+        tool.processGrammarsOnCommandLine();
+        Assert.assertEquals("ANTLR accepts the labels: " + text, 0, tool.errMgr.getNumErrors());
+    }
+
+    /** Without keyword context the numeric suffix is the only way out. */
+    @Test
+    public void labelWithoutKeywordContextGetsANumericSuffixWhenRuleAndTokenShareTheName() throws Exception {
+        String grammar = ""
+                + "grammar TokenClash2;\n"
+                + "\n"
+                + "unit : identifier ':' identifier EOF ;\n"
+                + "\n"
+                + "identifier : Identifier ;\n"
+                + "\n"
+                + "Identifier : [a-z]+ ;\n"
+                + "WS : [ \\t\\r\\n]+ -> channel(HIDDEN) ;\n";
+
+        File dir = tmp.newFolder("tokenclash2");
+        File grammarFile = new File(dir, "TokenClash2.g4");
+        Files.write(grammarFile.toPath(), grammar.getBytes(StandardCharsets.UTF_8));
+
+        File rewritten = AutoLabeler.rewrite(grammarFile, false, null);
+        String text = new String(Files.readAllBytes(rewritten.toPath()), StandardCharsets.UTF_8);
+
+        Assert.assertTrue(text, text.contains("identifier2=identifier"));
+        Assert.assertTrue(text, text.contains("identifier3=identifier"));
+
+        org.antlr.v4.Tool tool = new org.antlr.v4.Tool(new String[]{rewritten.getAbsolutePath(), "-o", dir.getAbsolutePath()});
+        tool.processGrammarsOnCommandLine();
+        Assert.assertEquals("ANTLR accepts the labels: " + text, 0, tool.errMgr.getNumErrors());
+    }
 }

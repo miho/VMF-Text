@@ -1,0 +1,11 @@
+// Experiment, not a showcase: resolves the VMF-Text plugin from a local publish
+// (sh ./gradlew publishToMavenLocal in core and gradle-plugin) or from the
+// Central snapshot repository. Not part of CI.
+pluginManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url = uri('https://central.sonatype.com/repository/maven-snapshots/') }
+    }
+}
+rootProject.name = 'jshead-grammar-trial'
