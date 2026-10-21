@@ -229,7 +229,7 @@ typeSpecifier
     ;
 
 structOrUnionSpecifier
-    : structOrUnion Identifier? '{' structDeclarationList '}'
+    : structOrUnion Identifier? '{' structDeclarationList? '}' // empty struct: GCC extension (VMF-Text trial patch)
     | structOrUnion Identifier
     ;
 
@@ -285,6 +285,8 @@ atomicTypeSpecifier
 typeQualifier
     : 'const'
     | 'restrict'
+    | '__restrict'   // GCC extension (VMF-Text trial patch)
+    | '__restrict__' // GCC extension (VMF-Text trial patch)
     | 'volatile'
     | '_Atomic'
     ;
