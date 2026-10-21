@@ -361,11 +361,6 @@ public interface Formatter {
             }
 
             @Override
-            public void setParent(CodeElement parent) {
-                throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
-            }
-
-            @Override
             public CodeElement root() {
                 throw new UnsupportedOperationException("Empty Code Element does not support this operation.");
             }

@@ -53,49 +53,12 @@ public class CodeElementDelegate implements DelegatedBehavior<CodeElement> {
         this.codeElement = caller;
     }
 
+    // 'parent' is the VMF container of a code element: the grammar-derived
+    // child properties are containment properties with 'parent' as opposite,
+    // so VMF maintains it on every set, add and remove. No change listener
+    // is needed (and none is registered per element).
     public void onCodeElementInstantiated() {
-        codeElement.vmf().changes().addListener( l -> {
-
-            if(l.object() != codeElement || "parent".equals(l.propertyName())) {
-                return;
-            }
-
-            if(l.listChange().isPresent()) {
-
-                l.listChange().get().added().elements().forEach(newO-> {
-                    // register parent with new value
-                    if(newO instanceof CodeElement) {
-                        CodeElement cE = (CodeElement) newO;
-                        cE.setParent(codeElement);
-                    }
-                });
-
-                l.listChange().get().removed().elements().forEach(prevO-> {
-                    // remove parent from old value
-                    if(prevO instanceof CodeElement) {
-                        CodeElement cE = (CodeElement) prevO;
-                        cE.setParent(null);
-                    }
-                });
-
-            } else if(l.propertyChange().isPresent()) {
-
-                // register parent with new value
-                Object newO = l.propertyChange().get().newValue();
-                if(newO instanceof CodeElement) {
-                    CodeElement cE = (CodeElement) newO;
-                    cE.setParent(codeElement);
-                }
-
-                // remove parent from old value
-                Object prevO = l.propertyChange().get().oldValue();
-                if(prevO instanceof CodeElement) {
-                    CodeElement cE = (CodeElement) prevO;
-                    cE.setParent(null);
-                }
-            }
-
-        }, false);
+        // nothing to set up (see above)
     }
 
     public CodeElement root() {
