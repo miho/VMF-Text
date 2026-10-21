@@ -24,7 +24,8 @@ uses `--no-daemon`. If you hit `Permission denied`, invoke it as `sh ./gradlew`.
 `:vmf-runtime`, and the `eu.mihosoft.vmf` Gradle plugin =
 `:vmf-gradle-plugin`). Releases are on Maven Central (`0.2.11` is the latest);
 `main` currently depends on `0.2.12-SNAPSHOT` (generated list `equals` fix
-miho/VMF#87, Gradle 10 fixes, plugin marker on Central), which the builds
+miho/VMF#87, Gradle 10 fixes, plugin marker on Central, a VMF Gradle plugin
+that resolves its classpath lazily miho/VMF#89), which the builds
 resolve from the Central snapshot repository
 (`https://central.sonatype.com/repository/maven-snapshots/`, declared in
 `core/settings.gradle`, `core/build.gradle`, `gradle-plugin/build.gradle`,
