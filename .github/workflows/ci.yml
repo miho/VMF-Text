@@ -42,9 +42,13 @@ jobs:
       - name: Set up Gradle (caching + wrapper validation)
         uses: gradle/actions/setup-gradle@v4
 
+      # --refresh-dependencies while core depends on a VMF -SNAPSHOT: the restored
+      # Gradle cache may hold an older snapshot build, which Gradle trusts for 24 h
+      # (VMF 0.2.12-SNAPSHOT build 1 still had the eager plugin of miho/VMF#89).
+      # Drop it when core pins a VMF release again.
       - name: Build, test and publish vmf-text core to Maven local
         working-directory: core
-        run: sh ./gradlew test publishToMavenLocal --no-daemon
+        run: sh ./gradlew test publishToMavenLocal --no-daemon --refresh-dependencies
 
       - name: Publish vmf-text Gradle plugin to Maven local
         working-directory: gradle-plugin

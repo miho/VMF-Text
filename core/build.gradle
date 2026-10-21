@@ -16,18 +16,15 @@ buildscript {
 
     dependencies {
         classpath 'org.antlr:antlr4:4.13.2'
-        // the VMF plugin is applied below, after the repositories block: it resolves
-        // its 'vmfCompile' configuration (vmf, vmf-runtime) while being applied, with
-        // the repositories that exist at that moment — a `plugins {}` application
-        // would see only the plugin's own mavenLocal()/mavenCentral(), not the Central
-        // snapshot repository the 0.2.12-SNAPSHOT needs
-        classpath 'eu.mihosoft.vmf:vmf-gradle-plugin:0.2.12-SNAPSHOT'
 //        classpath group: 'eu.mihosoft.vmf', name: 'vmf', version: '0.1-SNAPSHOT'
     }
 }
 
 
 plugins {
+    // since VMF 0.2.12-SNAPSHOT build 2 (miho/VMF#89) the plugin resolves its classpath when
+    // its tasks run and adds the Central snapshot repository itself, so the plain DSL works
+    id 'eu.mihosoft.vmf' version '0.2.12-SNAPSHOT'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.4.0'
     id 'com.github.ben-manes.versions' version '0.13.0'
@@ -71,9 +68,6 @@ repositories {
 //    jcenter()
     mavenLocal()
 }
-
-// applied here, after the repositories above exist (see the buildscript block)
-apply plugin: 'eu.mihosoft.vmf'
 
 wrapper {
     gradleVersion = '9.8.2'

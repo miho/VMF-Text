@@ -24,15 +24,18 @@ uses `--no-daemon`. If you hit `Permission denied`, invoke it as `sh ./gradlew`.
 `:vmf-runtime`, and the `eu.mihosoft.vmf` Gradle plugin =
 `:vmf-gradle-plugin`). Releases are on Maven Central (`0.2.11` is the latest);
 `main` currently depends on `0.2.12-SNAPSHOT` (generated list `equals` fix
-miho/VMF#87, Gradle 10 fixes, plugin marker on Central), which the builds
+miho/VMF#87, Gradle 10 fixes, plugin marker on Central, a VMF Gradle plugin
+that resolves its classpath lazily miho/VMF#89), which the builds
 resolve from the Central snapshot repository
 (`https://central.sonatype.com/repository/maven-snapshots/`, declared in
 `core/settings.gradle`, `core/build.gradle`, `gradle-plugin/build.gradle`,
 `test-suite/build.gradle`, the ArrayLang example, and added to consumer
 projects by the plugin while its default `vmfVersion` is a snapshot). A plain
-checkout builds without extra steps; `-SNAPSHOT` metadata is re-checked on
-every build (24 h cache). When VMF is released next, pin the release in those
-places (and `README.md`, `VMFTextPlugin.groovy`) and drop the repository.
+checkout builds without extra steps. Gradle trusts a cached `-SNAPSHOT` for
+24 h, so after a new VMF snapshot build run the `core` build once with
+`--refresh-dependencies` (CI does so on every run). When VMF is released next,
+pin the release in those places (and `README.md`, `VMFTextPlugin.groovy`),
+drop the repository and the CI flag.
 Building VMF from source is only needed for unpublished VMF work:
 
 ```
