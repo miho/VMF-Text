@@ -1395,7 +1395,7 @@ public class UnparserCodeGenerator {
         // The formatter emits the slot; programmatic elements render nothing.
         if("EOF".equals(e.getText().trim())) {
             String rulePath = UPRuleUtil.getPath(e);
-            String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.TERMINAL, null, \"\", \"" + rulePath + "\", true, false, \"EOF\")";
+            String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.TERMINAL, null, \"\", \"" + rulePath + "\", true, false, false, \"EOF\")";
             w.append(indent + "    // handling EOF element: no text, but it owns the hidden text before the end of the input").append('\n');
             w.append(indent + "    getUnparser().getFormatter().eof( unparser, " + ruleInfoString + ", internalW);").append('\n');
             return;
@@ -1415,8 +1415,9 @@ public class UnparserCodeGenerator {
             String rulePath = UPRuleUtil.getPath(e);
             boolean unnamedRule = true;
             boolean optionalRule=UPRuleUtil.isOptionalForFormatter(e);
+            String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(e);
             String grammarText = e.getText();
-            String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.TERMINAL, null, \"" + ruleString + "\", \"" + rulePath + "\", " + unnamedRule + ", "+ optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText,false) + "\")";
+            String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.TERMINAL, null, \"" + ruleString + "\", \"" + rulePath + "\", " + unnamedRule + ", "+ optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText,false) + "\")";
 
             w.append(indent + "    getUnparser().getFormatter().pre( unparser, " + ruleInfoString + ", internalW);").append('\n');
             w.append(indent + "    // internalW.print( \""+StringUtil.escapeJavaStyleString(eText,true) + "\");").append('\n');
@@ -1453,8 +1454,9 @@ public class UnparserCodeGenerator {
                     String rulePath = UPRuleUtil.getPath(e);
                     boolean unnamedRule = true;
                     boolean optionalRule=UPRuleUtil.isOptionalForFormatter(e);
+                    String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(e);
                     String grammarText = e.getText();
-                    String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.LEXER_RULE, \"" + ruleName + "\", \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\", \"" + rulePath + "\", " + unnamedRule + ", "+ optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText,false) + "\")";
+                    String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.LEXER_RULE, \"" + ruleName + "\", \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\", \"" + rulePath + "\", " + unnamedRule + ", "+ optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText,false) + "\")";
                     // String ruleInfoString = "Formatter.RuleInfo.newRuleInfo(obj, Formatter.RuleType.LEXER_RULE, \"" + ruleName + "\", \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\")";
                     w.append(indent + "    getUnparser().getFormatter().pre( unparser, " + ruleInfoString + ", internalW);").append('\n');
                     w.append(indent + "    // internalW.print( \"" + StringUtil.escapeJavaStyleString(lexerRuleString, true) + "\" /*+ \" \" */);").append('\n');
@@ -1595,9 +1597,10 @@ public class UnparserCodeGenerator {
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                        String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                         String grammarText = sre.getText();
 
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                         //w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
 
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1614,9 +1617,10 @@ public class UnparserCodeGenerator {
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                        String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                         String grammarText = sre.getText();
 
-                        w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj /*TERMINAL String conversion*/, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj /*TERMINAL String conversion*/, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                         //w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj /*TERMINAL String conversion*/" + ")");
 
                         w.append(indent+"      getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1650,9 +1654,10 @@ public class UnparserCodeGenerator {
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                        String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                         String grammarText = sre.getText();
 
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                         // w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
 
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1672,9 +1677,10 @@ public class UnparserCodeGenerator {
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                        String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                         String grammarText = sre.getText();
 
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s /*TERMINAL String conversion*/, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s /*TERMINAL String conversion*/, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                         // w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", listElemObj.toString() /*TERMINAL String conversion*/" + ")");
 
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1707,9 +1713,10 @@ public class UnparserCodeGenerator {
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                        String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                         String grammarText = sre.getText();
 
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                         // w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
 
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1728,9 +1735,10 @@ public class UnparserCodeGenerator {
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                        String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                         String grammarText = sre.getText();
 
-                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                         // w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
 
                         w.append(indent+"          getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1766,9 +1774,10 @@ public class UnparserCodeGenerator {
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                        String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                         String grammarText = sre.getText();
 
-                        w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                         // w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
 
                         w.append(indent+"            getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1787,9 +1796,10 @@ public class UnparserCodeGenerator {
                         String rulePath = UPRuleUtil.getPath(sre);
                         boolean unnamedRule = false;
                         boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                        String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                         String grammarText = sre.getText();
 
-                        w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                        w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                         // w.append(indent+"            Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
 
                         w.append(indent+"            getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1830,9 +1840,10 @@ public class UnparserCodeGenerator {
                 String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
                 boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                 String grammarText = sre.getText();
 
-                w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                 //w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
 
                 w.append(indent + "        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1854,9 +1865,10 @@ public class UnparserCodeGenerator {
                 String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
                 boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                 String grammarText = sre.getText();
 
-                w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                w.append(indent+"          Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                 //w.append(indent + "        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + lexerRuleName + "\", s);").append('\n');
 
                 w.append(indent + "        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1900,9 +1912,10 @@ public class UnparserCodeGenerator {
                 String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
                 boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                 String grammarText = sre.getText();
 
-                w.append(indent+"        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                w.append(indent+"        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", s, " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                 //w.append(indent+"        Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", s);").append('\n');
 
                 w.append(indent+"        getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');
@@ -1920,9 +1933,10 @@ public class UnparserCodeGenerator {
                 String rulePath = UPRuleUtil.getPath(sre);
                 boolean unnamedRule = false;
                 boolean optionalRule=UPRuleUtil.isOptionalForFormatter(sre);
+                String unbackedOptional=UPRuleUtil.unbackedOptionalCheck(sre);
                 String grammarText = sre.getText();
 
-                w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ", " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
+                w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ", " + "\"" + rulePath + "\", " + unnamedRule  + "," + optionalRule + ", " + unbackedOptional + ", \"" + StringUtil.escapeJavaStyleString(grammarText, true) + "\");").append('\n');
                 //w.append(indent+"      Formatter.RuleInfo ruleInfo = Formatter.RuleInfo.newRuleInfo(obj, " + ruleType + ", \"" + sre.getName() + "\", " + propName + ");").append('\n');
 
                 w.append(indent+"      getUnparser().getFormatter().pre( unparser, ruleInfo, internalW);").append('\n');

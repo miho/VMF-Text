@@ -751,6 +751,134 @@ public final class ${Util.firstToUpper($model.grammarName)}TriviaSupport {
     }
 
     /**
+     * Key of the VMF annotation on every property that holds a token: its
+     * value is the token's grammar name ({@code NEWLINE}, {@code INDENT}, ...).
+     * {@code obj.vmf().reflect().properties()} /
+     * {@code property.annotationByKey(TOKEN_ANNOTATION_KEY)}.
+     */
+    public static final String TOKEN_ANNOTATION_KEY = "vmf-text:token";
+
+    /**
+     * Fills the indentation tokens of elements built from scratch, with the
+     * default token names {@code NEWLINE}, {@code INDENT}, {@code DEDENT} and
+     * {@code "\n"} as the line break. See
+     * {@link #fillIndentationTokens(CodeElement, String, String, String, String, String)}.
+     *
+     * @param root the element to start from (usually the model root); it and
+     *             everything it contains are visited
+     * @param indentUnit the indentation of one nesting level, e.g. four spaces
+     * @return the number of token values that were set
+     */
+    public static int fillIndentationTokens(CodeElement root, String indentUnit) {
+        return fillIndentationTokens(root, "\n", indentUnit, "NEWLINE", "INDENT", "DEDENT");
+    }
+
+    /**
+     * Fills the indentation tokens of elements built from scratch. In an
+     * indentation-structured language (Python) line ends and block structure
+     * are tokens, so a programmatic block carries them as properties:
+     * {@code NEWLINE} (the line break), {@code INDENT} (its text is the
+     * indentation of the block's first line) and {@code DEDENT} (empty). This
+     * method sets every such property that is still {@code null}: a
+     * {@code NEWLINE} becomes {@code newline}, a {@code DEDENT} the empty
+     * string, and an {@code INDENT} the indentation of the nearest enclosing
+     * block (the value of its own {@code INDENT} token, parsed or filled here)
+     * plus {@code indentUnit}. Values that are set already — parsed tokens or
+     * values the caller chose — are left alone, so the method is idempotent
+     * and a programmatic block inserted into a parsed one continues the parsed
+     * indentation. Token properties that are lists are not touched.
+     *
+     * <p>Unparse with {@code Formatter.newIndentationTokenFormatter()}
+     * afterwards: the formatter's policy prints the statements that follow a
+     * {@code NEWLINE} at the depth the tokens establish.</p>
+     *
+     * @param root the element to start from (usually the model root); it and
+     *             everything it contains are visited
+     * @param newline the line break to use for unset {@code NEWLINE} tokens
+     * @param indentUnit the indentation of one nesting level, e.g. four spaces
+     * @param newlineToken grammar name of the line-break token
+     * @param indentToken grammar name of the indentation token
+     * @param dedentToken grammar name of the dedentation token
+     * @return the number of token values that were set
+     */
+    public static int fillIndentationTokens(CodeElement root, String newline, String indentUnit,
+                                            String newlineToken, String indentToken, String dedentToken) {
+        if(root == null || newline == null || indentUnit == null
+                || newlineToken == null || indentToken == null || dedentToken == null) {
+            return 0;
+        }
+        java.util.List<CodeElement> elements = new ArrayList<>();
+        elements.add(root);
+        root.vmf().content().stream(CodeElement.class).filter(e -> e != root).forEach(elements::add);
+        int[] filled = {0};
+        for(CodeElement e : elements) {
+            for(eu.mihosoft.vmf.runtime.core.Property p : e.vmf().reflect().properties()) {
+                String token = tokenOf(p);
+                if(token == null || p.getType().isListType() || valueOf(p) != null) {
+                    continue;
+                }
+                if(token.equals(newlineToken)) {
+                    p.set(newline);
+                    filled[0]++;
+                } else if(token.equals(dedentToken)) {
+                    p.set("");
+                    filled[0]++;
+                } else if(token.equals(indentToken)) {
+                    p.set(enclosingIndentation(e, indentToken, indentUnit, filled) + indentUnit);
+                    filled[0]++;
+                }
+            }
+        }
+        return filled[0];
+    }
+
+    /**
+     * The indentation of the innermost block around {@code e}: the value of
+     * the nearest ancestor's {@code INDENT} token, filled on demand so the
+     * order of the walk does not matter; empty at the top level.
+     */
+    private static String enclosingIndentation(CodeElement e, String indentToken, String indentUnit, int[] filled) {
+        for(CodeElement a = e.getParent(); a != null; a = a.getParent()) {
+            eu.mihosoft.vmf.runtime.core.Property indent = tokenProperty(a, indentToken);
+            if(indent == null) {
+                continue;
+            }
+            Object v = valueOf(indent);
+            if(v instanceof String) {
+                return (String) v;
+            }
+            String value = enclosingIndentation(a, indentToken, indentUnit, filled) + indentUnit;
+            indent.set(value);
+            filled[0]++;
+            return value;
+        }
+        return "";
+    }
+
+    /** The scalar property of {@code e} that holds the given token, or {@code null}. */
+    private static eu.mihosoft.vmf.runtime.core.Property tokenProperty(CodeElement e, String token) {
+        for(eu.mihosoft.vmf.runtime.core.Property p : e.vmf().reflect().properties()) {
+            if(token.equals(tokenOf(p)) && !p.getType().isListType()) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    /** The grammar name of the token a property holds, or {@code null} for properties that are not tokens. */
+    public static String tokenOf(eu.mihosoft.vmf.runtime.core.Property p) {
+        return p.annotationByKey(TOKEN_ANNOTATION_KEY).map(a -> a.getValue()).orElse(null);
+    }
+
+    private static Object valueOf(eu.mihosoft.vmf.runtime.core.Property p) {
+        try {
+            return p.get();
+        } catch(RuntimeException ex) {
+            return null;
+        }
+    }
+
+    /**
      * Updates lexical metadata when a non-model property toggles between
      * {@code null} and a value (typical optional {@code name=ID} inside
      * {@code ('(' name ')')?}).

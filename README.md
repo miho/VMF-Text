@@ -344,7 +344,13 @@ Programmatically created models (no parse-time lexical info) consult a pluggable
 `ConservativeSeparatorPolicy` reproduces today's single-space fallback, and
 `Formatter.newBlockIndentFormatter()` prints programmatic or edited parts with
 line breaks and block indentation while parsed bytes stay exact
-(`programmaticRanges()` tells you which lines those are); custom
+(`programmaticRanges()` tells you which lines those are). For languages whose
+line ends and blocks are tokens (Python's `NEWLINE` / `INDENT` / `DEDENT`),
+`<Grammar>TriviaSupport.fillIndentationTokens(root, indentUnit)` sets the
+token values of blocks built from scratch by nesting depth and
+`Formatter.newIndentationTokenFormatter()` places the statements inside them
+at that depth, also inside a parsed block (see
+[`docs/UNPARSING.md`](docs/UNPARSING.md) §7); custom
 policies are consulted only where exact preservation is undefined by construction
 (fresh programmatic nodes, or rules whose trivia was cleared after a
 **structural** edit such as list add/remove). In-place value rewrites keep

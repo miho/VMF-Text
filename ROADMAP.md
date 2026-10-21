@@ -401,9 +401,11 @@ ship.
      grammars `optblock`, `labeledopt`, `itemlift`. Result: all 28 asyncio
      sources (389 KB) and 23 snippets byte-exact. Follow-ups landed the same
      day: `<Grammar>TriviaSupport.reindent(...)` rebases a moved or inserted
-     parsed subtree (#56), the naming batch (#47, #57). Still open: a policy
-     that synthesizes `NEWLINE`/`INDENT`/`DEDENT` for programmatically built
-     blocks (the caller sets those three properties today).
+     parsed subtree (#56), the naming batch (#47, #57), and blocks built from
+     scratch ([#60](https://github.com/miho/VMF-Text/issues/60)):
+     `fillIndentationTokens(...)` sets `NEWLINE`/`INDENT`/`DEDENT` by nesting
+     depth, `Formatter.newIndentationTokenFormatter()` places the statements —
+     regression grammar `indent`, driver `py3trial.Build`.
   5. **Split grammars — DONE 2026-10-20
      ([#39](https://github.com/miho/VMF-Text/issues/39)).** A `parser grammar`
      with `tokenVocab` and the `lexer grammar` next to it are one unit: the

@@ -2,6 +2,7 @@ package eu.mihosoft.vmf.vmftext.grammar.unparser;
 
 import eu.mihosoft.vmf.vmftext.grammar.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -196,6 +197,141 @@ public final class UPRuleUtil {
             alt = block.getParentAlt(); // plain grouping block: keep walking up
         }
         return true;
+    }
+
+    /**
+     * Java expression for the generated unparser that tells whether nothing in
+     * the model asks for the optional construct a state-driven, unnamed
+     * terminal / lexer element belongs to — the element's own {@code ?}/{@code *}
+     * suffix or the nearest enclosing {@code ?}/{@code *} block. For an
+     * element built from scratch (no recorded optional states) the formatter
+     * then leaves the construct out (#60):
+     * <ul>
+     *   <li>{@code "true"} for literal-only punctuation — {@code ';'?},
+     *       {@code (',' '...')?}, {@code ('(' ')')?}: separators and brackets
+     *       nothing in the model could stand for (Python's {@code pass;}, C's
+     *       {@code (int a, ...)}). An optional keyword label such as
+     *       {@code ('anchor:')?} is not punctuation: it reads as the fuller
+     *       form of the syntax and stays printed, as it always was;</li>
+     *   <li>a conjunction over the construct's properties being unset for a
+     *       block with named elements — {@code ('(' arglist? ')')?} is left out
+     *       while {@code arglist} is {@code null} and printed once it is set;</li>
+     *   <li>{@code "false"} when the element is not under an explicit optional
+     *       construct (its optionality comes from a literal-only sibling
+     *       alternative) or not state-driven at all: the present-by-default
+     *       behaviour stays.</li>
+     * </ul>
+     * The expression refers to the unparsed object as {@code obj}.
+     */
+    public static String unbackedOptionalCheck(UPElement e) {
+        if(e instanceof WithName || !isOptionalForFormatter(e)) {
+            return "false";
+        }
+        UPRuleBase construct;
+        if(e.ebnfOptional() || e.ebnfZeroMany()) {
+            if(!(e instanceof SubRule)) {
+                return isPunctuationLiteral(e.getText()) ? "true" : "false"; // a bare optional literal
+            }
+            construct = (UPRuleBase) e;
+        } else {
+            construct = enclosingOptionalConstruct(e);
+            if(construct == null) {
+                return "false";
+            }
+        }
+        List<UPElement> named = new ArrayList<>();
+        collectNamedElements(construct, named);
+        if(named.isEmpty()) {
+            return allLiteralsArePunctuation(construct) ? "true" : "false";
+        }
+        return "(" + named.stream()
+                .map(n -> "obj.get" + firstToUpper(((WithName) n).getName()) + "()"
+                        + (n.isListType() ? ".isEmpty()" : " == null"))
+                .distinct().collect(Collectors.joining(" && ")) + ")";
+    }
+
+    /**
+     * The nearest enclosing block with a {@code ?} or {@code *} suffix, or
+     * {@code null} — also when the nearest suffix is {@code +}: one iteration
+     * of a one-or-more block is mandatory, so it is never left out.
+     */
+    private static UPRuleBase enclosingOptionalConstruct(UPElement e) {
+        AlternativeBase alt = e.getParentAlt();
+        while(alt != null && alt.getParentRule() instanceof UPElement) {
+            UPElement block = (UPElement) alt.getParentRule();
+            if(block.ebnfOptional() || block.ebnfZeroMany()) {
+                return (UPRuleBase) block;
+            }
+            if(block.ebnfOneMany()) {
+                return null;
+            }
+            alt = block.getParentAlt(); // plain grouping block: keep walking up
+        }
+        return null;
+    }
+
+    /**
+     * Whether every terminal anywhere inside a block is a punctuation literal.
+     * Actions and predicates (including the optional-state recording action
+     * the grammar rewrite injects into every optional block) do not count.
+     */
+    private static boolean allLiteralsArePunctuation(UPRuleBase block) {
+        for(AlternativeBase a : block.getAlternatives()) {
+            for(UPElement el : a.getElements()) {
+                if(el instanceof SubRule) {
+                    if(!allLiteralsArePunctuation((UPRuleBase) el)) {
+                        return false;
+                    }
+                } else if(el.isAction() || (el.getText() != null && el.getText().trim().startsWith("{"))) {
+                    continue;
+                } else if(!isPunctuationLiteral(el.getText())) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * A quoted literal without letters or digits: {@code ';'}, {@code ','},
+     * {@code '...'}, {@code '('}. A lexer-rule reference is not punctuation
+     * (its text is unknown here), nor is a keyword label such as {@code 'anchor:'}.
+     */
+    static boolean isPunctuationLiteral(String text) {
+        if(text == null) {
+            return false;
+        }
+        String t = text.trim();
+        while(t.endsWith("?") || t.endsWith("*") || t.endsWith("+")) {
+            t = t.substring(0, t.length() - 1); // ebnf suffix
+        }
+        if(t.length() < 2 || !t.startsWith("'") || !t.endsWith("'")) {
+            return false;
+        }
+        for(int i = 1; i < t.length() - 1; i++) {
+            if(Character.isLetterOrDigit(t.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Collects the named elements (optional or not) anywhere inside a block. */
+    private static void collectNamedElements(UPRuleBase block, List<UPElement> out) {
+        for(AlternativeBase a : block.getAlternatives()) {
+            for(UPElement el : a.getElements()) {
+                if(el instanceof WithName) {
+                    out.add(el);
+                }
+                if(el instanceof SubRule) {
+                    collectNamedElements((UPRuleBase) el, out);
+                }
+            }
+        }
+    }
+
+    private static String firstToUpper(String s) {
+        return s == null || s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     /**
