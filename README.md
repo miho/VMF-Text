@@ -115,7 +115,7 @@ Then add the plugin (click [here](https://plugins.gradle.org/plugin/eu.mihosoft.
 
 ```gradle
 plugins {
-  id "eu.mihosoft.vmftext" version "0.2.2" // use latest version
+  id "eu.mihosoft.vmftext" version "0.3.0" // use latest version
 }
 ```
 (optionally) configure VMF-Text:
@@ -123,8 +123,7 @@ plugins {
 ```gradle
 vmfText {
     // vmfVersion = '…'      // VMF runtime; defaults to the VMF version the plugin
-                             // generates code with — leave it unset (honoured since
-                             // 0.2.6, with a warning when it differs; ignored before)
+                             // generates code with. The plugin warns when it differs.
     antlrVersion = '4.13.2'  // (runtime version)
     // autoLabel = true      // opt-in: derive labels for unlabeled grammars,
                              // see "Automatic Labels" below

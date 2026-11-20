@@ -6,7 +6,7 @@ Just add the plugin id to use this plugin (get this plugin from [here](https://p
 
 ```gradle
 plugins {
-  id "eu.mihosoft.vmftext" version "0.2.2" // use latest version
+  id "eu.mihosoft.vmftext" version "0.3.0" // use latest version
 }
 ```
 
@@ -15,8 +15,7 @@ and (optionally) configure VMF-Text:
 ```gradle
 vmfText {
     // vmfVersion = '…'      // VMF runtime; defaults to the VMF version this plugin generates
-                             // code with — leave it unset (honoured since 0.2.6, with a warning
-                             // when it differs; earlier versions ignored it)
+                             // code with. The plugin warns when it differs.
     antlrVersion = '4.13.2'  // runtime version
     autoLabel    = false     // opt-in inferred labels for unlabeled grammar refs
     // emitAutoLabelReport = true  // write/log inferred-name report (default on)

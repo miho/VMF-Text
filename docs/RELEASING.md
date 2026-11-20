@@ -94,10 +94,10 @@ working tree on `main`, and CI green on the release commit.
 1. Bump `publication.version` in `config/common.properties`. This single
    property drives core, the plugin's dependency on core, the plugin marker,
    the test-suite's plugin classpath and the ArrayLang example.
-2. Align the remaining version references: `README.md`,
-   `gradle-plugin/README.md`, and the `examples/**` plugin ids that pin a
-   *published* version. Confirm the pinned VMF and ANTLR versions
-   (currently VMF `0.2.11`, ANTLR `4.13.2`).
+2. Align the quickstarts in `README.md` and `gradle-plugin/README.md`.
+   Keep Central-only examples on an available release until the new artifacts
+   resolve, then update their pins in [Post-publish](#6-post-publish).
+   Confirm the pinned dependencies (VMF `0.4.0`, ANTLR `4.13.2`).
 3. Finalize the `CHANGELOG.md` entry — date it and list Added / Changed / Fixed.
 4. Add the ROADMAP "Ship &lt;version&gt;" section and the per-release checklist at
    `docs/releases/<version>.md`.
