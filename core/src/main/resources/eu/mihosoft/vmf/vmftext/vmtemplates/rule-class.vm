@@ -22,9 +22,18 @@
  * 181–192. http://doi.org/10.1007/s00791-014-0230-y
  *#
   // Properties derived from grammar rule
+  // (rule-typed properties are containment properties with 'parent' as
+  // opposite unless the grammar declares its own relation for them)
 #foreach( $p in ${ruleClass.properties} )
+#set( $declaresRelation = false )
 #foreach( $ann in ${p.annotations} )
+#if( ${ann.getText().contains("Contains")} || ${ann.getText().contains("Container")} || ${ann.getText().contains("Refers")} )
+#set( $declaresRelation = true )
+#end
   $ann.getText()
+#end
+#if( ${p.type.ruleType} && !$declaresRelation )
+  @eu.mihosoft.vmf.core.Contains(opposite = "parent")
 #end
   @eu.mihosoft.vmf.core.PropertyOrder(index = ${foreach.index})
   ${p.type.asModelTypeName()} get${p.nameWithUpper()}();

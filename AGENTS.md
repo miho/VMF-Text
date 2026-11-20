@@ -24,7 +24,9 @@ uses `--no-daemon`. If you hit `Permission denied`, invoke it as `sh ./gradlew`.
 `:vmf-runtime`, and the `eu.mihosoft.vmf` Gradle plugin =
 `:vmf-gradle-plugin`). The build resolves VMF `0.4.0` from Maven Central.
 When upgrading VMF, update the pins in `core/build.gradle` and the default
-runtime in `VMFTextPlugin.groovy` together.
+runtime in `VMFTextPlugin.groovy` together. Containment generation relies on
+the VMF fixes for identity-preserving edits and base-type opposites
+(miho/VMF#91).
 Building VMF from source is only needed for unpublished VMF work:
 
 ```

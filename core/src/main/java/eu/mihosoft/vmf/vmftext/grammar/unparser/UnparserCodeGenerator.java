@@ -1549,19 +1549,43 @@ public class UnparserCodeGenerator {
         if (p != null && p.getRuleMapSourceTypeName() != null) {
             w.append(indent + "{ // rule-mapped (issue #1): reconstruct source from target, then unparse").append('\n');
             w.append(indent + "  var second = " + valueExpr + ";").append('\n');
-            w.append(indent + "  " + p.getRuleMapSourceTypeName() + " __src = " + p.getRuleMapTargetToSourceCode() + ";").append('\n');
+            // Rule-typed properties are containment references: building the
+            // transient source wrapper around the target would release the
+            // target from its parent (and a list would lose it while it is
+            // being unparsed). The target's container link is detached while
+            // the wrapper is built and unparsed, and restored afterwards; the
+            // model itself is not touched.
+            w.append(indent + "  eu.mihosoft.vmf.runtime.core.internal.VObjectInternalModifiable __secondInternal =").append('\n');
+            w.append(indent + "      second instanceof eu.mihosoft.vmf.runtime.core.internal.VObjectInternalModifiable").append('\n');
+            w.append(indent + "      ? (eu.mihosoft.vmf.runtime.core.internal.VObjectInternalModifiable) second : null;").append('\n');
+            w.append(indent + "  eu.mihosoft.vmf.runtime.core.VObject __secondContainer =").append('\n');
+            w.append(indent + "      __secondInternal == null ? null : __secondInternal._vmf_getContainer();").append('\n');
+            w.append(indent + "  int __secondContainerPropertyId =").append('\n');
+            w.append(indent + "      __secondInternal == null ? -1 : __secondInternal._vmf_getContainerPropertyId();").append('\n');
+            w.append(indent + "  if (__secondInternal != null) {").append('\n');
+            w.append(indent + "    __secondInternal._vmf_setContainer(null);").append('\n');
+            w.append(indent + "  }").append('\n');
+            w.append(indent + "  try {").append('\n');
+            w.append(indent + "    " + p.getRuleMapSourceTypeName() + " __src = " + p.getRuleMapTargetToSourceCode() + ";").append('\n');
             // Restore RuleMap wrapper-shell lexical info onto the reconstructed
             // source so token-bearing wrappers round-trip byte-exactly (#32).
-            w.append(indent + "  if (second instanceof CodeElement) {").append('\n');
-            w.append(indent + "    LexicalInfo __shell = ((CodeElement) second).getRuleMapShellLexicalInfo();").append('\n');
-            w.append(indent + "    if (__shell != null) {").append('\n');
-            w.append(indent + "      __src.setLexicalInfo(__shell);").append('\n');
-            w.append(indent + "      if (__shell.getOriginalRange() != null) {").append('\n');
-            w.append(indent + "        __src.setCodeRange(__shell.getOriginalRange());").append('\n');
+            // The wrapper gets a copy: the shell stays with the target.
+            w.append(indent + "    if (second instanceof CodeElement) {").append('\n');
+            w.append(indent + "      LexicalInfo __shell = ((CodeElement) second).getRuleMapShellLexicalInfo();").append('\n');
+            w.append(indent + "      if (__shell != null) {").append('\n');
+            w.append(indent + "        __src.setLexicalInfo(__shell.clone());").append('\n');
+            w.append(indent + "        if (__shell.getOriginalRange() != null) {").append('\n');
+            w.append(indent + "          __src.setCodeRange(__shell.getOriginalRange());").append('\n');
+            w.append(indent + "        }").append('\n');
             w.append(indent + "      }").append('\n');
             w.append(indent + "    }").append('\n');
+            w.append(indent + "    getUnparser().unparse( __src, internalW );").append('\n');
+            w.append(indent + "  } finally {").append('\n');
+            w.append(indent + "    if (__secondInternal != null) {").append('\n');
+            w.append(indent + "      __secondInternal._vmf_setContainer(__secondContainer);").append('\n');
+            w.append(indent + "      __secondInternal._vmf_setContainerPropertyId(__secondContainerPropertyId);").append('\n');
+            w.append(indent + "    }").append('\n');
             w.append(indent + "  }").append('\n');
-            w.append(indent + "  getUnparser().unparse( __src, internalW );").append('\n');
             w.append(indent + "}").append('\n');
         } else {
             w.append(indent + "getUnparser().unparse( " + valueExpr + ", internalW );").append('\n');

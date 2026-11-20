@@ -21,6 +21,41 @@ All notable changes to VMF-Text are documented here.
 
 ### Changed
 
+- **The generated model is a containment tree** (#79). Every property
+  that holds a parser rule is now a VMF containment reference
+  (`@Contains(opposite = "parent")`), and `CodeElement.getParent()` is the
+  `@Container` property VMF maintains: it has no setter any more, and the
+  change listener that every element registered on itself to set it is gone.
+  Consequences for editors: `equals`/`hashCode` are structural over the
+  subtree (two parsed `1` are equal, `1` and `4` are not; lexical metadata
+  stays ignored), a setter takes a different but equal subtree in one step
+  (no `setX(null)` first), setting or adding an element to another parent
+  releases it from the previous one (the previous list loses exactly that
+  instance, also next to an equal sibling), `element.vmf().content().stream(…)`
+  stays within the subtree with the default strategy and with
+  `CONTAINMENT_TREE` (it used to reach the whole file through `parent`, and
+  the containment tree used to hold only the lexical metadata), and `clone()`
+  deep-copies the subtree. A grammar property with a relation declared in the
+  grammar's model section keeps it. Needs the VMF `0.2.12-SNAPSHOT` build of
+  2026-10-21 (miho/VMF#91): an opposite declared in a base type, identity
+  comparison of model values in setters and change events, release from the
+  previous container by identity and for subtypes of the property type, no
+  container property id for a containment without opposite. Regression grammar
+  `containment`. The `preventmultioccurrences` test used to document that an
+  element could be set into two slots of the model at once; it now asserts
+  the containment semantics: setting an element into another slot moves it,
+  the model never holds the same instance twice. The model object contains
+  its root (`@Contains`), so model equality covers the whole tree. Unparsing a
+  rule-mapped property reconstructs the transient source wrapper without
+  releasing the target from its parent (the target's container link is
+  detached and restored around it; the wrapper gets a copy of the shell
+  lexical info). Real model equality also exposed a pre-existing defect of
+  the hand-labeled `java8` test grammar (#80): `java.util.List<VObject>`
+  unparses as `java<VObject>.util.List` (an optional element inside a
+  repeated block has no optional state); its semantic round-trip test, which
+  compared nothing before, is ignored until #80 is fixed. The MiniJava
+  API-built model test gives the return statement a copy of the expression
+  it also prints.
 - **VMF `0.2.12-SNAPSHOT`** (#65). `main` depends on the VMF snapshot that
   carries the generated list `equals` fix ([miho/VMF#87](https://github.com/miho/VMF/issues/87):
   lists of different length compare as unequal instead of throwing), VMF's
