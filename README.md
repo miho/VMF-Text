@@ -381,6 +381,8 @@ parsed trivia — see `LEXICAL_PRESERVATION_ASSESSMENT.md` § *Edit invalidation
 - Internet connection (dependencies are downloaded automatically)
 - IDE: [Gradle](http://www.gradle.org/) Plugin (not necessary for command line usage)
 
+The build resolves VMF `0.4.0` from Maven Central.
+
 ### IDE
 
 Open the `VMF-Text/core` [Gradle](http://www.gradle.org/) project in your favourite IDE (tested with NetBeans 8.2 and IntelliJ 2018) and build it
