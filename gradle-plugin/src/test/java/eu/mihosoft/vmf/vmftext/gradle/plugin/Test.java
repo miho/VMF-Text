@@ -4,9 +4,11 @@ import org.gradle.api.Project;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.repositories.ArtifactRepository;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
+import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.testfixtures.ProjectBuilder;
 
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 
@@ -54,20 +56,35 @@ public class Test {
         assertEquals(new VMFTextPluginExtension().getAntlrVersion(), versionOf(project, "org.antlr", "antlr4-runtime"));
     }
 
-    /** VMF snapshots come from the Central snapshot repository, which is declared regardless of the version. */
+    /** The stable default resolves without adding a snapshot repository to consumer builds. */
     @org.junit.Test
-    public void centralSnapshotRepositoryIsDeclared() {
+    public void stableRuntimeDoesNotAddSnapshotRepository() {
         Project project = ProjectBuilder.builder().build();
         project.getPlugins().apply("eu.mihosoft.vmftext");
+        ((ProjectInternal) project).evaluate();
 
-        boolean found = false;
+        assertFalse(hasCentralSnapshotRepository(project));
+    }
+
+    @org.junit.Test
+    public void snapshotOverrideAddsSnapshotRepository() {
+        Project project = ProjectBuilder.builder().build();
+        project.getPlugins().apply("eu.mihosoft.vmftext");
+        project.getExtensions().getByType(VMFTextPluginExtension.class).setVmfVersion("0.4.0-SNAPSHOT");
+        ((ProjectInternal) project).evaluate();
+
+        assertEquals("0.4.0-SNAPSHOT", versionOf(project, "eu.mihosoft.vmf", "vmf-runtime"));
+        assertTrue(hasCentralSnapshotRepository(project));
+    }
+
+    private static boolean hasCentralSnapshotRepository(Project project) {
         for (ArtifactRepository r : project.getRepositories()) {
             if (r instanceof MavenArtifactRepository
                     && ((MavenArtifactRepository) r).getUrl().toString().contains("central.sonatype.com/repository/maven-snapshots")) {
-                found = true;
+                return true;
             }
         }
-        assertTrue(found);
+        return false;
     }
 
 //    @org.junit.Test

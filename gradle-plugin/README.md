@@ -24,6 +24,8 @@ vmfText {
 }
 ```
 
+If you explicitly select a VMF snapshot, the plugin adds the Central snapshot repository for VMF dependencies.
+
 `autoLabel` is disabled by default. When enabled, VMF-Text deterministically
 labels unlabeled parser-rule and token references before generating the VMF
 model. Explicit ANTLR labels always take precedence. With the default

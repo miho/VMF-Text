@@ -401,11 +401,10 @@ section (`@Contains(opposite = "…")`, `@Container`, `@Refers`) keeps it; its
 children reach the parent through the declared opposite instead of
 `getParent()`.
 
-This needs the VMF `0.2.12-SNAPSHOT` build of 2026-10-21 or later
-(miho/VMF#91): an opposite declared in a base type, setters that compare
-model values by identity, release from the previous parent by identity and
-for subtypes of the property type, and no container property id for a
-containment without opposite.
+This model uses the containment fixes included in VMF `0.4.0`. They cover
+opposites declared in base types, identity-based setters and reparenting
+across subtypes, and containment without a declared opposite.
+[VMF issue #91](https://github.com/miho/VMF/issues/91)
 
 ## Building VMF-Text (Core)
 
@@ -414,6 +413,8 @@ containment without opposite.
 - JDK 21 (build toolchain; the published artifacts run on Java 11+)
 - Internet connection (dependencies are downloaded automatically)
 - IDE: [Gradle](http://www.gradle.org/) Plugin (not necessary for command line usage)
+
+The build resolves VMF `0.4.0` from Maven Central.
 
 ### IDE
 

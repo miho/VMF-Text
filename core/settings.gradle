@@ -2,7 +2,7 @@ pluginManagement {
 
   resolutionStrategy {
       eachPlugin {
-          // rewrite plugin request to allow local maven repo snapshot
+          // Resolve the plugin module directly, including for local development.
           if ('eu.mihosoft.vmf'.equals(requested.id.toString())) {
               useModule('eu.mihosoft.vmf:vmf-gradle-plugin:'+requested.version)
           }
@@ -13,8 +13,6 @@ pluginManagement {
       mavenLocal()
       gradlePluginPortal()
       mavenCentral()
-      // VMF 0.2.12-SNAPSHOT (list-equals fix, Gradle 10 fixes, plugin marker) until the next VMF release
-      maven { url = uri('https://central.sonatype.com/repository/maven-snapshots/') }
   }
 }
 

@@ -22,25 +22,11 @@ uses `--no-daemon`. If you hit `Permission denied`, invoke it as `sh ./gradlew`.
 ### Upstream dependency: VMF
 `core` depends on the sibling VMF project (`eu.mihosoft.vmf:vmf`,
 `:vmf-runtime`, and the `eu.mihosoft.vmf` Gradle plugin =
-`:vmf-gradle-plugin`). Releases are on Maven Central (`0.2.11` is the latest);
-`main` currently depends on `0.2.12-SNAPSHOT` (generated list `equals` fix
-miho/VMF#87, Gradle 10 fixes, plugin marker on Central, a VMF Gradle plugin
-that resolves its classpath lazily miho/VMF#89, and since the build of
-2026-10-21, build 4, setters that compare model values by identity,
-containment opposites declared in a base type, release from the previous
-container by identity and for subtypes, and no container property id for a
-containment without opposite, miho/VMF#91 — the containment model of the
-generated code needs that build), which the builds
-resolve from the Central snapshot repository
-(`https://central.sonatype.com/repository/maven-snapshots/`, declared in
-`core/settings.gradle`, `core/build.gradle`, `gradle-plugin/build.gradle`,
-`test-suite/build.gradle`, the ArrayLang example, and added to consumer
-projects by the plugin, scoped to `eu.mihosoft.vmf` snapshots). A plain
-checkout builds without extra steps. Gradle trusts a cached `-SNAPSHOT` for
-24 h, so after a new VMF snapshot build run the `core` build once with
-`--refresh-dependencies` (CI does so on every run). When VMF is released next,
-pin the release in those places (and `README.md`, `VMFTextPlugin.groovy`),
-drop the repository and the CI flag.
+`:vmf-gradle-plugin`). The build resolves VMF `0.4.0` from Maven Central.
+When upgrading VMF, update the pins in `core/build.gradle` and the default
+runtime in `VMFTextPlugin.groovy` together. Containment generation relies on
+the VMF fixes for identity-preserving edits and base-type opposites
+(miho/VMF#91).
 Building VMF from source is only needed for unpublished VMF work:
 
 ```

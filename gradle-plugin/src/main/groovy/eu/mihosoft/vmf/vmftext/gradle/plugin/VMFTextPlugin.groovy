@@ -76,7 +76,7 @@ class VMFTextPluginExtension {
      * {@code implementation} configuration. The default is the VMF version this plugin
      * generates the model code with; another version is used as given, with a warning.
      */
-    String vmfVersion     = "0.2.12-SNAPSHOT"
+    String vmfVersion     = "0.4.0"
     /** Version of the ANTLR runtime ({@code org.antlr:antlr4-runtime}) added to {@code implementation}. */
     String antlrVersion   = "4.13.2"
     boolean autoLabel     = false
@@ -144,14 +144,6 @@ public class VMFTextPlugin implements Plugin<Project> {
         project.repositories {
             mavenLocal()
             mavenCentral()
-            // VMF snapshots (vmf-runtime x.y.z-SNAPSHOT) are published to the Central snapshot
-            // repository. Scoped to them, so no other dependency is ever looked up there, and
-            // declared regardless of the version: vmfText { vmfVersion } is set after this runs.
-            maven {
-                url = project.uri('https://central.sonatype.com/repository/maven-snapshots/')
-                mavenContent { snapshotsOnly() }
-                content { includeGroup('eu.mihosoft.vmf') }
-            }
         }
 
 //        project.configurations(
@@ -176,6 +168,13 @@ public class VMFTextPlugin implements Plugin<Project> {
             project.dependencies.create("org.antlr:antlr4-runtime:${extension.antlrVersion}")
         })
         project.afterEvaluate {
+            if (extension.vmfVersion?.endsWith('-SNAPSHOT')) {
+                project.repositories.maven {
+                    url = project.uri('https://central.sonatype.com/repository/maven-snapshots/')
+                    mavenContent { snapshotsOnly() }
+                    content { includeGroup('eu.mihosoft.vmf') }
+                }
+            }
             if (extension.vmfVersion != generatorVmfVersion) {
                 project.logger.warn("VMF-Text: vmfText.vmfVersion = '${extension.vmfVersion}' differs from VMF " +
                         "${generatorVmfVersion}, which this plugin generates the model code with; the generated " +
