@@ -11,7 +11,7 @@ that differentiator into something outsiders can see and adopt.
 
 Design background: `LEXICAL_PRESERVATION_ASSESSMENT.md`.
 
-## Ship 0.3.0
+## Ship 0.3.0 (shipped 2026-11-20)
 
 Generated models use VMF containment, with structural equality and parent
 links maintained by VMF. This release also improves round trips for skipped

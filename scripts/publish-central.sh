@@ -34,7 +34,8 @@ KEY=$(sh scripts/central-staging.sh repos open | awk 'NR==1 && $1 != "(no" {prin
 [ -n "$KEY" ] || { echo "no open staging repository found" >&2; exit 1; }
 TYPE="${1:-user_managed}"
 echo "==> hand-off of $KEY (publishing_type=$TYPE)"
-(cd core && sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft -PrepositoryKey="$KEY" -PpublishingType="$TYPE" --no-daemon $(sh scripts/central-staging.sh props | grep mavenCentral))
+PORTAL_PROPS=$(printf "%s\n" "$PROPS" | grep "^-PmavenCentral")
+(cd core && sh ./gradlew releaseToCentralPortal -PsonatypeNamespace=eu.mihosoft -PrepositoryKey="$KEY" -PpublishingType="$TYPE" --no-daemon $PORTAL_PROPS)
 echo "==> released repositories"
 sh scripts/central-staging.sh repos released
 DEP=$(sh scripts/central-staging.sh repos released | awk '$3 != "None" {print $3}' | head -1)

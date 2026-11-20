@@ -75,7 +75,7 @@ gradlePlugin {
             implementationClass = 'eu.mihosoft.vmf.vmftext.gradle.plugin.VMFTextPlugin'
             displayName = 'Gradle VMF-Text plugin'
             description = 'Gradle VMF-Text plugin'
-            tags.set(['vmf-text', 'language modeling framework'])
+            tags.set(['vmf-text', 'language-modeling-framework'])
         }
     }
 }

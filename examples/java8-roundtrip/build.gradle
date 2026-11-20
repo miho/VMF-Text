@@ -3,7 +3,7 @@
 plugins {
     id 'java'
     id 'application'
-    id 'eu.mihosoft.vmftext' version '0.2.2'
+    id 'eu.mihosoft.vmftext' version '0.3.0'
 }
 
 java {
@@ -17,7 +17,6 @@ repositories {
 }
 
 vmfText {
-    vmfVersion   = '0.2.11'
     antlrVersion = '4.13.2'
 }
 

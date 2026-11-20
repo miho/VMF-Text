@@ -2,11 +2,13 @@
 
 All notable changes to VMF-Text are documented here.
 
+## [Unreleased]
+
 ## [0.3.0] — 2026-11-20
 
-### Publish (pending)
+### Published
 
-Maven Central and Gradle Plugin Portal publication are pending.
+[GitHub release](https://github.com/miho/VMF-Text/releases/tag/v0.3.0) · [Maven Central](https://central.sonatype.com/artifact/eu.mihosoft.vmf/vmf-text/0.3.0) · [Gradle Plugin Portal](https://plugins.gradle.org/plugin/eu.mihosoft.vmftext/0.3.0)
 
 ### Added
 
