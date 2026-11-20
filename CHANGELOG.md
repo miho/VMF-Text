@@ -2,7 +2,11 @@
 
 All notable changes to VMF-Text are documented here.
 
-## [Unreleased]
+## [0.3.0] — 2026-11-20
+
+### Publish (pending)
+
+Maven Central and Gradle Plugin Portal publication are pending.
 
 ### Added
 
@@ -36,8 +40,8 @@ All notable changes to VMF-Text are documented here.
   `CONTAINMENT_TREE` (it used to reach the whole file through `parent`, and
   the containment tree used to hold only the lexical metadata), and `clone()`
   deep-copies the subtree. A grammar property with a relation declared in the
-  grammar's model section keeps it. Needs the VMF `0.2.12-SNAPSHOT` build of
-  2026-10-21 (miho/VMF#91): an opposite declared in a base type, identity
+  grammar's model section keeps it. The generated model relies on fixes in
+  VMF `0.4.0` (miho/VMF#91): an opposite declared in a base type, identity
   comparison of model values in setters and change events, release from the
   previous container by identity and for subtypes of the property type, no
   container property id for a containment without opposite. Regression grammar
@@ -56,35 +60,22 @@ All notable changes to VMF-Text are documented here.
   compared nothing before, is ignored until #80 is fixed. The MiniJava
   API-built model test gives the return statement a copy of the expression
   it also prints.
-- **VMF `0.2.12-SNAPSHOT`** (#65). `main` depends on the VMF snapshot that
-  carries the generated list `equals` fix ([miho/VMF#87](https://github.com/miho/VMF/issues/87):
-  lists of different length compare as unequal instead of throwing), VMF's
-  Gradle 9/10 fixes, a plugin marker that reaches Maven Central, and — since
-  snapshot build 2 ([miho/VMF#89](https://github.com/miho/VMF/issues/89)) — a
-  VMF Gradle plugin that resolves its classpath when its tasks run, adds the
-  Central snapshot repository itself and declares its runtime dependency in
-  single-string notation. That map-notation dependency was the last Gradle
-  deprecation warning in the `core` build; it is gone, and `core` applies the
-  VMF plugin through the plain `plugins {}` DSL again. The builds resolve VMF
-  from the Central snapshot repository (declared in the three builds and the
-  ArrayLang example); the VMF-Text Gradle plugin adds that repository to
-  consumer projects while its default `vmfVersion` is a snapshot. The
-  identity-based rule removal from 0.2.5 stays; it no longer depends on the
-  fix.
+- **VMF `0.4.0` from Maven Central.** The generator and Gradle plugin use
+  released VMF core and runtime artifacts. VMF 0.4.0 includes the generated list
+  equality fix ([miho/VMF#87](https://github.com/miho/VMF/issues/87)), lazy Gradle
+  code-generation dependency resolution
+  ([miho/VMF#89](https://github.com/miho/VMF/issues/89)), and a published plugin
+  marker. The `core` build applies the VMF plugin through the `plugins {}` DSL.
 
 ### Fixed
 
 - **The Gradle plugin honours `vmfText { vmfVersion; antlrVersion }`** (#74).
   Both runtime dependencies (`eu.mihosoft.vmf:vmf-runtime`,
   `org.antlr:antlr4-runtime`) were declared while the plugin was applied,
-  before the build script's `vmfText { }` block ran, so the settings were
-  silently ignored (the Python trial set VMF `0.2.11` and got
-  `0.2.12-SNAPSHOT`). They are added lazily now and follow the settings; a
-  `vmfVersion` that differs from the VMF version the plugin generates the
-  model code with gets a warning. The Central snapshot repository the plugin
-  adds is declared regardless of the version and scoped to `eu.mihosoft.vmf`
-  snapshots. The ArrayLang example and the Python trial no longer set the
-  stale `vmfVersion = '0.2.11'`.
+  before the build script's `vmfText { }` block ran. The plugin now adds them
+  lazily and warns if the selected VMF runtime differs from its generator
+  version. An explicit VMF snapshot override adds the Central snapshot
+  repository for VMF dependencies.
 - **Auto-labeling no longer produces a label equal to a token name** (#64).
   A label equal to a parser rule name is written in PascalCase (`identifier`
   → `Identifier`, ANTLR error 69 otherwise); when a token of that name exists

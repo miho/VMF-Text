@@ -1,6 +1,6 @@
 # VMF-Text Roadmap
 
-*Last updated: 2026-10-20*
+*Last updated: 2026-11-20*
 
 VMF-Text occupies a niche no other framework covers: **a plain (labeled or
 auto-labeled) ANTLR4 grammar in → a rich, typed VMF model plus an exact
@@ -10,6 +10,13 @@ Java-only; raw ANTLR offers no model or unparsing layer. This roadmap turns
 that differentiator into something outsiders can see and adopt.
 
 Design background: `LEXICAL_PRESERVATION_ASSESSMENT.md`.
+
+## Ship 0.3.0
+
+Generated models use VMF containment, with structural equality and parent
+links maintained by VMF. This release also improves round trips for skipped
+trivia and repeated literals and uses VMF 0.4.0 from Maven Central. Track
+qualification and publishing in [the release checklist](docs/releases/0.3.0.md).
 
 ## Phase 0 — Ship 0.2.0 (shipped 2026-07-12)
 
